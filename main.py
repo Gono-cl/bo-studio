@@ -1,13 +1,8 @@
-import streamlit as st
-from pathlib import Path
-import importlib.util
-from core.utils import db_handler
-from dotenv import load_dotenv
-import os
 from streamlit_oauth import OAuth2Component
+import streamlit as st
+import os
+from dotenv import load_dotenv
 
-
-load_dotenv('/etc/secrets/google_auth_secrets.env')
 
 
 # ===== Streamlit page configuration =====
@@ -30,7 +25,10 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # ===== Initialize database =====
 db_handler.init_db()
 
-# ===== Initialize Google login =====
+# ===== Initialize Google Login =====
+
+load_dotenv("/etc/secrets/google_auth_secrets.env")
+
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
 redirect_uri = os.getenv("REDIRECT_URI")
@@ -38,9 +36,10 @@ redirect_uri = os.getenv("REDIRECT_URI")
 oauth2 = OAuth2Component(
     client_id=client_id,
     client_secret=client_secret,
-    auth_url="https://accounts.google.com/o/oauth2/auth",
-    token_url="https://oauth2.googleapis.com/token",
     redirect_uri=redirect_uri,
+    authorize_endpoint="https://accounts.google.com/o/oauth2/auth",
+    token_endpoint="https://oauth2.googleapis.com/token",
+    revoke_endpoint=None,
     scope="https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
 )
 
