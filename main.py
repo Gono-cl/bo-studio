@@ -2,6 +2,7 @@ from streamlit_oauth import OAuth2Component
 import streamlit as st
 import os
 from dotenv import load_dotenv
+import urllib.parse
 from core.utils import db_handler
 
 
@@ -29,36 +30,78 @@ db_handler.init_db()
 # ===== Initialize Google Login =====
 
 load_dotenv('/etc/secrets/google_auth_secrets.env')
+#load_dotenv('.env')
 
-client_id = os.getenv("CLIENT_ID")
-client_secret = os.getenv("CLIENT_SECRET")
-redirect_uri = os.getenv("REDIRECT_URI")
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+REDIRECT_URI = os.getenv("REDIRECT_URI")
 
-oauth2 = OAuth2Component(
-    client_id=client_id,
-    client_secret=client_secret
-)
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+SCOPE = "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
 
-token = oauth2.authorize_button("🔐 Log in with Google", 
-                                key="google_login", 
-                                redirect_uri=redirect_uri, 
-                                scope="https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
-                                )
+def get_login_url():
+    params = {
+        "client_id": CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": REDIRECT_URI,
+        "scope": SCOPE,
+        "access_type": "offline",
+        "prompt": "consent"
+    }
+    return f"{GOOGLE_AUTH_URL}?{urllib.parse.urlencode(params)}"
 
-if token:
-    user_info = oauth2.get_user_info(token, "https://www.googleapis.com/oauth2/v2/userinfo")
-    st.session_state["user_email"] = user_info["email"]
-    st.session_state["user_name"] = user_info.get("name", "")
-else:
-    st.stop()
+def get_token(code):
+    data = {
+        "code": code,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "redirect_uri": REDIRECT_URI,
+        "grant_type": "authorization_code"
+    }
+    r = requests.post(GOOGLE_TOKEN_URL, data=data)
+    return r.json()
 
-# ===== Sidebar: logout + user info =====
-if st.sidebar.button("🚪 Log out"):
-    for key in ["user_name", "user_email", "token"]:
+def get_user_info(token):
+    headers = {"Authorization": f"Bearer {token}"}
+    r = requests.get(GOOGLE_USERINFO_URL, headers=headers)
+    return r.json()
+
+# --- Main logic ---
+query_params = st.query_params
+if "logout" in query_params:
+    for key in ["user_email", "user_name", "token"]:
         st.session_state.pop(key, None)
+    st.query_params()  # clear params
     st.rerun()
+
+if "user_email" not in st.session_state:
+    if "code" in query_params:
+        code = query_params["code"][0]
+        token_data = get_token(code)
+        access_token = token_data.get("access_token")
+        if access_token:
+            user_info = get_user_info(access_token)
+            st.session_state["user_email"] = user_info.get("email")
+            st.session_state["user_name"] = user_info.get("name", "")
+            st.session_state["token"] = access_token
+            # Remove code from URL
+            st.query_params()
+            st.rerun()
+        else:
+            st.error("Failed to get access token.")
+            st.stop()
+    else:
+        st.markdown(f'<a href="{get_login_url()}" target="_self"><button>🔐 Log in with Google</button></a>', unsafe_allow_html=True)
+        st.stop()
+
+# --- User is logged in ---
 st.sidebar.write(f"👤 {st.session_state['user_name']}")
 st.sidebar.write(f"✉️ {st.session_state['user_email']}")
+if st.sidebar.button("🚪 Log out"):
+    st.experimental_set_query_params(logout="1")
+    st.rerun()
 
 # ===== Define app pages =====
 PAGES = {
