@@ -28,7 +28,7 @@ db_handler.init_db()
 
 # ===== Initialize Google Login =====
 
-load_dotenv("/etc/secrets/google_auth_secrets.env")
+load_dotenv('/etc/secrets/google_auth_secrets.env')
 
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
@@ -37,13 +37,10 @@ redirect_uri = os.getenv("REDIRECT_URI")
 oauth2 = OAuth2Component(
     client_id=client_id,
     client_secret=client_secret,
-    auth_url="https://accounts.google.com/o/oauth2/auth",
-    token_url="https://oauth2.googleapis.com/token",
-    scope="https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
+    scope="https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
 )
 
 token = oauth2.authorize_button("🔐 Log in with Google", key="google_login", redirect_uri=redirect_uri)
-
 
 if token:
     user_info = oauth2.get_user_info(token, "https://www.googleapis.com/oauth2/v2/userinfo")
