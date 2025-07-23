@@ -36,11 +36,14 @@ redirect_uri = os.getenv("REDIRECT_URI")
 
 oauth2 = OAuth2Component(
     client_id=client_id,
-    client_secret=client_secret,
-    scope="https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
+    client_secret=client_secret
 )
 
-token = oauth2.authorize_button("🔐 Log in with Google", key="google_login", redirect_uri=redirect_uri)
+token = oauth2.authorize_button("🔐 Log in with Google", 
+                                key="google_login", 
+                                redirect_uri=redirect_uri, 
+                                scope="https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
+                                )
 
 if token:
     user_info = oauth2.get_user_info(token, "https://www.googleapis.com/oauth2/v2/userinfo")
