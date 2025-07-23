@@ -2,6 +2,13 @@ import streamlit as st
 from pathlib import Path
 import importlib.util
 from core.utils import db_handler
+from dotenv import load_dotenv
+import os
+from streamlit_oauth import OAuth2Component
+
+
+load_dotenv('/etc/secrets/google_auth_secrets.env')
+
 
 # ===== Streamlit page configuration =====
 st.set_page_config(
@@ -23,32 +30,36 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # ===== Initialize database =====
 db_handler.init_db()
 
-# ===== Google OAuth login =====
-if not st.user.is_logged_in:
-    # Center the image using columns
-    col1, col2, col3 = st.columns([1,1,1])
-    with col2:
-        st.image("image.png", use_container_width=True)
+# ===== Initialize Google login =====
+client_id = os.getenv("CLIENT_ID")
+client_secret = os.getenv("CLIENT_SECRET")
+redirect_uri = os.getenv("REDIRECT_URI")
 
-    st.markdown(
-        """
-        <div style='text-align: center; margin-top: 30px;'>
-            <h1>🔒 BO Studio</h1>
-            <p style='font-size: 20px;'>Sign in with Google to access your experiments.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+oauth2 = OAuth2Component(
+    client_id=client_id,
+    client_secret=client_secret,
+    auth_url="https://accounts.google.com/o/oauth2/auth",
+    token_url="https://oauth2.googleapis.com/token",
+    redirect_uri=redirect_uri,
+    scope="https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
+)
 
-    col1, col2, col3 = st.columns([3,1,3])
-    with col2:
-        st.button("🔐 Log in with Google", on_click=st.login)
+token = oauth2.authorize_button("🔐 Log in with Google", key="google_login")
+
+if token:
+    user_info = oauth2.get_user_info(token, "https://www.googleapis.com/oauth2/v2/userinfo")
+    st.session_state["user_email"] = user_info["email"]
+    st.session_state["user_name"] = user_info.get("name", "")
+else:
     st.stop()
 
 # ===== Sidebar: logout + user info =====
-st.sidebar.button("🚪 Log out", on_click=st.logout)
-st.sidebar.write(f"👤 {st.user.name}")
-st.sidebar.write(f"✉️ {st.user.email}")
+if st.sidebar.button("🚪 Log out"):
+    for key in ["user_name", "user_email", "token"]:
+        st.session_state.pop(key, None)
+    st.rerun()
+st.sidebar.write(f"👤 {st.session_state['user_name']}")
+st.sidebar.write(f"✉️ {st.session_state['user_email']}")
 
 # ===== Define app pages =====
 PAGES = {
