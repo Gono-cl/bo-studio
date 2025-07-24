@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import urllib.parse
 from core.utils import db_handler
+import requests
 
 
 
