@@ -135,5 +135,10 @@ def load_page(page_path):
 
 load_page(PAGES[selection])
 
+st.write("Code:", code)
+st.write("Client ID:", CLIENT_ID)
+st.write("Client Secret:", CLIENT_SECRET)
+st.write("Redirect URI:", REDIRECT_URI)
+
 
 
