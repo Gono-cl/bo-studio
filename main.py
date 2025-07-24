@@ -87,7 +87,7 @@ if "logout" in query_params:
 
 if "user_email" not in st.session_state:
     if "code" in query_params:
-        code = query_params["code"][0]
+        code = query_params["code"]
         token_data = get_token(code)
         access_token = token_data.get("access_token")
         if access_token:
