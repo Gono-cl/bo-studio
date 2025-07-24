@@ -65,6 +65,10 @@ def get_token(code):
     }
     r = requests.post(GOOGLE_TOKEN_URL, data=data)
     st.write("Token response:", r.text)  # <-- Add this line for debugging
+    st.write("Code:", code)
+    st.write("Client ID:", CLIENT_ID)
+    st.write("Client Secret:", CLIENT_SECRET)
+    st.write("Redirect URI:", REDIRECT_URI)
     return r.json()
 
 def get_user_info(token):
@@ -135,10 +139,6 @@ def load_page(page_path):
 
 load_page(PAGES[selection])
 
-st.write("Code:", code)
-st.write("Client ID:", CLIENT_ID)
-st.write("Client Secret:", CLIENT_SECRET)
-st.write("Redirect URI:", REDIRECT_URI)
 
 
 
