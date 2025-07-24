@@ -62,6 +62,7 @@ def get_token(code):
         "grant_type": "authorization_code"
     }
     r = requests.post(GOOGLE_TOKEN_URL, data=data)
+    st.write("Token response:", r.text)  # <-- Add this line for debugging
     return r.json()
 
 def get_user_info(token):
