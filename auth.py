@@ -1,6 +1,8 @@
 import os
 import requests
 import urllib.parse
+from dotenv import load_dotenv
+
 load_dotenv('/etc/secrets/google_auth_secrets.env')
 #load_dotenv('.env')
 
