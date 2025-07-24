@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import urllib.parse
 from core.utils import db_handler
 import requests
+import importlib.util
+from pathlib import Path
 
 
 
@@ -75,7 +77,7 @@ query_params = st.query_params
 if "logout" in query_params:
     for key in ["user_email", "user_name", "token"]:
         st.session_state.pop(key, None)
-    st.query_params()  # clear params
+    st.experimental_set_query_params()  # clears all params
     st.rerun()
 
 if "user_email" not in st.session_state:
@@ -89,7 +91,7 @@ if "user_email" not in st.session_state:
             st.session_state["user_name"] = user_info.get("name", "")
             st.session_state["token"] = access_token
             # Remove code from URL
-            st.query_params()
+            st.experimental_set_query_params()
             st.rerun()
         else:
             st.error("Failed to get access token.")
