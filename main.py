@@ -7,6 +7,7 @@ from core.utils import db_handler
 import requests
 import importlib.util
 from pathlib import Path
+from auth import get_login_url, get_token, get_user_info
 
 
 
@@ -32,57 +33,13 @@ db_handler.init_db()
 
 # ===== Initialize Google Login =====
 
-load_dotenv('/etc/secrets/google_auth_secrets.env')
-#load_dotenv('.env')
-
-CLIENT_ID = os.getenv("CLIENT_ID")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI")
-
-GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
-SCOPE = "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
-
-def get_login_url():
-    params = {
-        "client_id": CLIENT_ID,
-        "response_type": "code",
-        "redirect_uri": REDIRECT_URI,
-        "scope": SCOPE,
-        "access_type": "offline",
-        "prompt": "consent"
-    }
-    return f"{GOOGLE_AUTH_URL}?{urllib.parse.urlencode(params)}"
-
-def get_token(code):
-    data = {
-        "code": code,
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "redirect_uri": REDIRECT_URI,
-        "grant_type": "authorization_code"
-    }
-    r = requests.post(GOOGLE_TOKEN_URL, data=data)
-    st.write("Token response:", r.text)  # <-- Add this line for debugging
-    st.write("Code:", code)
-    st.write("Client ID:", CLIENT_ID)
-    st.write("Client Secret:", CLIENT_SECRET)
-    st.write("Redirect URI:", REDIRECT_URI)
-    return r.json()
-
-def get_user_info(token):
-    headers = {"Authorization": f"Bearer {token}"}
-    r = requests.get(GOOGLE_USERINFO_URL, headers=headers)
-    return r.json()
 
 # --- Main logic ---
 query_params = st.query_params
-st.write("Query params:", query_params)
 if "logout" in query_params:
     for key in ["user_email", "user_name", "token"]:
         st.session_state.pop(key, None)
-    st.query_params.clear()  # correct
+    st.query_params.clear()
     st.rerun()
 
 if "user_email" not in st.session_state:
@@ -95,8 +52,7 @@ if "user_email" not in st.session_state:
             st.session_state["user_email"] = user_info.get("email")
             st.session_state["user_name"] = user_info.get("name", "")
             st.session_state["token"] = access_token
-            # Remove code from URL
-            st.query_params.clear()  # correct
+            st.query_params.clear()
             st.rerun()
         else:
             st.error("Failed to get access token.")
