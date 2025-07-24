@@ -78,6 +78,7 @@ def get_user_info(token):
 
 # --- Main logic ---
 query_params = st.query_params
+st.write("Query params:", query_params)
 if "logout" in query_params:
     for key in ["user_email", "user_name", "token"]:
         st.session_state.pop(key, None)
