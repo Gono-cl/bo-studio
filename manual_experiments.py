@@ -11,7 +11,11 @@ import os
 import json
 import dill as pickle  
 
-SAVE_DIR = "resumable_manual_runs"
+if os.getenv("RENDER") == "true":
+    SAVE_DIR = "/mnt/data/resumable_manual_runs"
+else:
+    SAVE_DIR = "resumable_manual_runs"
+
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 # --- Resume Section ---
