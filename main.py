@@ -58,7 +58,7 @@ if "user_email" not in st.session_state:
         st.markdown(
             """
             <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                <img src="assets/image.png" width="220" style="margin-bottom: 20px;" />
+                <img src="image.png" width="220" style="margin-bottom: 20px;" />
                 <h1 style="color: #2c3e50;">🧪 BO Studio</h1>
                 <h3 style="color: #34495e;">Bayesian Optimization Made Simple</h3>
                 <p style="max-width: 600px; color: #555;">
@@ -66,10 +66,14 @@ if "user_email" not in st.session_state:
                     Log in with Google to get started and access your personal experiment database.
                 </p>
             </div>
-            """,
+            <div style="display: flex; justify-content: center; margin-top: 30px;">
+                <a href="{login_url}" target="_self">
+                    <button style="font-size: 18px; padding: 8px 24px;">🔐 Log in with Google</button>
+                </a>
+            </div>
+            """.format(login_url=get_login_url()),
             unsafe_allow_html=True
         )
-        st.markdown(f'<a href="{get_login_url()}" target="_self"><button>🔐 Log in with Google</button></a>', unsafe_allow_html=True)
         st.stop()
 
 # --- User is logged in ---
