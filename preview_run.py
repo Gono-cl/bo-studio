@@ -7,6 +7,7 @@ import altair as alt
 from datetime import datetime
 
 SAVE_DIR = "resumable_runs"
+os.makedirs(SAVE_DIR, exist_ok=True)
 
 st.title("🔍 Preview Optimization Run")
 
