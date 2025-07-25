@@ -8,7 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 st.title("📚 Experiment Database")
 st.markdown("### Experiment History")
 
-experiments = db_handler.list_experiments(st.user.email)
+experiments = db_handler.list_experiments(st.session_state["user_email"])
 
 if not experiments:
     st.info("No experiments saved yet.")
