@@ -31,9 +31,6 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # ===== Initialize database =====
 db_handler.init_db()
 
-# ===== Initialize Google Login =====
-
-
 # --- Main logic ---
 query_params = st.query_params
 if "logout" in query_params:
@@ -58,6 +55,20 @@ if "user_email" not in st.session_state:
             st.error("Failed to get access token.")
             st.stop()
     else:
+        st.markdown(
+            """
+            <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <img src="assets/image.png" width="220" style="margin-bottom: 20px;" />
+                <h1 style="color: #2c3e50;">🧪 BO Studio</h1>
+                <h3 style="color: #34495e;">Bayesian Optimization Made Simple</h3>
+                <p style="max-width: 600px; color: #555;">
+                    Welcome to <b>BO Studio</b>! Run, track, and analyze your optimization experiments with ease.<br>
+                    Log in with Google to get started and access your personal experiment database.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         st.markdown(f'<a href="{get_login_url()}" target="_self"><button>🔐 Log in with Google</button></a>', unsafe_allow_html=True)
         st.stop()
 
