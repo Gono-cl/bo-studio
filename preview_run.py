@@ -29,7 +29,6 @@ if selected_run != "None":
         st.markdown(f"### 📄 Run: `{selected_run}`")
         st.markdown(f"**Variables:** {[v[0] for v in metadata['variables']]}")
         st.markdown(f"**Target:** `{metadata['response']}`")
-        st.markdown(f"**Simulation Mode:** `{metadata['simulation_mode']}`")
         st.markdown(f"**Progress:** {len(df)} / {metadata['total_iterations']} experiments")
 
         st.dataframe(df)
