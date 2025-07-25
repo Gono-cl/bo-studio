@@ -22,7 +22,7 @@ selected_run = st.selectbox("Select a Run to Preview", options=["None"] + runs)
 if selected_run != "None":
     run_path = os.path.join(SAVE_DIR, selected_run)
     try:
-        df = pd.read_csv(os.path.join(run_path, "experiment_data.csv"))
+        df = pd.read_csv(os.path.join(run_path, "manual_data.csv"))
         with open(os.path.join(run_path, "metadata.json"), "r") as f:
             metadata = json.load(f)
 
