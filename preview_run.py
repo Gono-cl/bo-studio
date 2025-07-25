@@ -6,7 +6,11 @@ import json
 import altair as alt
 from datetime import datetime
 
-SAVE_DIR = "resumable_manual_runs"
+if os.getenv("RENDER") == "true":
+    SAVE_DIR = "/mnt/data/resumable_manual_runs"
+else:
+    SAVE_DIR = "resumable_manual_runs"
+
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 st.title("🔍 Preview Optimization Run")
