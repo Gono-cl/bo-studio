@@ -1,4 +1,3 @@
-from streamlit_oauth import OAuth2Component
 import streamlit as st
 import os
 from dotenv import load_dotenv
@@ -90,6 +89,7 @@ PAGES = {
     "📚 Experiment DataBase": "experiment_database.py",
     "🔍 Preview Saved Run": "preview_run.py",
     "🎓 Bayesian Optimization Classroom": "BO_classroom.py",
+    "🧪 Simulation Case 1": "BO_classroom2.py",
     "❓ FAQ – Help & Guidance": "faq.py"
 }
 

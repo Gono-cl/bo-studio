@@ -3,8 +3,11 @@ import requests
 import urllib.parse
 from dotenv import load_dotenv
 
-load_dotenv('/etc/secrets/google_auth_secrets.env')
-#load_dotenv('.env')
+# Detect if running on Render
+if os.getenv("RENDER"):
+    load_dotenv('/etc/secrets/google_auth_secrets.env')
+else:
+    load_dotenv('.env')
 
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
