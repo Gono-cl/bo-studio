@@ -5,9 +5,7 @@ from skopt import gp_minimize
 from skopt.space import Real
 import pandas as pd  # Ensure pandas is available globally
 import plotly.express as px  # Ensure plotly.express is available globally
-from rdkit import Chem
-from rdkit.Chem import Draw
-from rdkit.Chem import AllChem
+
 
 st.title("🎯 BO Classroom: Simulation Case 1")
 
