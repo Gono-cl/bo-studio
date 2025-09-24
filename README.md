@@ -21,7 +21,7 @@ Interactive exploration and simulation
 ## 🌐 Try It Online
 
 🟢 **BO Studio is available as a web app** – no installation needed!  
-👉 [Launch BO Studio in your browser](https://bo-studio.streamlit.app/)
+👉 [Launch BO Studio in your browser](https://bo-studio.onrender.com/)
 
 ---
 
