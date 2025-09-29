@@ -290,9 +290,9 @@ if st.session_state.manual_variables:
         st.session_state.manual_variables = updated_variables
         st.success("Variables updated successfully!")
 
-    # Delete a variable
-    delete_var = st.selectbox("Select a Variable to Delete", options=[var[0] for var in st.session_state.manual_variables])
-    if st.button("🗑️ Delete Variable"):
+    # Fix delete functionality to only delete when the button is pressed
+    delete_var = st.selectbox("Select a Variable to Delete", options=["None"] + [var[0] for var in st.session_state.manual_variables])
+    if delete_var != "None" and st.button("🗑️ Delete Variable"):
         st.session_state.manual_variables = [var for var in st.session_state.manual_variables if var[0] != delete_var]
         st.success(f"Variable '{delete_var}' deleted successfully!")
 
