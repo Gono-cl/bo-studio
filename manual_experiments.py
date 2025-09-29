@@ -198,7 +198,7 @@ if "recalc_needed" not in st.session_state:
     st.session_state.recalc_needed = False
 
 experiment_name = st.text_input("Experiment Name", value=st.session_state.get("experiment_name", ""))
-experiment_notes = st.text_area("Notes (optional)")
+experiment_notes = st.text_area("Notes (optional)", value=st.session_state.get("experiment_notes", ""))
 experiment_date = st.date_input("Experiment date")
 
 # Use the experiment name provided by the user, or fall back to a default
