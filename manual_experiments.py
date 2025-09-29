@@ -19,13 +19,18 @@ else:
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 # --- Resume Section ---
+user_email = st.session_state.get("user_email", "default_user")
+user_save_dir = os.path.join(SAVE_DIR, user_email)
+os.makedirs(user_save_dir, exist_ok=True)
+
+# Update the resume logic to filter campaigns by user
 st.sidebar.markdown("---")
 resume_file = st.sidebar.selectbox(
     "🔄 Resume from Previous Manual Campaign", 
-    options=["None"] + os.listdir(SAVE_DIR)
+    options=["None"] + os.listdir(user_save_dir)
 )
 if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
-    run_path = os.path.join(SAVE_DIR, resume_file)
+    run_path = os.path.join(user_save_dir, resume_file)
     with open(os.path.join(run_path, "optimizer.pkl"), "rb") as f:
         st.session_state.manual_optimizer = pickle.load(f)
     df = pd.read_csv(os.path.join(run_path, "manual_data.csv"))
@@ -68,7 +73,7 @@ if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
 
 st.title("🧰 Manual Optimization Campaign")
 
-# --- Reset Button ---
+# --- Reset Campaign ---
 if st.button("🔄 Reset Campaign"):
     for key in [
         "manual_variables", "manual_data", "manual_optimizer",
@@ -198,7 +203,7 @@ experiment_date = st.date_input("Experiment date")
 # Use the experiment name provided by the user, or fall back to a default
 run_name = experiment_name.strip() if experiment_name.strip() else "manual_experiment"
 st.session_state["campaign_name"] = run_name  # Save it in session state
-run_path = os.path.join(SAVE_DIR, run_name)
+run_path = os.path.join(user_save_dir, run_name)
 os.makedirs(run_path, exist_ok=True)
 
 # Add a "Save Campaign" button in the sidebar
