@@ -33,7 +33,14 @@ if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
     run_path = os.path.join(user_save_dir, resume_file)
     with open(os.path.join(run_path, "optimizer.pkl"), "rb") as f:
         st.session_state.manual_optimizer = pickle.load(f)
-    df = pd.read_csv(os.path.join(run_path, "manual_data.csv"))
+    
+    # Handle empty CSV files gracefully
+    try:
+        df = pd.read_csv(os.path.join(run_path, "manual_data.csv"))
+    except pd.errors.EmptyDataError:
+        df = pd.DataFrame()  # Initialize an empty DataFrame if the file is empty
+        st.warning("The manual_data.csv file is empty. Initializing with an empty dataset.")
+
     with open(os.path.join(run_path, "metadata.json"), "r") as f:
         metadata = json.load(f)
 
@@ -207,13 +214,16 @@ st.session_state["campaign_name"] = run_name  # Save it in session state
 run_path = os.path.join(user_save_dir, run_name)
 os.makedirs(run_path, exist_ok=True)
 
-# Allow saving a campaign at any point, even if initialization is incomplete
+# Ensure manual_data.csv is created when saving a campaign
 if st.sidebar.button("💾 Save Campaign"):
     # Save optimizer
     with open(os.path.join(run_path, "optimizer.pkl"), "wb") as f:
         pickle.dump(st.session_state.manual_optimizer, f)
     # Save data
-    df = pd.DataFrame(st.session_state.manual_data)
+    if st.session_state.manual_data:
+        df = pd.DataFrame(st.session_state.manual_data)
+    else:
+        df = pd.DataFrame(columns=[name for name, *_ in st.session_state.manual_variables])  # Create empty DataFrame with variable names
     df.to_csv(os.path.join(run_path, "manual_data.csv"), index=False)
     # Save metadata
     metadata = {
