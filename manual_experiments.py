@@ -230,7 +230,7 @@ if st.sidebar.button("💾 Save Campaign"):
     st.sidebar.success(f"Campaign '{run_name}' saved successfully!")
 
 # --- Variable Definition ---
-st.subheader("🔧 Define Variables")
+st.subheader("🔧 Define and Edit Variables")
 
 if "var_type" not in st.session_state:
     st.session_state.var_type = "Continuous"
@@ -258,15 +258,43 @@ with st.form("manual_var_form"):
             values = [x.strip() for x in categories.split(",") if x.strip() != ""]
             st.session_state.manual_variables.append((var_name, values, None, unit, "categorical"))
 
+# Display and allow editing of variables
 if st.session_state.manual_variables:
-    st.markdown("### 📋 Current Variables")
-    for i, (name, val1, val2, unit, vtype) in enumerate(st.session_state.manual_variables):
-        if vtype == "continuous":
-            st.write(f"{i+1}. **{name}**: {val1} to {val2} {unit} (continuous)")
-        else:
-            st.write(f"{i+1}. **{name}**: {val1} {unit} (categorical)")
-else:
-    st.info("Define at least one variable to start.")
+    st.markdown("### ✏️ Edit Variables")
+
+    # Convert variables to a DataFrame for editing
+    variables_df = pd.DataFrame(
+        [
+            {
+                "Name": name,
+                "Type": vtype,
+                "Value 1": val1,
+                "Value 2": val2 if vtype == "continuous" else None,
+                "Unit": unit
+            }
+            for name, val1, val2, unit, vtype in st.session_state.manual_variables
+        ]
+    )
+
+    # Editable table
+    edited_df = st.data_editor(variables_df, key="edit_variables_editor")
+
+    # Save changes
+    if st.button("💾 Save Variable Changes"):
+        updated_variables = []
+        for _, row in edited_df.iterrows():
+            if row["Type"] == "continuous" and row["Value 1"] < row["Value 2"]:
+                updated_variables.append((row["Name"], row["Value 1"], row["Value 2"], row["Unit"], "continuous"))
+            elif row["Type"] == "categorical" and isinstance(row["Value 1"], list):
+                updated_variables.append((row["Name"], row["Value 1"], None, row["Unit"], "categorical"))
+        st.session_state.manual_variables = updated_variables
+        st.success("Variables updated successfully!")
+
+    # Delete a variable
+    delete_var = st.selectbox("Select a Variable to Delete", options=[var[0] for var in st.session_state.manual_variables])
+    if st.button("🗑️ Delete Variable"):
+        st.session_state.manual_variables = [var for var in st.session_state.manual_variables if var[0] != delete_var]
+        st.success(f"Variable '{delete_var}' deleted successfully!")
 
 # --- Experiment Setup ---
 st.subheader("⚙️ Experiment Setup")
