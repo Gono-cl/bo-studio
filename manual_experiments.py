@@ -207,7 +207,7 @@ st.session_state["campaign_name"] = run_name  # Save it in session state
 run_path = os.path.join(user_save_dir, run_name)
 os.makedirs(run_path, exist_ok=True)
 
-# Add a "Save Campaign" button in the sidebar
+# Allow saving a campaign at any point, even if initialization is incomplete
 if st.sidebar.button("💾 Save Campaign"):
     # Save optimizer
     with open(os.path.join(run_path, "optimizer.pkl"), "wb") as f:
@@ -223,7 +223,8 @@ if st.sidebar.button("💾 Save Campaign"):
         "total_iters": st.session_state.total_iters,
         "response": st.session_state.response,
         "experiment_name": experiment_name,
-        "experiment_notes": experiment_notes
+        "experiment_notes": experiment_notes,
+        "initialization_complete": st.session_state.get("initial_results_submitted", False)  # Track if initialization is complete
     }
     with open(os.path.join(run_path, "metadata.json"), "w") as f:
         json.dump(metadata, f, indent=4)
