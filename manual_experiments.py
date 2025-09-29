@@ -45,6 +45,7 @@ if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
     st.session_state.n_init = metadata.get("n_init", 1)
     st.session_state.total_iters = metadata.get("total_iters", 1)
     st.session_state.response = metadata.get("response", "Yield")
+    
     # Ensure response column exists in loaded data
     df_columns = df.columns.tolist()
     if st.session_state.response not in df_columns:
@@ -196,7 +197,7 @@ if "edit_mode" not in st.session_state:
 if "recalc_needed" not in st.session_state:
     st.session_state.recalc_needed = False
 
-experiment_name = st.text_input("Experiment Name")
+experiment_name = st.text_input("Experiment Name", value=st.session_state.get("experiment_name", ""))
 experiment_notes = st.text_area("Notes (optional)")
 experiment_date = st.date_input("Experiment date")
 
