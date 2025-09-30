@@ -514,8 +514,15 @@ if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data")
 
                         st.session_state.manual_optimizer = optimizer
                         st.session_state.iteration = len(st.session_state.manual_data)
-                        st.session_state.total_iters = prev_metadata.get("total_iters", st.session_state.total_iters)
                         st.session_state.manual_initialized = True
+
+                        # Mimic the "Submit Initial Results" workflow
+                        valid_rows = len(st.session_state.manual_data)
+                        if valid_rows > 0:
+                            st.session_state.iteration += valid_rows
+                            st.session_state.suggestions = []
+                            st.session_state.initial_results_submitted = True
+                            st.success("Previous campaign data has been successfully reused as initialization.")
 
                         # Generate graphs immediately
                         show_progress_chart(st.session_state.manual_data, st.session_state.response)
