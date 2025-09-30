@@ -606,7 +606,14 @@ if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data")
 
                         st.session_state.manual_optimizer = optimizer
                         st.session_state.iteration = len(st.session_state.manual_data)
-                        st.success("Previous campaign data has been successfully reused and the optimizer recalculated.")
+                        st.session_state.manual_initialized = True
+
+                        # Generate graphs immediately
+                        show_progress_chart(st.session_state.manual_data, st.session_state.response)
+                        show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
+
+                        # Ensure the app continues to the next step
+                        st.rerun()
     except FileNotFoundError as e:
         st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
     except pd.errors.EmptyDataError:
