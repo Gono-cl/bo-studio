@@ -521,6 +521,53 @@ if st.session_state.iteration >= total_iters:
         )
         st.success("✅ Experiment saved successfully!")
 
+# --- Reuse Previous Campaign ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("🔄 Reuse Previous Campaign")
+reuse_campaign = st.sidebar.selectbox(
+    "Select a Previous Campaign to Reuse", 
+    options=["None"] + os.listdir(SAVE_DIR)
+)
+
+if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data"):
+    reuse_path = os.path.join(SAVE_DIR, reuse_campaign)
+    try:
+        # Load previous data
+        prev_df = pd.read_csv(os.path.join(reuse_path, "manual_data.csv"))
+        with open(os.path.join(reuse_path, "metadata.json"), "r") as f:
+            prev_metadata = json.load(f)
+
+        # Validate variables
+        prev_variables = prev_metadata.get("variables", [])
+        current_variables = st.session_state.manual_variables
+
+        if len(prev_variables) != len(current_variables):
+            st.error("The number of variables in the previous campaign does not match the current campaign.")
+        else:
+            # Check for variable compatibility
+            compatible = True
+            for (prev_name, *_), (curr_name, *_) in zip(prev_variables, current_variables):
+                if prev_name != curr_name:
+                    compatible = False
+                    break
+
+            if not compatible:
+                st.error("The variable names in the previous campaign do not match the current campaign.")
+            else:
+                # Allow user to preview and edit the data
+                st.markdown("### Preview and Edit Previous Campaign Data")
+                edited_prev_df = st.data_editor(prev_df, key="edit_prev_campaign_data")
+
+                if st.button("Use Edited Data as Initialization"):
+                    # Update session state with the reused data
+                    st.session_state.manual_data = edited_prev_df.to_dict("records")
+                    st.session_state.initial_results_submitted = True
+                    st.success("Previous campaign data has been successfully reused as initialization.")
+    except FileNotFoundError:
+        st.error("The selected campaign does not have the required files.")
+    except pd.errors.EmptyDataError:
+        st.error("The manual_data.csv file in the selected campaign is empty.")
+
 
 
 
