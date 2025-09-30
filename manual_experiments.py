@@ -526,11 +526,11 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("🔄 Reuse Previous Campaign")
 reuse_campaign = st.sidebar.selectbox(
     "Select a Previous Campaign to Reuse", 
-    options=["None"] + os.listdir(SAVE_DIR)
+    options=["None"] + os.listdir(user_save_dir)
 )
 
 if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data"):
-    reuse_path = os.path.join(SAVE_DIR, reuse_campaign)
+    reuse_path = os.path.join(user_save_dir, reuse_campaign)
     try:
         # Load previous data
         prev_df = pd.read_csv(os.path.join(reuse_path, "manual_data.csv"))
