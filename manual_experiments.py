@@ -588,7 +588,25 @@ if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data")
                     # Update session state with the reused data
                     st.session_state.manual_data = edited_prev_df.to_dict("records")
                     st.session_state.initial_results_submitted = True
-                    st.success("Previous campaign data has been successfully reused as initialization.")
+
+                    # Recalculate optimizer with the reused data
+                    if st.session_state.manual_variables and st.session_state.manual_data:
+                        opt_vars = []
+                        for name, val1, val2, _, vtype in st.session_state.manual_variables:
+                            if vtype == "continuous":
+                                opt_vars.append(Real(val1, val2, name=name))
+                            else:
+                                opt_vars.append(Categorical(val1, name=name))
+
+                        optimizer = StepBayesianOptimizer(opt_vars)
+                        for row in st.session_state.manual_data:
+                            x = [row[name] for name, *_ in st.session_state.manual_variables]
+                            y_val = row[st.session_state.response]
+                            optimizer.observe(x, -y_val)
+
+                        st.session_state.manual_optimizer = optimizer
+                        st.session_state.iteration = len(st.session_state.manual_data)
+                        st.success("Previous campaign data has been successfully reused and the optimizer recalculated.")
     except FileNotFoundError as e:
         st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
     except pd.errors.EmptyDataError:
