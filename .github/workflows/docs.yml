@@ -3,7 +3,7 @@ name: Build and Deploy Docs (github_page_test)
 on:
   push:
     branches:
-      - github_page_test   # run only on this branch
+      - main   # run only on this branch
 
 jobs:
   build:
