@@ -1,9 +1,0 @@
-title: My Website
-baseurl: "" # leave empty if using GitHub Pages root
-url: "https://gono-cl.github.io/bo-studio/"
-
-nav:
-  - name: "Home"
-    link: "/"
-  - name: "Contact"
-    link: "/contact.md"
