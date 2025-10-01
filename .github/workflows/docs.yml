@@ -3,7 +3,7 @@ name: Build and Deploy Docs (github_page_test)
 on:
   push:
     branches:
-      - github_page_test   # run only when pushing to this branch
+      - github_page_test   # run only on this branch
 
 jobs:
   build:
@@ -20,10 +20,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install sphinx sphinx-rtd-theme
-          # add any extra Sphinx extensions you use (e.g. myst-parser, autodoc, numpydoc...)
+          # add any other Sphinx extensions you use (e.g. myst-parser, autodoc, numpydoc...)
 
       - name: Build HTML
-        run: sphinx-build -b html docs docs/_build/html
+        run: sphinx-build -b html docs/source docs/_build/html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
