@@ -346,7 +346,8 @@ if st.button("🚀 Suggest Initial Experiments"):
     st.success("Optimizer initialized with mixed variable types!")
 
 # --- Initial Results Input (only shown once) ---
-if st.session_state.manual_initialized and st.session_state.suggestions and not st.session_state.initial_results_submitted:
+# Ensure the table for editing initial results is displayed and validated before setting submitted_initial
+if not st.session_state.submitted_initial:
     st.markdown("### 🧪 Initial Experiments (User Input Required)")
     st.caption("💡 Press Enter or click outside each cell to confirm your entry before submitting.")
 
@@ -363,8 +364,41 @@ if st.session_state.manual_initialized and st.session_state.suggestions and not 
     )
 
     if st.button("✅ Submit Initial Results"):
-        st.session_state.edited_initial_df = edited_df.copy()
-        st.session_state.submitted_initial = True
+        if edited_df is not None:
+            st.session_state.edited_initial_df = edited_df.copy()
+            st.session_state.submitted_initial = True
+        else:
+            st.error("Please fill in the table before submitting.")
+
+# Ensure edited_initial_df is not None before processing
+if st.session_state.submitted_initial and st.session_state.edited_initial_df is not None:
+    valid_rows = 0
+    for _, row in st.session_state.edited_initial_df.iterrows():
+        value = row.get(f"{response}")
+        if value is None or str(value).strip() == "":
+            continue
+
+        try:
+            y_val = float(value)
+            x = [row[name] for name, *_ in st.session_state.manual_variables]
+            st.session_state.manual_optimizer.observe(x, -y_val)
+            row_data = row.to_dict()
+            row_data[response] = y_val
+            row_data["Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            st.session_state.manual_data.append(row_data)
+            valid_rows += 1
+        except ValueError:
+            st.error(f"Invalid number format: {value}")
+            st.stop()
+
+    if valid_rows < len(st.session_state.edited_initial_df):
+        st.warning(f"Only {valid_rows} of {len(st.session_state.edited_initial_df)} experiments had valid results. Please complete all entries.")
+        st.stop()
+
+    st.session_state.iteration += valid_rows
+    st.session_state.suggestions = []
+    st.session_state.initial_results_submitted = True
+    st.session_state.submitted_initial = False  # reset flag
 
 # --- Reuse Previous Campaign ---
 st.sidebar.markdown("---")
