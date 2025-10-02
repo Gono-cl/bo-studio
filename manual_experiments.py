@@ -516,20 +516,16 @@ if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data")
                         st.session_state.iteration = len(st.session_state.manual_data)
                         st.session_state.manual_initialized = True
 
-                        # Mimic the "Submit Initial Results" workflow
-                        valid_rows = len(st.session_state.manual_data)
-                        if valid_rows > 0:
-                            st.session_state.iteration += valid_rows
-                            st.session_state.suggestions = []
-                            st.session_state.initial_results_submitted = True
-                            st.success("Previous campaign data has been successfully reused as initialization.")
-
                         # Generate graphs immediately
                         show_progress_chart(st.session_state.manual_data, st.session_state.response)
                         show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
 
+                        # Ensure "Get Next Suggestion" button becomes available
+                        st.session_state.next_suggestion_cached = None
+                        st.success("Previous campaign data has been successfully reused as initialization.")
+
                         # Ensure the app continues to the next step
-                        st.rerun()
+                        st.experimental_rerun()
     except FileNotFoundError as e:
         st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
     except pd.errors.EmptyDataError:
