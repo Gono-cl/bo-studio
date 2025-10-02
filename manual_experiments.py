@@ -553,21 +553,7 @@ if reuse_campaign != "None":
 
                     # Preview charts for selected rows
                     colA, colB, colC = st.columns([1, 1, 2])
-                    with colA:
-                        if st.button("Preview charts for selected"):
-                            selected_df = st.session_state.prev_df_editor_cache.copy()
-                            # Coerce response and filter 'Use'
-                            selected_df[resp] = pd.to_numeric(selected_df[resp], errors="coerce")
-                            selected_df = selected_df[selected_df["Use"] & selected_df[resp].notna()]
-                            if selected_df.empty:
-                                st.warning("No valid selected rows to preview.")
-                            else:
-                                # Show charts using your existing functions
-                                # Strip 'Use' for plotting
-                                data_records = selected_df.drop(columns=["Use"]).to_dict("records")
-                                show_progress_chart(data_records, resp)
-                                show_parallel_coordinates(data_records, resp)
-
+                    
                     with colB:
                         if st.button("Select all"):
                             st.session_state.prev_df_editor_cache["Use"] = True
@@ -609,8 +595,7 @@ if reuse_campaign != "None":
 
                                 st.success(f"Reused {len(selected_df)} experiment(s) from '{reuse_campaign}'.")
                                 # Optional: immediate chart preview of what was applied
-                                show_progress_chart(st.session_state.manual_data, resp)
-                                show_parallel_coordinates(st.session_state.manual_data, resp)
+                                
                             except Exception as ex:
                                 st.error(f"Could not apply selected experiments: {ex}")
 
