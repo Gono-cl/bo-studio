@@ -474,7 +474,7 @@ if st.session_state.submitted_initial and st.session_state.edited_initial_df is 
     st.session_state.submitted_initial = False  # reset
 
 # =========================================================
-# Sidebar: Reuse Previous Campaign (as initializers)
+# Sidebar: Reuse Previous Campaign (as initializers) — with preview, edit, and row selection
 # =========================================================
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔄 Reuse Previous Campaign")
@@ -482,52 +482,145 @@ st.sidebar.subheader("🔄 Reuse Previous Campaign")
 _reuse_options = ["None"] + _list_valid_campaigns(user_save_dir)
 reuse_campaign = st.sidebar.selectbox("Select a Previous Campaign to Reuse", options=_reuse_options)
 
-if reuse_campaign != "None" and st.sidebar.button("Use Previous Experiments"):
+if reuse_campaign != "None":
     reuse_path = os.path.join(user_save_dir, reuse_campaign)
     try:
-        prev_df = pd.read_csv(os.path.join(reuse_path, "manual_data.csv"))
+        prev_df_raw = pd.read_csv(os.path.join(reuse_path, "manual_data.csv"))
         with open(os.path.join(reuse_path, "metadata.json"), "r") as f:
             prev_meta = json.load(f)
 
         prev_variables = prev_meta.get("variables", [])
         curr_variables = st.session_state.manual_variables
 
+        # Basic compatibility checks: same number of variables and same names
         if len(prev_variables) != len(curr_variables):
             st.error("The number of variables in the previous campaign does not match the current campaign.")
-            st.stop()
-
-        if not all(p[0] == c[0] for p, c in zip(prev_variables, curr_variables)):
+        elif not all(p[0] == c[0] for p, c in zip(prev_variables, curr_variables)):
             st.error("The variable names in the previous campaign do not match the current campaign.")
-            st.stop()
+        else:
+            # Decide the response column
+            resp = st.session_state.get("response", "Yield")
+            if resp not in prev_df_raw.columns:
+                candidates = ["Yield", "Conversion", "Transformation", "Productivity"]
+                fallback = next((c for c in candidates if c in prev_df_raw.columns), None)
+                if fallback is None:
+                    st.error("No valid response column found in previous data.")
+                else:
+                    resp = fallback
+                    st.session_state.response = resp
+                    st.info(f"Using '{resp}' as response column from previous data.")
 
-        # Use current selected response; fallback if needed
-        resp = st.session_state.get("response", "Yield")
-        if resp not in prev_df.columns:
-            candidates = ["Yield", "Conversion", "Transformation", "Productivity"]
-            fallback = next((c for c in candidates if c in prev_df.columns), None)
-            if fallback is None:
-                st.error("No valid response column found in previous data.")
-                st.stop()
-            resp = fallback
-            st.session_state.response = resp
-            st.info(f"Using '{resp}' as response column from previous data.")
+            # Only proceed if we have a response
+            if st.session_state.get("response") in prev_df_raw.columns or resp in prev_df_raw.columns:
+                # Ensure all required variable columns exist
+                required_cols = [name for name, *_ in curr_variables]
+                missing = [c for c in required_cols if c not in prev_df_raw.columns]
+                if missing:
+                    st.error(f"Missing variable columns in previous data: {missing}")
+                else:
+                    # Work on an editable copy with a 'Use' column
+                    if "prev_df_editor_cache" not in st.session_state or st.session_state.get("prev_df_source_campaign") != reuse_campaign:
+                        df_for_editor = prev_df_raw.copy()
+                        # Add Use column default True
+                        df_for_editor.insert(0, "Use", True)
+                        st.session_state.prev_df_editor_cache = df_for_editor
+                        st.session_state.prev_df_source_campaign = reuse_campaign
 
-        optimizer = rebuild_optimizer_from_df(curr_variables, prev_df, resp)
+                    st.markdown("### 📋 Previous Experiments (edit + select)")
+                    # Allow user to optionally limit displayed columns for clarity
+                    default_cols = ["Use"] + required_cols + [resp]
+                    extra_cols = [c for c in st.session_state.prev_df_editor_cache.columns if c not in default_cols]
+                    show_cols = st.multiselect(
+                        "Columns to display",
+                        options=list(st.session_state.prev_df_editor_cache.columns),
+                        default=default_cols + ([c for c in extra_cols if c.lower() in ["timestamp"]]),
+                        key="reuse_cols_multiselect",
+                    )
+                    if not show_cols:
+                        show_cols = list(st.session_state.prev_df_editor_cache.columns)
 
-        st.session_state.manual_optimizer = optimizer
-        st.session_state.manual_initialized = True
-        st.session_state.manual_data = prev_df.to_dict("records")
-        st.session_state.iteration = len(st.session_state.manual_data)
-        st.session_state.initial_results_submitted = True
-        st.session_state.submitted_initial = False
+                    # Editable table
+                    edited_prev_df = st.data_editor(
+                        st.session_state.prev_df_editor_cache[show_cols],
+                        key=f"reuse_editor_{reuse_campaign}",
+                        use_container_width=True,
+                        column_config={
+                            "Use": st.column_config.CheckboxColumn("Use", help="Tick rows you want to include", default=True)
+                        }
+                    )
+                    # Merge edits back into the cached full DF
+                    st.session_state.prev_df_editor_cache.loc[:, show_cols] = edited_prev_df
 
-        st.success(f"Previous campaign '{reuse_campaign}' successfully reused.")
+                    # Preview charts for selected rows
+                    colA, colB, colC = st.columns([1, 1, 2])
+                    with colA:
+                        if st.button("Preview charts for selected"):
+                            selected_df = st.session_state.prev_df_editor_cache.copy()
+                            # Coerce response and filter 'Use'
+                            selected_df[resp] = pd.to_numeric(selected_df[resp], errors="coerce")
+                            selected_df = selected_df[selected_df["Use"] & selected_df[resp].notna()]
+                            if selected_df.empty:
+                                st.warning("No valid selected rows to preview.")
+                            else:
+                                # Show charts using your existing functions
+                                # Strip 'Use' for plotting
+                                data_records = selected_df.drop(columns=["Use"]).to_dict("records")
+                                show_progress_chart(data_records, resp)
+                                show_parallel_coordinates(data_records, resp)
+
+                    with colB:
+                        if st.button("Select all"):
+                            st.session_state.prev_df_editor_cache["Use"] = True
+                            st.rerun()
+                        if st.button("Clear all"):
+                            st.session_state.prev_df_editor_cache["Use"] = False
+                            st.rerun()
+
+                    with colC:
+                        st.caption("Tip: you can also edit variable values or the response before applying.")
+
+                    # Apply selection: rebuild optimizer from selected & edited rows
+                    if st.button("Use selected experiments"):
+                        selected_df = st.session_state.prev_df_editor_cache.copy()
+                        # Validate types and filter
+                        selected_df[resp] = pd.to_numeric(selected_df[resp], errors="coerce")
+                        selected_df = selected_df[selected_df["Use"] & selected_df[resp].notna()]
+
+                        # Keep only variable columns + response + any useful metadata
+                        keep_cols = required_cols + [resp]
+                        extra_keep = [c for c in ["Timestamp"] if c in selected_df.columns]
+                        selected_df = selected_df[keep_cols + extra_keep].copy()
+
+                        if selected_df.empty:
+                            st.error("You must select at least one valid row (with a numeric response).")
+                        else:
+                            try:
+                                # Build optimizer from the selected rows
+                                optimizer = rebuild_optimizer_from_df(curr_variables, selected_df, resp)
+
+                                st.session_state.manual_optimizer = optimizer
+                                st.session_state.manual_initialized = True
+
+                                # Persist as current campaign data
+                                st.session_state.manual_data = selected_df.to_dict("records")
+                                st.session_state.iteration = len(st.session_state.manual_data)
+                                st.session_state.initial_results_submitted = True
+                                st.session_state.submitted_initial = False
+
+                                st.success(f"Reused {len(selected_df)} experiment(s) from '{reuse_campaign}'.")
+                                # Optional: immediate chart preview of what was applied
+                                show_progress_chart(st.session_state.manual_data, resp)
+                                show_parallel_coordinates(st.session_state.manual_data, resp)
+                            except Exception as ex:
+                                st.error(f"Could not apply selected experiments: {ex}")
+
     except FileNotFoundError as e:
         st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
     except pd.errors.EmptyDataError:
         st.error("The manual_data.csv file in the selected campaign is empty.")
     except Exception as ex:
         st.error(f"Could not reuse campaign: {ex}")
+
 
 # =========================================================
 # Always show charts if data exists
