@@ -521,9 +521,6 @@ if reuse_campaign != "None" and st.sidebar.button("Use Previous Experiments"):
         st.session_state.initial_results_submitted = True
         st.session_state.submitted_initial = False
 
-        show_progress_chart(st.session_state.manual_data, resp)
-        show_parallel_coordinates(st.session_state.manual_data, resp)
-
         st.success(f"Previous campaign '{reuse_campaign}' successfully reused.")
     except FileNotFoundError as e:
         st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
