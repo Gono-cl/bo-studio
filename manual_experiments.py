@@ -366,6 +366,84 @@ if st.session_state.manual_initialized and st.session_state.suggestions and not 
         st.session_state.edited_initial_df = edited_df.copy()
         st.session_state.submitted_initial = True
 
+# --- Reuse Previous Campaign ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("🔄 Reuse Previous Campaign")
+reuse_campaign = st.sidebar.selectbox(
+    "Select a Previous Campaign to Reuse", 
+    options=["None"] + os.listdir(user_save_dir)
+)
+
+if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data"):
+    reuse_path = os.path.join(user_save_dir, reuse_campaign)
+    
+    # Debugging: Print the reuse_path for verification
+    st.write(f"Debug: Attempting to load campaign from {reuse_path}")
+
+    try:
+        # Load previous data
+        prev_df = pd.read_csv(os.path.join(reuse_path, "manual_data.csv"))
+        with open(os.path.join(reuse_path, "metadata.json"), "r") as f:
+            prev_metadata = json.load(f)
+
+        # Validate variables
+        prev_variables = prev_metadata.get("variables", [])
+        current_variables = st.session_state.manual_variables
+
+        if len(prev_variables) != len(current_variables):
+            st.error("The number of variables in the previous campaign does not match the current campaign.")
+        else:
+            # Check for variable compatibility
+            compatible = True
+            for (prev_name, *_), (curr_name, *_) in zip(prev_variables, current_variables):
+                if prev_name != curr_name:
+                    compatible = False
+                    break
+
+            if not compatible:
+                st.error("The variable names in the previous campaign do not match the current campaign.")
+            else:
+                # Allow user to preview and edit the data
+                st.markdown("### Preview and Edit Previous Campaign Data")
+                edited_prev_df = st.data_editor(prev_df, key="edit_prev_campaign_data")
+
+                if st.button("Use Data as Initialization"):
+                    # Update session state with the reused data
+                    st.session_state.manual_data = edited_prev_df.to_dict("records")
+                    st.session_state.initial_results_submitted = True
+
+                    # Recalculate optimizer with the reused data
+                    if st.session_state.manual_variables and st.session_state.manual_data:
+                        opt_vars = []
+                        for name, val1, val2, _, vtype in st.session_state.manual_variables:
+                            if vtype == "continuous":
+                                opt_vars.append(Real(val1, val2, name=name))
+                            else:
+                                opt_vars.append(Categorical(val1, name=name))
+
+                        optimizer = StepBayesianOptimizer(opt_vars)
+                        for row in st.session_state.manual_data:
+                            x = [row[name] for name, *_ in st.session_state.manual_variables]
+                            y_val = row[st.session_state.response]
+                            optimizer.observe(x, -y_val)
+
+                        st.session_state.manual_optimizer = optimizer
+                        st.session_state.iteration = len(st.session_state.manual_data)
+                        st.session_state.manual_initialized = True
+
+                        # Generate graphs immediately
+                        show_progress_chart(st.session_state.manual_data, st.session_state.response)
+                        show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
+
+                        # Ensure "Get Next Suggestion" button becomes available
+                        st.session_state.next_suggestion_cached = None
+                        st.success("Previous campaign data has been successfully reused as initialization.")S
+
+    except FileNotFoundError as e:
+        st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
+    except pd.errors.EmptyDataError:
+        st.error("The manual_data.csv file in the selected campaign is empty.")
+
 # --- Process initial results AFTER submission ---
 if st.session_state.submitted_initial:
     valid_rows = 0
@@ -451,83 +529,6 @@ if st.session_state.recalc_needed:
         st.session_state.iteration = len(st.session_state.manual_data)
     st.session_state.recalc_needed = False
 
-# --- Reuse Previous Campaign ---
-st.sidebar.markdown("---")
-st.sidebar.subheader("🔄 Reuse Previous Campaign")
-reuse_campaign = st.sidebar.selectbox(
-    "Select a Previous Campaign to Reuse", 
-    options=["None"] + os.listdir(user_save_dir)
-)
-
-if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data"):
-    reuse_path = os.path.join(user_save_dir, reuse_campaign)
-    
-    # Debugging: Print the reuse_path for verification
-    st.write(f"Debug: Attempting to load campaign from {reuse_path}")
-
-    try:
-        # Load previous data
-        prev_df = pd.read_csv(os.path.join(reuse_path, "manual_data.csv"))
-        with open(os.path.join(reuse_path, "metadata.json"), "r") as f:
-            prev_metadata = json.load(f)
-
-        # Validate variables
-        prev_variables = prev_metadata.get("variables", [])
-        current_variables = st.session_state.manual_variables
-
-        if len(prev_variables) != len(current_variables):
-            st.error("The number of variables in the previous campaign does not match the current campaign.")
-        else:
-            # Check for variable compatibility
-            compatible = True
-            for (prev_name, *_), (curr_name, *_) in zip(prev_variables, current_variables):
-                if prev_name != curr_name:
-                    compatible = False
-                    break
-
-            if not compatible:
-                st.error("The variable names in the previous campaign do not match the current campaign.")
-            else:
-                # Allow user to preview and edit the data
-                st.markdown("### Preview and Edit Previous Campaign Data")
-                edited_prev_df = st.data_editor(prev_df, key="edit_prev_campaign_data")
-
-                if st.button("Use Edited Data as Initialization"):
-                    # Update session state with the reused data
-                    st.session_state.manual_data = edited_prev_df.to_dict("records")
-                    st.session_state.initial_results_submitted = True
-
-                    # Recalculate optimizer with the reused data
-                    if st.session_state.manual_variables and st.session_state.manual_data:
-                        opt_vars = []
-                        for name, val1, val2, _, vtype in st.session_state.manual_variables:
-                            if vtype == "continuous":
-                                opt_vars.append(Real(val1, val2, name=name))
-                            else:
-                                opt_vars.append(Categorical(val1, name=name))
-
-                        optimizer = StepBayesianOptimizer(opt_vars)
-                        for row in st.session_state.manual_data:
-                            x = [row[name] for name, *_ in st.session_state.manual_variables]
-                            y_val = row[st.session_state.response]
-                            optimizer.observe(x, -y_val)
-
-                        st.session_state.manual_optimizer = optimizer
-                        st.session_state.iteration = len(st.session_state.manual_data)
-                        st.session_state.manual_initialized = True
-
-                        # Generate graphs immediately
-                        show_progress_chart(st.session_state.manual_data, st.session_state.response)
-                        show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
-
-                        # Ensure "Get Next Suggestion" button becomes available
-                        st.session_state.next_suggestion_cached = None
-                        st.success("Previous campaign data has been successfully reused as initialization.")
-
-    except FileNotFoundError as e:
-        st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
-    except pd.errors.EmptyDataError:
-        st.error("The manual_data.csv file in the selected campaign is empty.")
 
 
 # --- Button to get next suggestion manually ---
