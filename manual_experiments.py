@@ -437,7 +437,7 @@ if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data")
 
                         # Ensure "Get Next Suggestion" button becomes available
                         st.session_state.next_suggestion_cached = None
-                        st.success("Previous campaign data has been successfully reused as initialization.")S
+                        st.success("Previous campaign data has been successfully reused as initialization.")
 
     except FileNotFoundError as e:
         st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
