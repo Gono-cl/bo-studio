@@ -524,8 +524,6 @@ if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data")
                         st.session_state.next_suggestion_cached = None
                         st.success("Previous campaign data has been successfully reused as initialization.")
 
-                        # Ensure the app continues to the next step
-                        st.experimental_rerun()
     except FileNotFoundError as e:
         st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
     except pd.errors.EmptyDataError:
