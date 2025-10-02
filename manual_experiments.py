@@ -374,11 +374,8 @@ reuse_campaign = st.sidebar.selectbox(
     options=["None"] + os.listdir(user_save_dir)
 )
 
-if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data"):
+if reuse_campaign != "None" and st.sidebar.button("Use Previous Experiments"):
     reuse_path = os.path.join(user_save_dir, reuse_campaign)
-    
-    # Debugging: Print the reuse_path for verification
-    st.write(f"Debug: Attempting to load campaign from {reuse_path}")
 
     try:
         # Load previous data
@@ -403,41 +400,35 @@ if reuse_campaign != "None" and st.sidebar.button("Load Previous Campaign Data")
             if not compatible:
                 st.error("The variable names in the previous campaign do not match the current campaign.")
             else:
-                # Allow user to preview and edit the data
-                st.markdown("### Preview and Edit Previous Campaign Data")
-                edited_prev_df = st.data_editor(prev_df, key="edit_prev_campaign_data")
+                # Process the reused data like initial results
+                st.session_state.manual_data = prev_df.to_dict("records")
+                st.session_state.initial_results_submitted = True
 
-                if st.button("Use Data as Initialization"):
-                    # Update session state with the reused data
-                    st.session_state.manual_data = edited_prev_df.to_dict("records")
-                    st.session_state.initial_results_submitted = True
+                # Recalculate optimizer with the reused data
+                if st.session_state.manual_variables and st.session_state.manual_data:
+                    opt_vars = []
+                    for name, val1, val2, _, vtype in st.session_state.manual_variables:
+                        if vtype == "continuous":
+                            opt_vars.append(Real(val1, val2, name=name))
+                        else:
+                            opt_vars.append(Categorical(val1, name=name))
 
-                    # Recalculate optimizer with the reused data
-                    if st.session_state.manual_variables and st.session_state.manual_data:
-                        opt_vars = []
-                        for name, val1, val2, _, vtype in st.session_state.manual_variables:
-                            if vtype == "continuous":
-                                opt_vars.append(Real(val1, val2, name=name))
-                            else:
-                                opt_vars.append(Categorical(val1, name=name))
+                    optimizer = StepBayesianOptimizer(opt_vars)
+                    for row in st.session_state.manual_data:
+                        x = [row[name] for name, *_ in st.session_state.manual_variables]
+                        y_val = row[st.session_state.response]
+                        optimizer.observe(x, -y_val)
 
-                        optimizer = StepBayesianOptimizer(opt_vars)
-                        for row in st.session_state.manual_data:
-                            x = [row[name] for name, *_ in st.session_state.manual_variables]
-                            y_val = row[st.session_state.response]
-                            optimizer.observe(x, -y_val)
+                    st.session_state.manual_optimizer = optimizer
+                    st.session_state.iteration = len(st.session_state.manual_data)
+                    st.session_state.manual_initialized = True
+                    st.session_state.submitted_initial = True
 
-                        st.session_state.manual_optimizer = optimizer
-                        st.session_state.iteration = len(st.session_state.manual_data)
-                        st.session_state.manual_initialized = True
+                    # Generate graphs immediately
+                    show_progress_chart(st.session_state.manual_data, st.session_state.response)
+                    show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
 
-                        # Generate graphs immediately
-                        show_progress_chart(st.session_state.manual_data, st.session_state.response)
-                        show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
-
-                        # Ensure "Get Next Suggestion" button becomes available
-                        st.session_state.next_suggestion_cached = None
-                        st.success("Previous campaign data has been successfully reused as initialization.")
+                    st.success("Previous campaign data has been successfully reused and processed.")
 
     except FileNotFoundError as e:
         st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")

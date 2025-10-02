@@ -54,10 +54,10 @@ if "user_email" not in st.session_state:
             st.error("Failed to get access token.")
             st.stop()
     else:
+        st.image("image.png", width=220)
         st.markdown(
             """
             <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                <img src="image.png" width="220" style="margin-bottom: 20px;" />
                 <h1 style="color: #2c3e50;">🧪 BO Studio</h1>
                 <h3 style="color: #34495e;">Bayesian Optimization Made Simple</h3>
                 <p style="max-width: 600px; color: #555;">
