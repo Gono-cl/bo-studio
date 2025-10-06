@@ -602,6 +602,7 @@ if reuse_campaign != "None":
                             key="reuse_skip_random"
                         )
 
+                    # Ensure the optimizer transitions to model-based optimization after reusing data
                     if st.button("Use selected experiments"):
                         selected_df = st.session_state.prev_df_editor_cache.copy()
                         selected_df[resp] = pd.to_numeric(selected_df[resp], errors="coerce")
@@ -622,6 +623,9 @@ if reuse_campaign != "None":
                                 n_initial_points_remaining=remaining_init,
                                 acq_func="EI"
                             )
+
+                            # Force the optimizer into model-based mode
+                            force_model_based(optimizer)
 
                             st.session_state.manual_optimizer = optimizer
                             st.session_state.manual_initialized = True
