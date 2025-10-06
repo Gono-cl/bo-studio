@@ -1,4 +1,4 @@
-# 🧪 BO Studio – Bayesian Optimization Made Simple
+# 🧪 BO Studio – Bayesian Optimization Made Simple V1
 ![BO Studio Logo](image3.png)
 
 ---
