@@ -1,20 +1,14 @@
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 3
 :titlesonly:
 :caption: Documentation
 :hidden:
 
-Home <self>
-🧰 Manual Optimization <manual_optimization>
-📚 Experiment DataBase <experiment_database>
-🔍 Preview Saved Run <preview_saved_run>
-🎓 Bayesian Optimization Classroom <bayesian>
-🧪 Simulation Case 1 <simulation_case>
-❓ FAQ – Help & Guidance <faq>
-About <about>
-
-```
-
-```{include} ../../README.md
-:relative-docs: docs/
-```
+home
+manual_optimization
+experiment_database
+preview_saved_run
+bayesian
+simulation_case
+faq
+about
