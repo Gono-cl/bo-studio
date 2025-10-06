@@ -4,10 +4,15 @@
 :caption: Documentation
 :hidden:
 
-Readme <self>
-User Guide <userguide>
+Home <self>
+🧰 Manual Optimization <manual_optimization>
+📚 Experiment DataBase <experiment_database>
+🔍 Preview Saved Run <preview_saved_run>
+🎓 Bayesian Optimization Classroom <bayesian>
+🧪 Simulation Case 1 <simulation_case>
+❓ FAQ – Help & Guidance <faq>
 About <about>
-FAQ <faq>
+
 ```
 
 ```{include} ../../README.md
