@@ -54,12 +54,12 @@ if "user_email" not in st.session_state:
             st.error("Failed to get access token.")
             st.stop()
     else:
-        st.image("image.png", width=220)
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            st.image("image.png", width=700)
         st.markdown(
             """
             <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                <h1 style="color: #2c3e50;">🧪 BO Studio</h1>
-                <h3 style="color: #34495e;">Bayesian Optimization Made Simple</h3>
                 <p style="max-width: 600px; color: #555;">
                     Welcome to <b>BO Studio</b>! Run, track, and analyze your optimization experiments with ease.<br>
                     Log in with Google to get started and access your personal experiment database.
