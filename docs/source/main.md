@@ -1,5 +1,6 @@
-# 🧪 BO Studio – Bayesian Optimization Made Simple
-![BO Studio Logo](image3.png)
+# 🧪 BO Studio – Bayesian Optimization Made Simple - EDITED BY VA
+
+![BO Studio Logo](docs/source/_static/image3.png)
 
 ---
 # Why BO Studio?

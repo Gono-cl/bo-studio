@@ -1,0 +1,13 @@
+site_name: My Documentation Site
+nav:
+  - Home: index.md
+  - About: about.md
+  - User Guide: userguide.md
+  - Developer Guide: developerguide.md
+
+theme:
+  name: mkdocs
+  highlightjs: true
+  hljs_languages:
+    - yaml
+    - rust

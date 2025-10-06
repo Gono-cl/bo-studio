@@ -6,9 +6,12 @@ import json
 import altair as alt
 from datetime import datetime
 
-SAVE_DIR = "resumable_runs"
-os.makedirs(SAVE_DIR, exist_ok=True)
+if os.getenv("RENDER") == "true":
+    SAVE_DIR = "/mnt/data/resumable_manual_runs"
+else:
+    SAVE_DIR = "resumable_manual_runs"
 
+os.makedirs(SAVE_DIR, exist_ok=True)
 
 st.title("🔍 Preview Optimization Run")
 
@@ -19,14 +22,13 @@ selected_run = st.selectbox("Select a Run to Preview", options=["None"] + runs)
 if selected_run != "None":
     run_path = os.path.join(SAVE_DIR, selected_run)
     try:
-        df = pd.read_csv(os.path.join(run_path, "experiment_data.csv"))
+        df = pd.read_csv(os.path.join(run_path, "manual_data.csv"))
         with open(os.path.join(run_path, "metadata.json"), "r") as f:
             metadata = json.load(f)
 
         st.markdown(f"### 📄 Run: `{selected_run}`")
         st.markdown(f"**Variables:** {[v[0] for v in metadata['variables']]}")
         st.markdown(f"**Target:** `{metadata['response']}`")
-        st.markdown(f"**Simulation Mode:** `{metadata['simulation_mode']}`")
         st.markdown(f"**Progress:** {len(df)} / {metadata['total_iterations']} experiments")
 
         st.dataframe(df)

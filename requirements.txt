@@ -11,3 +11,4 @@ ProcessOptimizer
 matplotlib
 seaborn
 Authlib>=1.3.2
+streamlit-oauth
