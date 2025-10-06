@@ -618,14 +618,24 @@ if reuse_campaign != "None":
                             seed_count = len(selected_df)
                             remaining_init = 0 if skip_random else max(0, int(st.session_state.n_init) - seed_count)
 
+                            # Rebuild the optimizer with the reused data
                             optimizer = rebuild_optimizer_from_df(
                                 curr_variables, selected_df, resp,
                                 n_initial_points_remaining=remaining_init,
                                 acq_func="EI"
                             )
 
-                            # Force the optimizer into model-based mode
-                            force_model_based(optimizer)
+                            # Manually observe the reused data
+                            for _, row in selected_df.iterrows():
+                                x = [row[name] for name, *_ in curr_variables]
+                                y = row[resp]
+                                optimizer.observe(x, -y)  # Maximizing
+
+                            # Debug the optimizer's state
+                            if hasattr(optimizer, "_opt"):
+                                st.write("Optimizer state after rebuild:")
+                                st.write(f"_n_initial_points: {getattr(optimizer._opt, '_n_initial_points', 'N/A')}")
+                                st.write(f"n_initial_points_: {getattr(optimizer._opt, 'n_initial_points_', 'N/A')}")
 
                             st.session_state.manual_optimizer = optimizer
                             st.session_state.manual_initialized = True
