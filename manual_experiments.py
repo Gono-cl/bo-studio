@@ -615,32 +615,23 @@ if reuse_campaign != "None":
                         if selected_df.empty:
                             st.error("Select at least one valid row (with numeric response).")
                         else:
-                            seed_count = len(selected_df)
-                            remaining_init = 0 if skip_random else max(0, int(st.session_state.n_init) - seed_count)
-
-                            # Rebuild the optimizer with the reused data
+                            # Rebuild the optimizer without adjusting the search space
                             optimizer = rebuild_optimizer_from_df(
                                 curr_variables, selected_df, resp,
-                                n_initial_points_remaining=remaining_init,
+                                n_initial_points_remaining=0,  # Skip additional random points
                                 acq_func="EI"
                             )
 
-                            # Manually observe the reused data
+                            # Manually observe the reused data, even if out of bounds
                             for _, row in selected_df.iterrows():
                                 x = [row[name] for name, *_ in curr_variables]
                                 y = row[resp]
                                 optimizer.observe(x, -y)  # Maximizing
 
-                            # Debug the optimizer's state
-                            if hasattr(optimizer, "_opt"):
-                                st.write("Optimizer state after rebuild:")
-                                st.write(f"_n_initial_points: {getattr(optimizer._opt, '_n_initial_points', 'N/A')}")
-                                st.write(f"n_initial_points_: {getattr(optimizer._opt, 'n_initial_points_', 'N/A')}")
-
                             st.session_state.manual_optimizer = optimizer
                             st.session_state.manual_initialized = True
                             st.session_state.manual_data = selected_df.to_dict("records")
-                            st.session_state.iteration = seed_count
+                            st.session_state.iteration = len(selected_df)
                             st.session_state.initial_results_submitted = True
                             st.session_state.submitted_initial = False
 
@@ -648,8 +639,7 @@ if reuse_campaign != "None":
                             st.session_state.suggestions = []
                             st.session_state.next_suggestion_cached = None
 
-                            msg = f"Reused {seed_count} experiment(s) from '{reuse_campaign}'. "
-                            msg += "Starting BO now." if remaining_init == 0 else f"{remaining_init} initial random(s) remain."
+                            msg = f"Reused {len(selected_df)} experiment(s) from '{reuse_campaign}'. Starting BO now."
                             st.success(msg)
 
     except FileNotFoundError as e:
