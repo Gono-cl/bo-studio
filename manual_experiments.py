@@ -44,21 +44,18 @@ def _safe_build_optimizer(space, n_initial_points_remaining=0, acq_func="EI"):
     Build StepBayesianOptimizer while being tolerant to different __init__ signatures.
     """
     try:
-        # Preferred: your class forwards to skopt.Optimizer
         return StepBayesianOptimizer(
             space,
             n_initial_points=n_initial_points_remaining,
             acq_func=acq_func
         )
     except TypeError:
-        # Fallback: try minimal signature, then set attributes if available
         opt = StepBayesianOptimizer(space)
-        # If your class exposes internals, set remaining initials on the underlying optimizer
+        # best-effort to set remaining initials on skopt.Optimizer
         try:
-            # Common in skopt: _opt is Optimizer
             if hasattr(opt, "_opt"):
-                opt._opt._n_initial_points = n_initial_points_remaining
-                # Some wrappers keep a counter; reset if present
+                if hasattr(opt._opt, "_n_initial_points"):
+                    opt._opt._n_initial_points = n_initial_points_remaining
                 if hasattr(opt._opt, "n_initial_points_"):
                     opt._opt.n_initial_points_ = n_initial_points_remaining
                 if hasattr(opt._opt, "acq_func"):
@@ -67,6 +64,17 @@ def _safe_build_optimizer(space, n_initial_points_remaining=0, acq_func="EI"):
             pass
         return opt
 
+def force_model_based(optimizer):
+    """Force next suggest() to be acquisition-driven (no random initials)."""
+    try:
+        if hasattr(optimizer, "_opt"):
+            if hasattr(optimizer._opt, "_n_initial_points"):
+                optimizer._opt._n_initial_points = 0
+            if hasattr(optimizer._opt, "n_initial_points_"):
+                optimizer._opt.n_initial_points_ = 0
+    except Exception:
+        pass
+
 def rebuild_optimizer_from_df(
     variables,
     df: pd.DataFrame,
@@ -74,20 +82,16 @@ def rebuild_optimizer_from_df(
     n_initial_points_remaining: int = 0,
     acq_func: str = "EI"
 ) -> StepBayesianOptimizer:
-    """Build StepBayesianOptimizer and observe all valid rows.
-       If n_initial_points_remaining == 0, next suggest() will be acquisition-driven.
-    """
-    # Build search space
+    """Build StepBayesianOptimizer, observe seeds, and respect remaining initials."""
     space = []
     for name, v1, v2, _unit, vtype in variables:
         if vtype == "continuous":
             space.append(Real(v1, v2, name=name))
         else:
-            space.append(Categorical(v1, name=name))  # v1 is a list of categories
+            space.append(Categorical(v1, name=name))  # v1 is list
 
     opt = _safe_build_optimizer(space, n_initial_points_remaining, acq_func)
 
-    # Coerce response and observe seeds
     df = df.copy()
     if response_col not in df.columns:
         raise ValueError(f"Response column '{response_col}' not found in reused data.")
@@ -102,7 +106,36 @@ def rebuild_optimizer_from_df(
                 opt.observe(x, -y)  # maximizing
         except (ValueError, TypeError):
             continue
+
+    # Safety: if we seeded with anything, default to model-based next
+    if n_initial_points_remaining == 0:
+        force_model_based(opt)
     return opt
+
+def _existing_points_set(manual_variables, manual_data):
+    """Build a set of tuples representing existing X (for duplicate checking)."""
+    cols = [name for name, *_ in manual_variables]
+    s = set()
+    for row in manual_data:
+        tup = tuple(row.get(c) for c in cols)
+        s.add(tup)
+    return s
+
+def next_unique_suggestion(optimizer, manual_variables, manual_data, max_tries=50):
+    """Ask optimizer until a suggestion not already in manual_data is found."""
+    seen = _existing_points_set(manual_variables, manual_data)
+    cols = [name for name, *_ in manual_variables]
+    for _ in range(max_tries):
+        x = optimizer.suggest()
+        tup = tuple(xi for xi in x)
+        # For comparison with dict rows, map suggestion onto the same order/names:
+        tup_named = tuple(tup)  # values only; rows also store values in same order when added
+        if tup_named not in seen:
+            return x
+        # If duplicate, force model-based again just in case and retry
+        force_model_based(optimizer)
+    # If we failed to find a unique point, just return the last one (user can adjust)
+    return x
 
 # =========================================================
 # Session State Initialization
@@ -182,6 +215,8 @@ if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
                     st.session_state.manual_optimizer.observe(x, -y_val)
             except (ValueError, TypeError):
                 continue
+        # After re-observing, ensure we are model-based
+        force_model_based(st.session_state.manual_optimizer)
 
     st.success(f"Loaded campaign: {resume_file}")
 
@@ -194,15 +229,14 @@ if st.button("🔄 Reset Campaign"):
     for key in list(st.session_state.keys()):
         if key not in ("user_email",):
             del st.session_state[key]
-    # re-init
     for k, v in defaults.items():
         st.session_state[k] = v
     st.rerun()
 
-st.markdown("Reuse past experiments as seeds, then continue with model-based suggestions one by one.")
+st.markdown("Reuse past experiments as seeds, then continue with **model-based** suggestions one by one (no random warm-up).")
 
 # =========================================================
-# Chart Functions (only used in the main area)
+# Chart Functions (main area only)
 # =========================================================
 def show_progress_chart(data: list, response_name: str):
     if len(data) == 0:
@@ -481,9 +515,10 @@ if st.session_state.submitted_initial and st.session_state.edited_initial_df is 
     st.session_state.suggestions = []
     st.session_state.initial_results_submitted = True
     st.session_state.submitted_initial = False
+    force_model_based(st.session_state.manual_optimizer)
 
 # =========================================================
-# Sidebar: Reuse Previous Campaign (edit + select, NO preview plots here)
+# Sidebar: Reuse Previous Campaign (edit + select; with Select/Clear all)
 # =========================================================
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔄 Reuse Previous Campaign as Seeds")
@@ -506,7 +541,6 @@ if reuse_campaign != "None":
         elif not all(p[0] == c[0] for p, c in zip(prev_variables, curr_variables)):
             st.error("Variable names do not match between campaigns.")
         else:
-            # Choose response
             resp = st.session_state.get("response", "Yield")
             if resp not in prev_df_raw.columns:
                 candidates = ["Yield", "Conversion", "Transformation", "Productivity"]
@@ -552,11 +586,21 @@ if reuse_campaign != "None":
                     )
                     st.session_state.prev_df_editor_cache.loc[:, show_cols] = edited_prev_df
 
-                    skip_random = st.checkbox(
-                        "Skip additional random initial points (start BO suggestions immediately)",
-                        value=True,
-                        key="reuse_skip_random"
-                    )
+                    c1, c2, c3 = st.columns([1, 1, 2])
+                    with c1:
+                        if st.button("Select all"):
+                            st.session_state.prev_df_editor_cache["Use"] = True
+                            st.rerun()
+                    with c2:
+                        if st.button("Clear all"):
+                            st.session_state.prev_df_editor_cache["Use"] = False
+                            st.rerun()
+                    with c3:
+                        skip_random = st.checkbox(
+                            "Skip additional random initial points (start BO suggestions immediately)",
+                            value=True,
+                            key="reuse_skip_random"
+                        )
 
                     if st.button("Use selected experiments"):
                         selected_df = st.session_state.prev_df_editor_cache.copy()
@@ -650,7 +694,6 @@ if st.session_state.recalc_needed:
             else:
                 opt_vars.append(Categorical(val1, name=name))
 
-        # If we've manually edited data, go straight to BO suggestions (no more randoms)
         optimizer = _safe_build_optimizer(opt_vars, n_initial_points_remaining=0, acq_func="EI")
 
         df_tmp = pd.DataFrame(st.session_state.manual_data)
@@ -666,12 +709,13 @@ if st.session_state.recalc_needed:
                 except (ValueError, TypeError):
                     continue
 
+        force_model_based(optimizer)
         st.session_state.manual_optimizer = optimizer
         st.session_state.iteration = len(st.session_state.manual_data)
     st.session_state.recalc_needed = False
 
 # =========================================================
-# Get next suggestion (step-by-step)
+# Get next suggestion (step-by-step) — with de-duplication
 # =========================================================
 if (
     st.session_state.manual_initialized
@@ -680,7 +724,13 @@ if (
     and st.session_state.initial_results_submitted
 ):
     if st.button("📎 Get Next Suggestion"):
-        st.session_state.next_suggestion_cached = st.session_state.manual_optimizer.suggest()
+        # Use duplicate-safe ask
+        st.session_state.next_suggestion_cached = next_unique_suggestion(
+            st.session_state.manual_optimizer,
+            st.session_state.manual_variables,
+            st.session_state.manual_data,
+            max_tries=50
+        )
 
 # Show cached suggestion + capture result
 if st.session_state.next_suggestion_cached is not None:
@@ -747,7 +797,6 @@ if st.session_state.iteration >= st.session_state.total_iters and st.session_sta
             settings=optimization_settings
         )
 
-        # Persist campaign files
         run_path = os.path.join(user_save_dir, run_name)
         os.makedirs(run_path, exist_ok=True)
         df_results.to_csv(os.path.join(run_path, "manual_data.csv"), index=False)
@@ -766,6 +815,7 @@ if st.session_state.iteration >= st.session_state.total_iters and st.session_sta
             json.dump(metadata, f, indent=4)
 
         st.success("✅ Experiment saved successfully! All campaign files have been generated.")
+
 
 
 
