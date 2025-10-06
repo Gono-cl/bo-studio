@@ -2,13 +2,14 @@ import os
 import re
 import json
 from datetime import datetime
+
 import streamlit as st
 import pandas as pd
 import altair as alt
 import plotly.express as px
 from sklearn.preprocessing import LabelEncoder
 from skopt.space import Real, Categorical
-import dill as pickle  # for StepBayesianOptimizer persistence
+import dill as pickle  # persistence
 
 from core.optimization.bayesian_optimization import StepBayesianOptimizer
 from core.utils import db_handler
@@ -23,12 +24,10 @@ else:
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 def sanitize_name(name: str) -> str:
-    """Safe folder/file name."""
     name = (name or "").strip() or "manual_experiment"
     return re.sub(r'[^A-Za-z0-9_\- ]+', '_', name)
 
 def _list_valid_campaigns(base_dir: str):
-    """Return only directories that contain both manual_data.csv and metadata.json."""
     if not os.path.exists(base_dir):
         return []
     valid = []
@@ -40,32 +39,67 @@ def _list_valid_campaigns(base_dir: str):
             valid.append(d)
     return valid
 
-def rebuild_optimizer_from_df(variables, df: pd.DataFrame, response_col: str) -> StepBayesianOptimizer:
-    """Build StepBayesianOptimizer and observe all valid rows."""
+def _safe_build_optimizer(space, n_initial_points_remaining=0, acq_func="EI"):
+    """
+    Build StepBayesianOptimizer while being tolerant to different __init__ signatures.
+    """
+    try:
+        # Preferred: your class forwards to skopt.Optimizer
+        return StepBayesianOptimizer(
+            space,
+            n_initial_points=n_initial_points_remaining,
+            acq_func=acq_func
+        )
+    except TypeError:
+        # Fallback: try minimal signature, then set attributes if available
+        opt = StepBayesianOptimizer(space)
+        # If your class exposes internals, set remaining initials on the underlying optimizer
+        try:
+            # Common in skopt: _opt is Optimizer
+            if hasattr(opt, "_opt"):
+                opt._opt._n_initial_points = n_initial_points_remaining
+                # Some wrappers keep a counter; reset if present
+                if hasattr(opt._opt, "n_initial_points_"):
+                    opt._opt.n_initial_points_ = n_initial_points_remaining
+                if hasattr(opt._opt, "acq_func"):
+                    opt._opt.acq_func = acq_func
+        except Exception:
+            pass
+        return opt
+
+def rebuild_optimizer_from_df(
+    variables,
+    df: pd.DataFrame,
+    response_col: str,
+    n_initial_points_remaining: int = 0,
+    acq_func: str = "EI"
+) -> StepBayesianOptimizer:
+    """Build StepBayesianOptimizer and observe all valid rows.
+       If n_initial_points_remaining == 0, next suggest() will be acquisition-driven.
+    """
+    # Build search space
     space = []
     for name, v1, v2, _unit, vtype in variables:
         if vtype == "continuous":
             space.append(Real(v1, v2, name=name))
         else:
-            # v1 is a list of categories
-            space.append(Categorical(v1, name=name))
+            space.append(Categorical(v1, name=name))  # v1 is a list of categories
 
-    opt = StepBayesianOptimizer(space)
+    opt = _safe_build_optimizer(space, n_initial_points_remaining, acq_func)
 
-    # Coerce response and skip invalid
+    # Coerce response and observe seeds
     df = df.copy()
     if response_col not in df.columns:
         raise ValueError(f"Response column '{response_col}' not found in reused data.")
     df[response_col] = pd.to_numeric(df[response_col], errors="coerce")
     df = df.dropna(subset=[response_col])
 
-    # Observe points
     for _, row in df.iterrows():
         x = [row[name] for name, *_ in variables]
         try:
             y = float(row[response_col])
             if pd.notnull(y):
-                opt.observe(x, -y)  # maximize
+                opt.observe(x, -y)  # maximizing
         except (ValueError, TypeError):
             continue
     return opt
@@ -73,38 +107,27 @@ def rebuild_optimizer_from_df(variables, df: pd.DataFrame, response_col: str) ->
 # =========================================================
 # Session State Initialization
 # =========================================================
-if "manual_variables" not in st.session_state:
-    st.session_state.manual_variables = []
-if "manual_data" not in st.session_state:
-    st.session_state.manual_data = []
-if "manual_optimizer" not in st.session_state:
-    st.session_state.manual_optimizer = None
-if "manual_initialized" not in st.session_state:
-    st.session_state.manual_initialized = False
-if "suggestions" not in st.session_state:
-    st.session_state.suggestions = []
-if "iteration" not in st.session_state:
-    st.session_state.iteration = 0
-if "initial_results_submitted" not in st.session_state:
-    st.session_state.initial_results_submitted = False
-if "next_suggestion_cached" not in st.session_state:
-    st.session_state.next_suggestion_cached = None
-if "submitted_initial" not in st.session_state:
-    st.session_state.submitted_initial = False
-if "edited_initial_df" not in st.session_state:
-    st.session_state.edited_initial_df = None
-if "n_init" not in st.session_state:
-    st.session_state.n_init = 1
-if "total_iters" not in st.session_state:
-    st.session_state.total_iters = 1
-if "edit_mode" not in st.session_state:
-    st.session_state.edit_mode = False
-if "recalc_needed" not in st.session_state:
-    st.session_state.recalc_needed = False
-if "response" not in st.session_state:
-    st.session_state.response = "Yield"
-if "var_type" not in st.session_state:
-    st.session_state.var_type = "Continuous"
+defaults = {
+    "manual_variables": [],
+    "manual_data": [],
+    "manual_optimizer": None,
+    "manual_initialized": False,
+    "suggestions": [],
+    "iteration": 0,
+    "initial_results_submitted": False,
+    "next_suggestion_cached": None,
+    "submitted_initial": False,
+    "edited_initial_df": None,
+    "n_init": 1,
+    "total_iters": 1,
+    "edit_mode": False,
+    "recalc_needed": False,
+    "response": "Yield",
+    "var_type": "Continuous",
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 # =========================================================
 # Sidebar: Resume (load exact previous run of this user)
@@ -123,23 +146,21 @@ if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
         with open(os.path.join(run_path, "optimizer.pkl"), "rb") as f:
             st.session_state.manual_optimizer = pickle.load(f)
     except FileNotFoundError:
-        st.warning("optimizer.pkl not found in selected campaign. The optimizer will be rebuilt from data once available.")
+        st.warning("optimizer.pkl not found. The optimizer will be rebuilt from data when needed.")
         st.session_state.manual_optimizer = None
 
-    # Handle empty CSV gracefully
     try:
         df_loaded = pd.read_csv(os.path.join(run_path, "manual_data.csv"))
     except pd.errors.EmptyDataError:
         df_loaded = pd.DataFrame()
-        st.warning("The manual_data.csv file is empty. Initializing with an empty dataset.")
+        st.warning("manual_data.csv is empty. Starting with an empty dataset.")
     except FileNotFoundError:
         df_loaded = pd.DataFrame()
-        st.warning("manual_data.csv not found. Initializing with an empty dataset.")
+        st.warning("manual_data.csv not found. Starting with an empty dataset.")
 
     with open(os.path.join(run_path, "metadata.json"), "r") as f:
         metadata = json.load(f)
 
-    # Restore session state
     st.session_state.manual_data = df_loaded.to_dict("records")
     st.session_state.manual_variables = metadata.get("variables", [])
     st.session_state.iteration = metadata.get("iteration", len(df_loaded))
@@ -152,10 +173,9 @@ if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
     st.session_state.experiment_name = metadata.get("experiment_name", "")
     st.session_state.experiment_notes = metadata.get("experiment_notes", "")
 
-    # Re-observe previous data if optimizer exists; otherwise rebuild when needed
     if st.session_state.manual_optimizer is not None and len(st.session_state.manual_data) > 0:
         for row in st.session_state.manual_data:
-            x = [row[name] for name, *_ in st.session_state.manual_variables]
+            x = [row.get(name) for name, *_ in st.session_state.manual_variables]
             try:
                 y_val = float(row.get(st.session_state.response, float("nan")))
                 if pd.notnull(y_val):
@@ -171,22 +191,18 @@ if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
 st.title("🧰 Manual Optimization Campaign")
 
 if st.button("🔄 Reset Campaign"):
-    for key in [
-        "manual_variables", "manual_data", "manual_optimizer", "manual_initialized",
-        "suggestions", "iteration", "initial_results_submitted", "next_suggestion_cached",
-        "submitted_initial", "edited_initial_df", "n_init", "total_iters",
-        "edit_mode", "recalc_needed", "campaign_name"
-    ]:
-        if key in st.session_state:
+    for key in list(st.session_state.keys()):
+        if key not in ("user_email",):
             del st.session_state[key]
+    # re-init
+    for k, v in defaults.items():
+        st.session_state[k] = v
     st.rerun()
 
-st.markdown("""
-This module lets you reuse past experiments as seeds and then continue step-by-step with new BO suggestions.
-""")
+st.markdown("Reuse past experiments as seeds, then continue with model-based suggestions one by one.")
 
 # =========================================================
-# Chart Functions
+# Chart Functions (only used in the main area)
 # =========================================================
 def show_progress_chart(data: list, response_name: str):
     if len(data) == 0:
@@ -205,7 +221,6 @@ def show_progress_chart(data: list, response_name: str):
     ).properties(width=700, height=400)
     st.altair_chart(chart, use_container_width=True)
 
-    # Live best row
     if df_results[response_name].notna().any():
         best_val = df_results[response_name].max()
         st.markdown(f"**Current Best {response_name}:** {best_val:.4g}")
@@ -219,14 +234,14 @@ def show_parallel_coordinates(data: list, response_name: str):
 
     df[response_name] = pd.to_numeric(df[response_name], errors="coerce")
 
-    # Keep only variables defined by the user
     input_vars = [name for name, *_ in st.session_state.manual_variables]
     cols_to_plot = [c for c in (input_vars + [response_name]) if c in df.columns]
+    if not cols_to_plot:
+        return
     df = df[cols_to_plot]
 
     st.markdown("### 🔀 Parallel Coordinates Plot")
 
-    # Encode object columns numerically and prepare label legend
     legend_entries = []
     for col in df.columns:
         if df[col].dtype == object:
@@ -237,13 +252,11 @@ def show_parallel_coordinates(data: list, response_name: str):
             except Exception:
                 continue
 
-    labels = {col: col for col in df.columns}
-
     fig = px.parallel_coordinates(
         df,
         color=response_name,
         color_continuous_scale=px.colors.sequential.Viridis,
-        labels=labels
+        labels={c: c for c in df.columns}
     )
     fig.update_layout(
         font=dict(size=20, color='black'),
@@ -260,7 +273,6 @@ def show_parallel_coordinates(data: list, response_name: str):
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # Display legend for categorical variables
     if legend_entries:
         st.markdown("### 🏷️ Categorical Legends")
         for col, mapping in legend_entries:
@@ -284,25 +296,21 @@ os.makedirs(run_path, exist_ok=True)
 # Save Campaign (Sidebar)
 # =========================================================
 if st.sidebar.button("💾 Save Campaign"):
-    # Save optimizer (may be None if not initialized yet)
     try:
         with open(os.path.join(run_path, "optimizer.pkl"), "wb") as f:
             pickle.dump(st.session_state.manual_optimizer, f)
     except Exception:
         st.sidebar.warning("Could not save optimizer.pkl (optimizer may be None). Proceeding with data and metadata.")
 
-    # Save data
     if st.session_state.manual_data:
         df_save = pd.DataFrame(st.session_state.manual_data)
     else:
-        # Empty DataFrame seeded with variable names and response (if defined)
         base_cols = [name for name, *_ in st.session_state.manual_variables]
         if st.session_state.get("response"):
             base_cols.append(st.session_state["response"])
         df_save = pd.DataFrame(columns=base_cols)
     df_save.to_csv(os.path.join(run_path, "manual_data.csv"), index=False)
 
-    # Save metadata
     metadata = {
         "variables": st.session_state.manual_variables,
         "iteration": st.session_state.get("iteration", len(df_save)),
@@ -321,7 +329,6 @@ if st.sidebar.button("💾 Save Campaign"):
 # Variable Definition / Editing
 # =========================================================
 st.subheader("🔧 Define and Edit Variables")
-
 st.session_state.var_type = st.selectbox("Variable Type", ["Continuous", "Categorical"], key="var_type_select")
 
 with st.form("manual_var_form"):
@@ -345,7 +352,6 @@ with st.form("manual_var_form"):
             values = [x.strip() for x in categories.split(",") if x.strip()]
             st.session_state.manual_variables.append((var_name, values, None, unit, "categorical"))
 
-# Display + edit variables
 if st.session_state.manual_variables:
     st.markdown("### ✏️ Edit Variables")
     variables_df = pd.DataFrame(
@@ -360,9 +366,7 @@ if st.session_state.manual_variables:
             for name, val1, val2, unit, vtype in st.session_state.manual_variables
         ]
     )
-
     edited_df = st.data_editor(variables_df, key="edit_variables_editor")
-
     if st.button("💾 Save Variable Changes"):
         updated_variables = []
         for _, row in edited_df.iterrows():
@@ -392,17 +396,23 @@ if st.session_state.manual_variables:
 st.subheader("⚙️ Experiment Setup")
 col5, col6 = st.columns(2)
 with col5:
-    response = st.selectbox("Response to Optimize", ["Yield", "Conversion", "Transformation", "Productivity"], index=["Yield", "Conversion", "Transformation", "Productivity"].index(st.session_state.get("response", "Yield")))
+    response = st.selectbox(
+        "Response to Optimize",
+        ["Yield", "Conversion", "Transformation", "Productivity"],
+        index=["Yield", "Conversion", "Transformation", "Productivity"].index(st.session_state.get("response", "Yield"))
+    )
     st.session_state.response = response
 with col6:
     n_init = st.number_input("# Initial Experiments", min_value=1, max_value=50, value=st.session_state.n_init, key="n_init")
     total_iters = st.number_input("Total Iterations", min_value=1, max_value=100, value=st.session_state.total_iters, key="total_iters")
 
 # =========================================================
-# Suggest Initial Experiments
+# Suggest Initial Experiments (fresh run only)
 # =========================================================
 if st.button("🚀 Suggest Initial Experiments"):
-    if not st.session_state.manual_variables:
+    if st.session_state.manual_initialized and st.session_state.manual_data:
+        st.info("Already initialized (possibly via reuse). Use 📎 Get Next Suggestion to continue.")
+    elif not st.session_state.manual_variables:
         st.warning("Please define at least one variable first.")
     else:
         opt_vars = []
@@ -412,7 +422,7 @@ if st.button("🚀 Suggest Initial Experiments"):
             else:
                 opt_vars.append(Categorical(val1, name=name))
 
-        optimizer = StepBayesianOptimizer(opt_vars)
+        optimizer = _safe_build_optimizer(opt_vars, n_initial_points_remaining=st.session_state.n_init, acq_func="EI")
         st.session_state.manual_optimizer = optimizer
         st.session_state.manual_data = []
         st.session_state.manual_initialized = True
@@ -427,7 +437,7 @@ if st.button("🚀 Suggest Initial Experiments"):
 # =========================================================
 if not st.session_state.initial_results_submitted and st.session_state.suggestions:
     st.markdown("### 🧪 Initial Experiments (User Input Required)")
-    st.caption("💡 Press Enter or click outside each cell to confirm your entry before submitting.")
+    st.caption("Press Enter or click outside each cell to confirm your entry before submitting.")
 
     default_data = []
     for vals in st.session_state.suggestions:
@@ -444,7 +454,6 @@ if not st.session_state.initial_results_submitted and st.session_state.suggestio
         else:
             st.error("Please fill in the table before submitting.")
 
-# Process initial results exactly once
 if st.session_state.submitted_initial and st.session_state.edited_initial_df is not None:
     valid_rows = 0
     for _, row in st.session_state.edited_initial_df.iterrows():
@@ -465,19 +474,19 @@ if st.session_state.submitted_initial and st.session_state.edited_initial_df is 
             st.stop()
 
     if valid_rows < len(st.session_state.edited_initial_df):
-        st.warning(f"Only {valid_rows} of {len(st.session_state.edited_initial_df)} experiments had valid results. Please complete all entries.")
+        st.warning(f"Only {valid_rows} of {len(st.session_state.edited_initial_df)} experiments had valid results.")
         st.stop()
 
     st.session_state.iteration += valid_rows
     st.session_state.suggestions = []
     st.session_state.initial_results_submitted = True
-    st.session_state.submitted_initial = False  # reset
+    st.session_state.submitted_initial = False
 
 # =========================================================
-# Sidebar: Reuse Previous Campaign (as initializers) — with preview, edit, and row selection
+# Sidebar: Reuse Previous Campaign (edit + select, NO preview plots here)
 # =========================================================
 st.sidebar.markdown("---")
-st.sidebar.subheader("🔄 Reuse Previous Campaign")
+st.sidebar.subheader("🔄 Reuse Previous Campaign as Seeds")
 
 _reuse_options = ["None"] + _list_valid_campaigns(user_save_dir)
 reuse_campaign = st.sidebar.selectbox("Select a Previous Campaign to Reuse", options=_reuse_options)
@@ -492,13 +501,12 @@ if reuse_campaign != "None":
         prev_variables = prev_meta.get("variables", [])
         curr_variables = st.session_state.manual_variables
 
-        # Basic compatibility checks: same number of variables and same names
         if len(prev_variables) != len(curr_variables):
-            st.error("The number of variables in the previous campaign does not match the current campaign.")
+            st.error("Variable count mismatch between previous and current campaign.")
         elif not all(p[0] == c[0] for p, c in zip(prev_variables, curr_variables)):
-            st.error("The variable names in the previous campaign do not match the current campaign.")
+            st.error("Variable names do not match between campaigns.")
         else:
-            # Decide the response column
+            # Choose response
             resp = st.session_state.get("response", "Yield")
             if resp not in prev_df_raw.columns:
                 candidates = ["Yield", "Conversion", "Transformation", "Productivity"]
@@ -510,24 +518,19 @@ if reuse_campaign != "None":
                     st.session_state.response = resp
                     st.info(f"Using '{resp}' as response column from previous data.")
 
-            # Only proceed if we have a response
             if st.session_state.get("response") in prev_df_raw.columns or resp in prev_df_raw.columns:
-                # Ensure all required variable columns exist
                 required_cols = [name for name, *_ in curr_variables]
                 missing = [c for c in required_cols if c not in prev_df_raw.columns]
                 if missing:
                     st.error(f"Missing variable columns in previous data: {missing}")
                 else:
-                    # Work on an editable copy with a 'Use' column
                     if "prev_df_editor_cache" not in st.session_state or st.session_state.get("prev_df_source_campaign") != reuse_campaign:
                         df_for_editor = prev_df_raw.copy()
-                        # Add Use column default True
                         df_for_editor.insert(0, "Use", True)
                         st.session_state.prev_df_editor_cache = df_for_editor
                         st.session_state.prev_df_source_campaign = reuse_campaign
 
                     st.markdown("### 📋 Previous Experiments (edit + select)")
-                    # Allow user to optionally limit displayed columns for clarity
                     default_cols = ["Use"] + required_cols + [resp]
                     extra_cols = [c for c in st.session_state.prev_df_editor_cache.columns if c not in default_cols]
                     show_cols = st.multiselect(
@@ -539,7 +542,6 @@ if reuse_campaign != "None":
                     if not show_cols:
                         show_cols = list(st.session_state.prev_df_editor_cache.columns)
 
-                    # Editable table
                     edited_prev_df = st.data_editor(
                         st.session_state.prev_df_editor_cache[show_cols],
                         key=f"reuse_editor_{reuse_campaign}",
@@ -548,67 +550,59 @@ if reuse_campaign != "None":
                             "Use": st.column_config.CheckboxColumn("Use", help="Tick rows you want to include", default=True)
                         }
                     )
-                    # Merge edits back into the cached full DF
                     st.session_state.prev_df_editor_cache.loc[:, show_cols] = edited_prev_df
 
-                    # Preview charts for selected rows
-                    colA, colB, colC = st.columns([1, 1, 2])
-                    
-                    with colB:
-                        if st.button("Select all"):
-                            st.session_state.prev_df_editor_cache["Use"] = True
-                            st.rerun()
-                        if st.button("Clear all"):
-                            st.session_state.prev_df_editor_cache["Use"] = False
-                            st.rerun()
+                    skip_random = st.checkbox(
+                        "Skip additional random initial points (start BO suggestions immediately)",
+                        value=True,
+                        key="reuse_skip_random"
+                    )
 
-                    with colC:
-                        st.caption("Tip: you can also edit variable values or the response before applying.")
-
-                    # Apply selection: rebuild optimizer from selected & edited rows
                     if st.button("Use selected experiments"):
                         selected_df = st.session_state.prev_df_editor_cache.copy()
-                        # Validate types and filter
                         selected_df[resp] = pd.to_numeric(selected_df[resp], errors="coerce")
                         selected_df = selected_df[selected_df["Use"] & selected_df[resp].notna()]
 
-                        # Keep only variable columns + response + any useful metadata
                         keep_cols = required_cols + [resp]
                         extra_keep = [c for c in ["Timestamp"] if c in selected_df.columns]
                         selected_df = selected_df[keep_cols + extra_keep].copy()
 
                         if selected_df.empty:
-                            st.error("You must select at least one valid row (with a numeric response).")
+                            st.error("Select at least one valid row (with numeric response).")
                         else:
-                            try:
-                                # Build optimizer from the selected rows
-                                optimizer = rebuild_optimizer_from_df(curr_variables, selected_df, resp)
+                            seed_count = len(selected_df)
+                            remaining_init = 0 if skip_random else max(0, int(st.session_state.n_init) - seed_count)
 
-                                st.session_state.manual_optimizer = optimizer
-                                st.session_state.manual_initialized = True
+                            optimizer = rebuild_optimizer_from_df(
+                                curr_variables, selected_df, resp,
+                                n_initial_points_remaining=remaining_init,
+                                acq_func="EI"
+                            )
 
-                                # Persist as current campaign data
-                                st.session_state.manual_data = selected_df.to_dict("records")
-                                st.session_state.iteration = len(st.session_state.manual_data)
-                                st.session_state.initial_results_submitted = True
-                                st.session_state.submitted_initial = False
+                            st.session_state.manual_optimizer = optimizer
+                            st.session_state.manual_initialized = True
+                            st.session_state.manual_data = selected_df.to_dict("records")
+                            st.session_state.iteration = seed_count
+                            st.session_state.initial_results_submitted = True
+                            st.session_state.submitted_initial = False
 
-                                st.success(f"Reused {len(selected_df)} experiment(s) from '{reuse_campaign}'.")
-                                # Optional: immediate chart preview of what was applied
-                                
-                            except Exception as ex:
-                                st.error(f"Could not apply selected experiments: {ex}")
+                            # Clear any old random suggestions cache
+                            st.session_state.suggestions = []
+                            st.session_state.next_suggestion_cached = None
+
+                            msg = f"Reused {seed_count} experiment(s) from '{reuse_campaign}'. "
+                            msg += "Starting BO now." if remaining_init == 0 else f"{remaining_init} initial random(s) remain."
+                            st.success(msg)
 
     except FileNotFoundError as e:
-        st.error(f"The selected campaign does not have the required files. Missing file: {e.filename}")
+        st.error(f"Missing file in selected campaign: {e.filename}")
     except pd.errors.EmptyDataError:
-        st.error("The manual_data.csv file in the selected campaign is empty.")
+        st.error("The manual_data.csv in the selected campaign is empty.")
     except Exception as ex:
         st.error(f"Could not reuse campaign: {ex}")
 
-
 # =========================================================
-# Always show charts if data exists
+# Always show charts if data exists (MAIN area only)
 # =========================================================
 if len(st.session_state.manual_data) > 0:
     show_progress_chart(st.session_state.manual_data, st.session_state.response)
@@ -656,7 +650,8 @@ if st.session_state.recalc_needed:
             else:
                 opt_vars.append(Categorical(val1, name=name))
 
-        optimizer = StepBayesianOptimizer(opt_vars)
+        # If we've manually edited data, go straight to BO suggestions (no more randoms)
+        optimizer = _safe_build_optimizer(opt_vars, n_initial_points_remaining=0, acq_func="EI")
 
         df_tmp = pd.DataFrame(st.session_state.manual_data)
         resp = st.session_state.response
@@ -666,7 +661,7 @@ if st.session_state.recalc_needed:
                 try:
                     y_val = float(row.get(resp, float("nan")))
                     if pd.notnull(y_val):
-                        x = [row[name] for name, *_ in st.session_state.manual_variables]
+                        x = [row.get(name) for name, *_ in st.session_state.manual_variables]
                         optimizer.observe(x, -y_val)
                 except (ValueError, TypeError):
                     continue
@@ -702,7 +697,7 @@ if st.session_state.next_suggestion_cached is not None:
     )
 
     if st.button("➕ Submit Result"):
-        st.success("Result submitted successfully. To get a new suggestion, press '**📎 Get Next Suggestion**'. The graph is updated automatically.")
+        st.success("Result submitted. Press '**📎 Get Next Suggestion**' for the next point—charts update automatically.")
         if pd.notnull(result):
             x = [next_row[name] for name, *_ in st.session_state.manual_variables]
             y_val = float(result)
@@ -752,7 +747,7 @@ if st.session_state.iteration >= st.session_state.total_iters and st.session_sta
             settings=optimization_settings
         )
 
-        # Persist campaign files too
+        # Persist campaign files
         run_path = os.path.join(user_save_dir, run_name)
         os.makedirs(run_path, exist_ok=True)
         df_results.to_csv(os.path.join(run_path, "manual_data.csv"), index=False)
