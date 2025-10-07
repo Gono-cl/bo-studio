@@ -75,6 +75,60 @@ def force_model_based(optimizer):
     except Exception:
         pass
 
+# ----------------------------- Two-space helpers -----------------------------
+
+def _unionize_bounds(curr_variables, seeds_df: pd.DataFrame | None):
+    """
+    Expand continuous bounds to include all seed values.
+    For categoricals, unify category lists.
+    Returns a new 'variables' list (ModelSpace).
+    """
+    if seeds_df is None or seeds_df.empty:
+        return curr_variables
+
+    new_vars = []
+    for (name, v1, v2, unit, vtype) in curr_variables:
+        if vtype == "continuous":
+            col = seeds_df[name] if name in seeds_df.columns else pd.Series(dtype=float)
+            col = pd.to_numeric(col, errors="coerce").dropna()
+            lo = min([v1] + (col.tolist() if not col.empty else []))
+            hi = max([v2] + (col.tolist() if not col.empty else []))
+            new_vars.append((name, float(lo), float(hi), unit, "continuous"))
+        else:
+            col = seeds_df[name] if name in seeds_df.columns else pd.Series(dtype=object)
+            cats = set(v1) | set(col.dropna().astype(str).unique().tolist())
+            new_vars.append((name, sorted(list(cats)), None, unit, "categorical"))
+    return new_vars
+
+def _in_suggest_space(x, suggest_variables):
+    for (val, (name, v1, v2, _unit, vtype)) in zip(x, suggest_variables):
+        if vtype == "continuous":
+            try:
+                fv = float(val)
+            except Exception:
+                return False
+            if not (v1 <= fv <= v2):
+                return False
+        else:
+            if str(val) not in set(map(str, v1)):
+                return False
+    return True
+
+def _project_to_suggest_space(x, suggest_variables):
+    """Last-resort projection: clip continuous; map unknown categorical to first."""
+    out = []
+    for (val, (name, v1, v2, _unit, vtype)) in zip(x, suggest_variables):
+        if vtype == "continuous":
+            fv = float(val)
+            out.append(min(max(fv, v1), v2))
+        else:
+            cats = list(v1)
+            sval = str(val)
+            out.append(sval if sval in set(map(str, cats)) else cats[0])
+    return out
+
+# ----------------------------- Rebuild / observe -----------------------------
+
 def rebuild_optimizer_from_df(
     variables,
     df: pd.DataFrame,
@@ -82,7 +136,7 @@ def rebuild_optimizer_from_df(
     n_initial_points_remaining: int = 0,
     acq_func: str = "EI"
 ) -> StepBayesianOptimizer:
-    """Build StepBayesianOptimizer, observe seeds, and respect remaining initials."""
+    """Build StepBayesianOptimizer on 'variables' (ModelSpace), and observe seeds once."""
     space = []
     for name, v1, v2, _unit, vtype in variables:
         if vtype == "continuous":
@@ -107,10 +161,11 @@ def rebuild_optimizer_from_df(
         except (ValueError, TypeError):
             continue
 
-    # Safety: if we seeded with anything, default to model-based next
     if n_initial_points_remaining == 0:
         force_model_based(opt)
     return opt
+
+# ----------------------------- Suggestion utils -----------------------------
 
 def _existing_points_set(manual_variables, manual_data):
     """Build a set of tuples representing existing X (for duplicate checking)."""
@@ -121,27 +176,58 @@ def _existing_points_set(manual_variables, manual_data):
         s.add(tup)
     return s
 
-def next_unique_suggestion(optimizer, manual_variables, manual_data, max_tries=50):
-    """Ask optimizer until a suggestion not already in manual_data is found."""
-    seen = _existing_points_set(manual_variables, manual_data)
-    cols = [name for name, *_ in manual_variables]
+def next_unique_suggestion(optimizer, manual_variables, manual_data, max_tries=120):
+    """
+    Generate next suggestion that is:
+      (1) inside SuggestSpace (manual_variables),
+      (2) not duplicate of existing X.
+    Uses rejection sampling; projection fallback on last draw.
+    """
+    suggest_variables = manual_variables  # the user's current bounds
+    seen = _existing_points_set(suggest_variables, manual_data)
+
+    last_x = None
     for _ in range(max_tries):
         x = optimizer.suggest()
+        last_x = x
+        # keep only in-bounds suggestions
+        if not _in_suggest_space(x, suggest_variables):
+            continue
         tup = tuple(xi for xi in x)
-        # For comparison with dict rows, map suggestion onto the same order/names:
-        tup_named = tuple(tup)  # values only; rows also store values in same order when added
-        if tup_named not in seen:
+        if tup not in seen:
             return x
-        # If duplicate, force model-based again just in case and retry
-        force_model_based(optimizer)
-    # If we failed to find a unique point, just return the last one (user can adjust)
-    return x
+
+    # Fallback: project last suggestion into bounds
+    if last_x is not None:
+        x_proj = _project_to_suggest_space(last_x, suggest_variables)
+        if tuple(x_proj) not in seen:
+            return x_proj
+
+    # Last resort: return first valid corner point
+    out = []
+    for (name, v1, v2, unit, vtype) in suggest_variables:
+        if vtype == "continuous":
+            out.append(float(v1))
+        else:
+            out.append(v1[0])
+    if tuple(out) in seen and len(suggest_variables) > 0:
+        # small jitter for continuous dims
+        out2 = []
+        for (val, (name, v1, v2, unit, vtype)) in zip(out, suggest_variables):
+            if vtype == "continuous":
+                eps = (v2 - v1) * 1e-6
+                out2.append(min(max(val + eps, v1), v2))
+            else:
+                out2.append(val)
+        return out2
+    return out
 
 # =========================================================
 # Session State Initialization
 # =========================================================
 defaults = {
-    "manual_variables": [],
+    "manual_variables": [],       # SuggestSpace
+    "model_variables": None,      # ModelSpace (union when reusing; else same as manual_variables)
     "manual_data": [],
     "manual_optimizer": None,
     "manual_initialized": False,
@@ -196,6 +282,9 @@ if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
 
     st.session_state.manual_data = df_loaded.to_dict("records")
     st.session_state.manual_variables = metadata.get("variables", [])
+    # if missing in metadata, align model_variables with manual_variables for now
+    st.session_state.model_variables = metadata.get("model_variables", st.session_state.manual_variables)
+
     st.session_state.iteration = metadata.get("iteration", len(df_loaded))
     st.session_state.campaign_name = resume_file
     st.session_state.n_init = metadata.get("n_init", 1)
@@ -206,17 +295,34 @@ if resume_file != "None" and st.sidebar.button("Load Previous Manual Campaign"):
     st.session_state.experiment_name = metadata.get("experiment_name", "")
     st.session_state.experiment_notes = metadata.get("experiment_notes", "")
 
-    if st.session_state.manual_optimizer is not None and len(st.session_state.manual_data) > 0:
-        for row in st.session_state.manual_data:
-            x = [row.get(name) for name, *_ in st.session_state.manual_variables]
-            try:
-                y_val = float(row.get(st.session_state.response, float("nan")))
-                if pd.notnull(y_val):
-                    st.session_state.manual_optimizer.observe(x, -y_val)
-            except (ValueError, TypeError):
-                continue
-        # After re-observing, ensure we are model-based
-        force_model_based(st.session_state.manual_optimizer)
+    # If optimizer exists, (re)observe data using current ModelSpace (or fall back)
+    if st.session_state.manual_variables and len(st.session_state.manual_data) > 0:
+        model_vars = st.session_state.model_variables or st.session_state.manual_variables
+        # rebuild opt fresh so space is correct
+        opt_vars = []
+        for name, v1, v2, _, vtype in model_vars:
+            if vtype == "continuous":
+                opt_vars.append(Real(v1, v2, name=name))
+            else:
+                opt_vars.append(Categorical(v1, name=name))
+
+        optimizer = _safe_build_optimizer(opt_vars, n_initial_points_remaining=0, acq_func="EI")
+
+        df_tmp = pd.DataFrame(st.session_state.manual_data)
+        resp = st.session_state.response
+        if resp in df_tmp.columns:
+            df_tmp[resp] = pd.to_numeric(df_tmp[resp], errors="coerce")
+            for _, row in df_tmp.iterrows():
+                try:
+                    y_val = float(row.get(resp, float("nan")))
+                    if pd.notnull(y_val):
+                        x = [row.get(name) for name, *_ in model_vars]
+                        optimizer.observe(x, -y_val)
+                except (ValueError, TypeError):
+                    continue
+
+        force_model_based(optimizer)
+        st.session_state.manual_optimizer = optimizer
 
     st.success(f"Loaded campaign: {resume_file}")
 
@@ -233,7 +339,7 @@ if st.button("🔄 Reset Campaign"):
         st.session_state[k] = v
     st.rerun()
 
-st.markdown("Reuse past experiments as seeds, then continue with **model-based** suggestions one by one (no random warm-up).")
+st.markdown("Reuse past experiments as seeds, fit on a UNION space, and keep new suggestions inside your current bounds.")
 
 # =========================================================
 # Chart Functions (main area only)
@@ -346,7 +452,8 @@ if st.sidebar.button("💾 Save Campaign"):
     df_save.to_csv(os.path.join(run_path, "manual_data.csv"), index=False)
 
     metadata = {
-        "variables": st.session_state.manual_variables,
+        "variables": st.session_state.manual_variables,         # SuggestSpace
+        "model_variables": st.session_state.get("model_variables", st.session_state.manual_variables),  # ModelSpace
         "iteration": st.session_state.get("iteration", len(df_save)),
         "n_init": st.session_state.n_init,
         "total_iters": st.session_state.total_iters,
@@ -417,11 +524,16 @@ if st.session_state.manual_variables:
                 if values:
                     updated_variables.append((row["Name"], values, None, row["Unit"], "categorical"))
         st.session_state.manual_variables = updated_variables
+        # If user edits bounds and we don't have a model space yet, align it
+        if st.session_state.get("model_variables") is None:
+            st.session_state.model_variables = st.session_state.manual_variables
         st.success("Variables updated successfully!")
 
     delete_var = st.selectbox("Select a Variable to Delete", options=["None"] + [v[0] for v in st.session_state.manual_variables])
     if delete_var != "None" and st.button("🗑️ Delete Variable"):
         st.session_state.manual_variables = [v for v in st.session_state.manual_variables if v[0] != delete_var]
+        if st.session_state.get("model_variables") is None:
+            st.session_state.model_variables = st.session_state.manual_variables
         st.success(f"Variable '{delete_var}' deleted successfully!")
 
 # =========================================================
@@ -449,8 +561,11 @@ if st.button("🚀 Suggest Initial Experiments"):
     elif not st.session_state.manual_variables:
         st.warning("Please define at least one variable first.")
     else:
+        # Fresh run: ModelSpace == SuggestSpace
+        st.session_state.model_variables = st.session_state.manual_variables
+
         opt_vars = []
-        for name, val1, val2, _, vtype in st.session_state.manual_variables:
+        for name, val1, val2, _, vtype in st.session_state.model_variables:
             if vtype == "continuous":
                 opt_vars.append(Real(val1, val2, name=name))
             else:
@@ -602,7 +717,6 @@ if reuse_campaign != "None":
                             key="reuse_skip_random"
                         )
 
-                    # Ensure the optimizer transitions to model-based optimization after reusing data
                     if st.button("Use selected experiments"):
                         selected_df = st.session_state.prev_df_editor_cache.copy()
                         selected_df[resp] = pd.to_numeric(selected_df[resp], errors="coerce")
@@ -615,31 +729,34 @@ if reuse_campaign != "None":
                         if selected_df.empty:
                             st.error("Select at least one valid row (with numeric response).")
                         else:
-                            # Rebuild the optimizer without adjusting the search space
+                            # Build ModelSpace as union(SuggestSpace, seeds)
+                            model_variables = _unionize_bounds(st.session_state.manual_variables, selected_df)
+
+                            seed_count = len(selected_df)
+                            remaining_init = 0 if skip_random else max(0, int(st.session_state.n_init) - seed_count)
+
                             optimizer = rebuild_optimizer_from_df(
-                                curr_variables, selected_df, resp,
-                                n_initial_points_remaining=0,  # Skip additional random points
+                                model_variables,     # fit on union bounds
+                                selected_df,
+                                resp,
+                                n_initial_points_remaining=remaining_init,
                                 acq_func="EI"
                             )
 
-                            # Manually observe the reused data, even if out of bounds
-                            for _, row in selected_df.iterrows():
-                                x = [row[name] for name, *_ in curr_variables]
-                                y = row[resp]
-                                optimizer.observe(x, -y)  # Maximizing
-
+                            st.session_state.model_variables = model_variables
                             st.session_state.manual_optimizer = optimizer
                             st.session_state.manual_initialized = True
                             st.session_state.manual_data = selected_df.to_dict("records")
-                            st.session_state.iteration = len(selected_df)
+                            st.session_state.iteration = seed_count
                             st.session_state.initial_results_submitted = True
                             st.session_state.submitted_initial = False
 
-                            # Clear any old random suggestions cache
+                            # reflect "no initials left" in UI and caches
                             st.session_state.suggestions = []
                             st.session_state.next_suggestion_cached = None
 
-                            msg = f"Reused {len(selected_df)} experiment(s) from '{reuse_campaign}'. Starting BO now."
+                            msg = f"Reused {seed_count} experiment(s) from '{reuse_campaign}'. "
+                            msg += "Starting BO now." if remaining_init == 0 else f"{remaining_init} initial random(s) remain."
                             st.success(msg)
 
     except FileNotFoundError as e:
@@ -691,8 +808,11 @@ if len(st.session_state.manual_data) > 0:
 # =========================================================
 if st.session_state.recalc_needed:
     if st.session_state.manual_variables and st.session_state.manual_data:
+        # Use stored ModelSpace if present; else fall back to SuggestSpace
+        model_vars = st.session_state.get("model_variables", st.session_state.manual_variables)
+
         opt_vars = []
-        for name, val1, val2, _, vtype in st.session_state.manual_variables:
+        for name, val1, val2, _, vtype in model_vars:
             if vtype == "continuous":
                 opt_vars.append(Real(val1, val2, name=name))
             else:
@@ -708,7 +828,7 @@ if st.session_state.recalc_needed:
                 try:
                     y_val = float(row.get(resp, float("nan")))
                     if pd.notnull(y_val):
-                        x = [row.get(name) for name, *_ in st.session_state.manual_variables]
+                        x = [row.get(name) for name, *_ in model_vars]
                         optimizer.observe(x, -y_val)
                 except (ValueError, TypeError):
                     continue
@@ -719,7 +839,7 @@ if st.session_state.recalc_needed:
     st.session_state.recalc_needed = False
 
 # =========================================================
-# Get next suggestion (step-by-step) — with de-duplication
+# Get next suggestion (step-by-step) — constrained to SuggestSpace
 # =========================================================
 if (
     st.session_state.manual_initialized
@@ -728,12 +848,11 @@ if (
     and st.session_state.initial_results_submitted
 ):
     if st.button("📎 Get Next Suggestion"):
-        # Use duplicate-safe ask
         st.session_state.next_suggestion_cached = next_unique_suggestion(
             st.session_state.manual_optimizer,
-            st.session_state.manual_variables,
+            st.session_state.manual_variables,  # SuggestSpace
             st.session_state.manual_data,
-            max_tries=50
+            max_tries=120
         )
 
 # Show cached suggestion + capture result
@@ -806,7 +925,8 @@ if st.session_state.iteration >= st.session_state.total_iters and st.session_sta
         df_results.to_csv(os.path.join(run_path, "manual_data.csv"), index=False)
 
         metadata = {
-            "variables": st.session_state.manual_variables,
+            "variables": st.session_state.manual_variables,  # SuggestSpace
+            "model_variables": st.session_state.get("model_variables", st.session_state.manual_variables),  # ModelSpace
             "iteration": st.session_state.get("iteration", len(df_results)),
             "n_init": st.session_state.n_init,
             "total_iters": st.session_state.total_iters,
@@ -819,7 +939,10 @@ if st.session_state.iteration >= st.session_state.total_iters and st.session_sta
             json.dump(metadata, f, indent=4)
 
         st.success("✅ Experiment saved successfully! All campaign files have been generated.")
-
+# =========================================================
+# End of Manual Experimentation
+# =========================================================
+# =========================================================     
 
 
 
