@@ -51,6 +51,7 @@ class Charts:
             st.markdown(f"**Current Best {response_name}:** {best_val:.4g}")
 
 
+    @staticmethod
     def show_parallel_coordinates(data: list, response_name: str):
         """
         Display a parallel coordinates plot for the input experimental data.
