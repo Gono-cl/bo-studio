@@ -13,6 +13,7 @@ import dill as pickle  # persistence
 
 from core.optimization.bayesian_optimization import StepBayesianOptimizer
 from core.utils import db_handler
+from ui.charts import Charts
 
 # =========================================================
 # Config & Helpers
@@ -341,85 +342,6 @@ if st.button("🔄 Reset Campaign"):
     st.rerun()
 
 st.markdown("Reuse past experiments as seeds, fit on a UNION space, and keep new suggestions inside your current bounds.")
-
-# =========================================================
-# Chart Functions (main area only)
-# =========================================================
-def show_progress_chart(data: list, response_name: str):
-    if len(data) == 0:
-        return
-    df_results = pd.DataFrame(data)
-    if df_results.empty or response_name not in df_results.columns:
-        return
-    df_results["Iteration"] = range(1, len(df_results) + 1)
-    df_results[response_name] = pd.to_numeric(df_results[response_name], errors="coerce")
-
-    st.markdown("### 📈 Optimization Progress")
-    chart = alt.Chart(df_results).mark_line(point=True).encode(
-        x=alt.X("Iteration", title="Experiment Number"),
-        y=alt.Y(response_name, title=response_name),
-        tooltip=["Iteration", response_name]
-    ).properties(width=700, height=400)
-    st.altair_chart(chart, use_container_width=True)
-
-    if df_results[response_name].notna().any():
-        best_val = df_results[response_name].max()
-        st.markdown(f"**Current Best {response_name}:** {best_val:.4g}")
-
-def show_parallel_coordinates(data: list, response_name: str):
-    if len(data) == 0:
-        return
-    df = pd.DataFrame(data).copy()
-    if df.empty or response_name not in df.columns:
-        return
-
-    df[response_name] = pd.to_numeric(df[response_name], errors="coerce")
-
-    input_vars = [name for name, *_ in st.session_state.manual_variables]
-    cols_to_plot = [c for c in (input_vars + [response_name]) if c in df.columns]
-    if not cols_to_plot:
-        return
-    df = df[cols_to_plot]
-
-    st.markdown("### 🔀 Parallel Coordinates Plot")
-
-    legend_entries = []
-    for col in df.columns:
-        if df[col].dtype == object:
-            le = LabelEncoder()
-            try:
-                df[col] = le.fit_transform(df[col].astype(str))
-                legend_entries.append((col, dict(enumerate(le.classes_))))
-            except Exception:
-                continue
-
-    fig = px.parallel_coordinates(
-        df,
-        color=response_name,
-        color_continuous_scale=px.colors.sequential.Viridis,
-        labels={c: c for c in df.columns}
-    )
-    fig.update_layout(
-        font=dict(size=20, color='black'),
-        height=500,
-        margin=dict(l=50, r=50, t=50, b=40),
-        coloraxis_colorbar=dict(
-            title=dict(text=response_name, font=dict(size=20, color='black')),
-            tickfont=dict(size=20, color='black'),
-            len=0.8,
-            thickness=40,
-            tickprefix=" ",
-            xpad=5
-        )
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    if legend_entries:
-        st.markdown("### 🏷️ Categorical Legends")
-        for col, mapping in legend_entries:
-            st.markdown(f"**{col}**:")
-            for code, label in mapping.items():
-                st.markdown(f"- `{code}` → `{label}`")
 
 # =========================================================
 # Experiment Header
@@ -771,8 +693,8 @@ if reuse_campaign != "None":
 # Always show charts if data exists (MAIN area only)
 # =========================================================
 if len(st.session_state.manual_data) > 0:
-    show_progress_chart(st.session_state.manual_data, st.session_state.response)
-    show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
+    Charts.show_progress_chart(st.session_state.manual_data, st.session_state.response)
+    Charts.show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
 
 # =========================================================
 # Edit Previous Results
