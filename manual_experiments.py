@@ -243,6 +243,7 @@ defaults = {
     "recalc_needed": False,
     "response": "Yield",
     "var_type": "Continuous",
+    "user_name": "Guest",  # Default value for user_name
 }
 for k, v in defaults.items():
     if k not in st.session_state:
