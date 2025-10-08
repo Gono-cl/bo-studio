@@ -56,7 +56,7 @@ if "user_email" not in st.session_state:
     else:
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            st.image("image.png", width=700)
+            st.image("images/image.png", width=700)
         st.markdown(
             """
             <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
@@ -84,17 +84,17 @@ if st.sidebar.button("🚪 Log out"):
 
 # ===== Define app pages =====
 PAGES = {
-    "🏠 Home": "Home.py",
-    "🧰 Manual Optimization": "manual_experiments.py",
-    "📚 Experiment DataBase": "experiment_database.py",
-    "🔍 Preview Saved Run": "preview_run.py",
-    "🎓 Bayesian Optimization Classroom": "BO_classroom.py",
-    "🧪 Simulation Case 1": "BO_classroom2.py",
-    "❓ FAQ – Help & Guidance": "faq.py"
+    "🏠 Home": "pages/Home.py",
+    "🧰 Manual Optimization": "pages/manual_experiments.py",
+    "📚 Experiment DataBase": "pages/experiment_database.py",
+    "🔍 Preview Saved Run": "pages/preview_run.py",
+    "🎓 Bayesian Optimization Classroom": "pages/BO_classroom.py",
+    "🧪 Simulation Case 1": "pages/BO_classroom2.py",
+    "❓ FAQ – Help & Guidance": "pages/faq.py"
 }
 
 # ===== Sidebar navigation =====
-st.sidebar.image("assets/image.png", width=300)
+st.sidebar.image("images/image.png", width=300)
 st.sidebar.title("📁 Navigation")
 
 if "selected_page" in st.session_state:

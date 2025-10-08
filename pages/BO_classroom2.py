@@ -11,7 +11,7 @@ st.title("🎯 BO Classroom: Simulation Case 1")
 
 # Add an introductory section with the saved reaction image
 st.markdown("### Reaction Overview")
-st.image("image_reaction1.png", use_container_width=True)
+st.image("images/image_reaction1.png", use_container_width=True)
 
 st.markdown("""
 This example simulates the optimization of a copper-mediated radiofluorination reaction:
