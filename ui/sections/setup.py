@@ -10,6 +10,8 @@ from skopt.space import Real, Categorical
 
 from ui.components import data_editor
 from core.utils.bo_manual import safe_build_optimizer, force_model_based
+from core.utils.init_designs import generate_initial_points
+from ui.charts import Charts
 
 
 def render_setup_and_initials() -> None:
@@ -26,6 +28,22 @@ def render_setup_and_initials() -> None:
         st.number_input("# Initial Experiments", min_value=1, max_value=50, value=st.session_state.n_init, key="n_init")
         st.number_input("Total Iterations", min_value=1, max_value=100, value=st.session_state.total_iters, key="total_iters")
 
+    col7, col8 = st.columns(2)
+    with col7:
+        init_options = ["Random", "LHS", "Halton", "Maximin LHS"]
+        init_keys = ["random", "lhs", "halton", "maximin_lhs"]
+        default_init = st.session_state.get("init_method", "random").lower().replace(" ", "_")
+        try:
+            init_index = init_keys.index(default_init)
+        except ValueError:
+            init_index = 0
+        init_choice = st.selectbox("Initialization Method", init_options, index=init_index)
+        st.session_state.init_method = init_keys[init_options.index(init_choice)]
+    with col8:
+        acq_options = ["EI", "PI", "LCB"]
+        default_acq = st.session_state.get("acq_func", "EI")
+        st.session_state.acq_func = st.selectbox("Acquisition Function", acq_options, index=acq_options.index(default_acq))
+
     if st.button("Suggest Initial Experiments"):
         if st.session_state.manual_initialized and st.session_state.manual_data:
             st.info("Already initialized (possibly via reuse). Use Get Next Suggestion to continue.")
@@ -39,14 +57,19 @@ def render_setup_and_initials() -> None:
                     opt_vars.append(Real(val1, val2, name=name))
                 else:
                     opt_vars.append(Categorical(val1, name=name))
-            optimizer = safe_build_optimizer(opt_vars, n_initial_points_remaining=st.session_state.n_init, acq_func="EI")
+            optimizer = safe_build_optimizer(opt_vars, n_initial_points_remaining=0, acq_func=st.session_state.acq_func)
             st.session_state.manual_optimizer = optimizer
             st.session_state.manual_data = []
             st.session_state.manual_initialized = True
             st.session_state.iteration = 0
             st.session_state.initial_results_submitted = False
             st.session_state.next_suggestion_cached = None
-            st.session_state.suggestions = [optimizer.suggest() for _ in range(st.session_state.n_init)]
+            st.session_state.suggestions = generate_initial_points(
+                st.session_state.model_variables,
+                st.session_state.n_init,
+                method=st.session_state.get("init_method", "random"),
+                seed=42,
+            )
             st.success("Initial experiments suggested successfully!")
 
     if not st.session_state.initial_results_submitted and st.session_state.suggestions:
@@ -58,6 +81,12 @@ def render_setup_and_initials() -> None:
             row = {name: val for (name, *_), val in zip(st.session_state.manual_variables, vals)}
             row[st.session_state.response] = None
             default_data.append(row)
+
+        with st.expander("Preview Initial Design", expanded=False):
+            try:
+                Charts.show_initial_design(st.session_state.suggestions, st.session_state.manual_variables)
+            except Exception:
+                pass
 
         edited_df_init = data_editor(default_data, key="initial_results_editor", editable=True, num_rows="fixed")
 
@@ -97,4 +126,3 @@ def render_setup_and_initials() -> None:
         st.session_state.initial_results_submitted = True
         st.session_state.submitted_initial = False
         force_model_based(st.session_state.manual_optimizer)
-

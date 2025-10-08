@@ -120,8 +120,72 @@ class Charts:
         st.plotly_chart(fig, use_container_width=True)
 
         if legend_entries:
-            st.markdown("### 🏷️ Categorical Legends")
+            st.markdown("### Categorical Legends")
             for col, mapping in legend_entries:
                 st.markdown(f"**{col}**:")
                 for code, label in mapping.items():
-                    st.markdown(f"- `{code}` → `{label}`")
+                    st.markdown(f"- `{code}` -> `{label}`")
+
+    @staticmethod
+    def show_initial_design(points: list[list], variables: list[tuple]):
+        """
+        Visualize the initial design points before running experiments.
+
+        - Builds a DataFrame with variable names as columns
+        - Shows a parallel coordinates plot (categoricals encoded)
+        - If >=2 continuous columns exist, shows a scatter matrix for them
+        - Shows simple bar charts for categorical distributions
+        """
+        if not points or not variables:
+            return
+        names = [name for name, *_ in variables]
+        df = pd.DataFrame(points, columns=names)
+        if df.empty:
+            return
+
+        st.markdown("### Initial Design Preview")
+
+        # Encode categoricals for plotting; collect legends
+        df_plot = df.copy()
+        legend_entries = []
+        for (name, v1, v2, _u, vtype) in variables:
+            if name in df_plot.columns and vtype == "categorical":
+                le = LabelEncoder()
+                try:
+                    df_plot[name] = le.fit_transform(df_plot[name].astype(str))
+                    legend_entries.append((name, dict(enumerate(le.classes_))))
+                except Exception:
+                    pass
+
+        # Parallel coordinates (no color by response; use index to vary color)
+        df_plot["_idx"] = range(len(df_plot))
+        try:
+            fig = px.parallel_coordinates(
+                df_plot,
+                color="_idx",
+                color_continuous_scale=px.colors.sequential.Viridis,
+                labels={c: c for c in df_plot.columns if c != "_idx"},
+            )
+            fig.update_layout(height=450, margin=dict(l=50, r=50, t=40, b=30))
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception:
+            pass
+
+        # Scatter matrix for continuous columns (if at least 2)
+        cont_cols = [name for (name, v1, v2, _u, vtype) in variables if vtype == "continuous" and name in df.columns]
+        if len(cont_cols) >= 2:
+            try:
+                fig2 = px.scatter_matrix(df[cont_cols])
+                fig2.update_layout(height=500, margin=dict(l=30, r=30, t=30, b=30))
+                st.plotly_chart(fig2, use_container_width=True)
+            except Exception:
+                pass
+
+        # Categorical distributions (simple counts)
+        cat_cols = [name for (name, v1, v2, _u, vtype) in variables if vtype == "categorical" and name in df.columns]
+        if cat_cols:
+            st.markdown("#### Categorical Distributions")
+            for c in cat_cols:
+                counts = df[c].astype(str).value_counts().reset_index()
+                counts.columns = [c, "count"]
+                st.bar_chart(counts.set_index(c))

@@ -32,7 +32,7 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
                     df,
                     resp,
                     n_initial_points_remaining=0,
-                    acq_func="EI",
+                    acq_func=st.session_state.get("acq_func", "EI"),
                 )
                 st.session_state.manual_optimizer = optimizer
                 st.session_state.iteration = len(df)
