@@ -84,13 +84,13 @@ if st.sidebar.button("🚪 Log out"):
 
 # ===== Define app pages =====
 PAGES = {
-    "🏠 Home": "pages/Home.py",
-    "🧰 Manual Optimization": "pages/manual_experiments.py",
-    "📚 Experiment DataBase": "pages/experiment_database.py",
-    "🔍 Preview Saved Run": "pages/preview_run.py",
-    "🎓 Bayesian Optimization Classroom": "pages/BO_classroom.py",
-    "🧪 Simulation Case 1": "pages/BO_classroom2.py",
-    "❓ FAQ – Help & Guidance": "pages/faq.py"
+    "🏠 Home": "navigation/Home.py",
+    "🧰 Manual Optimization": "navigation/manual_experiments.py",
+    "📚 Experiment DataBase": "navigation/experiment_database.py",
+    "🔍 Preview Saved Run": "navigation/preview_run.py",
+    "🎓 Bayesian Optimization Classroom": "navigation/BO_classroom.py",
+    "🧪 Simulation Case 1": "navigation/BO_classroom2.py",
+    "❓ FAQ – Help & Guidance": "navigation/faq.py"
 }
 
 # ===== Sidebar navigation =====
