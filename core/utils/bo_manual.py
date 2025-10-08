@@ -34,36 +34,38 @@ def list_valid_campaigns(base_dir: str) -> List[str]:
 
 
 def safe_build_optimizer(space, n_initial_points_remaining: int = 0, acq_func: str = "EI") -> StepBayesianOptimizer:
-    """Build StepBayesianOptimizer while tolerant to different __init__ signatures."""
+    """
+    Build StepBayesianOptimizer and set underlying skopt.Optimizer knobs.
+
+    This project wraps skopt.Optimizer inside StepBayesianOptimizer at attribute
+    `_optimizer` (and property `skopt_optimizer`). We cannot pass
+    `n_initial_points` to the wrapper constructor, so we set it directly on the
+    underlying optimizer after construction.
+    """
+    opt = StepBayesianOptimizer(space, acq_func=acq_func)
+    sk = getattr(opt, "skopt_optimizer", None) or getattr(opt, "_optimizer", None)
     try:
-        return StepBayesianOptimizer(
-            space,
-            n_initial_points=n_initial_points_remaining,
-            acq_func=acq_func,
-        )
-    except TypeError:
-        opt = StepBayesianOptimizer(space)
-        try:
-            if hasattr(opt, "_opt"):
-                if hasattr(opt._opt, "_n_initial_points"):
-                    opt._opt._n_initial_points = n_initial_points_remaining
-                if hasattr(opt._opt, "n_initial_points_"):
-                    opt._opt.n_initial_points_ = n_initial_points_remaining
-                if hasattr(opt._opt, "acq_func"):
-                    opt._opt.acq_func = acq_func
-        except Exception:
-            pass
-        return opt
+        if sk is not None:
+            if hasattr(sk, "_n_initial_points"):
+                setattr(sk, "_n_initial_points", n_initial_points_remaining)
+            if hasattr(sk, "n_initial_points_"):
+                setattr(sk, "n_initial_points_", n_initial_points_remaining)
+            if hasattr(sk, "acq_func"):
+                setattr(sk, "acq_func", acq_func)
+    except Exception:
+        pass
+    return opt
 
 
 def force_model_based(optimizer: StepBayesianOptimizer) -> None:
     """Force next suggest() to be acquisition-driven (no random initials)."""
     try:
-        if hasattr(optimizer, "_opt"):
-            if hasattr(optimizer._opt, "_n_initial_points"):
-                optimizer._opt._n_initial_points = 0
-            if hasattr(optimizer._opt, "n_initial_points_"):
-                optimizer._opt.n_initial_points_ = 0
+        sk = getattr(optimizer, "skopt_optimizer", None) or getattr(optimizer, "_optimizer", None)
+        if sk is not None:
+            if hasattr(sk, "_n_initial_points"):
+                setattr(sk, "_n_initial_points", 0)
+            if hasattr(sk, "n_initial_points_"):
+                setattr(sk, "n_initial_points_", 0)
     except Exception:
         pass
 
@@ -197,4 +199,3 @@ def next_unique_suggestion(optimizer, manual_variables, manual_data, max_tries: 
                 out2.append(val)
         return out2
     return out
-

@@ -13,11 +13,36 @@ import streamlit as st
 
 from ui.components import data_editor, display_dataframe
 from ui.charts import Charts
-from core.utils.bo_manual import next_unique_suggestion
+from core.utils.bo_manual import next_unique_suggestion, rebuild_optimizer_from_df
 from core.utils import db_handler
 
 
 def render_interact_and_complete(user_save_dir: str, experiment_name: str, experiment_notes: str, run_name: str) -> None:
+    # Recalculate optimizer if flagged by edits/truncation
+    if st.session_state.get("recalc_needed"):
+        df = pd.DataFrame(st.session_state.manual_data)
+        resp = st.session_state.get("response", "Yield")
+        model_vars = st.session_state.get("model_variables") or st.session_state.get("manual_variables", [])
+        if df.empty or resp not in df.columns or not model_vars:
+            st.warning("No valid data or variables to rebuild optimizer yet.")
+        else:
+            try:
+                optimizer = rebuild_optimizer_from_df(
+                    model_vars,
+                    df,
+                    resp,
+                    n_initial_points_remaining=0,
+                    acq_func="EI",
+                )
+                st.session_state.manual_optimizer = optimizer
+                st.session_state.iteration = len(df)
+                st.session_state.initial_results_submitted = True
+                st.session_state.next_suggestion_cached = None
+                st.session_state.suggestions = []
+                st.session_state.recalc_needed = False
+                st.info("Optimizer recalculated from current results.")
+            except Exception as ex:
+                st.error(f"Could not recalculate optimizer: {ex}")
     if len(st.session_state.manual_data) > 0:
         Charts.show_progress_chart(st.session_state.manual_data, st.session_state.response)
         Charts.show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
@@ -47,6 +72,7 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
             st.session_state.suggestions = []
             st.session_state.recalc_needed = True
             st.success("Truncated and ready to continue.")
+            st.rerun()
 
     if (
         st.session_state.manual_initialized
@@ -129,4 +155,3 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
             with open(os.path.join(run_path, "metadata.json"), "w") as f:
                 json.dump(metadata, f, indent=4)
             st.success("Experiment saved successfully! All campaign files have been generated.")
-

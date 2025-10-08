@@ -9,6 +9,7 @@ import json
 import pandas as pd
 import streamlit as st
 from skopt.space import Real, Categorical
+import dill as pickle
 
 from ui.components import resume_campaign_selector, load_campaign_button
 from core.utils.bo_manual import safe_build_optimizer, force_model_based
@@ -80,4 +81,3 @@ def render_resume_exact(user_save_dir: str) -> None:
         st.session_state.manual_optimizer = optimizer
 
     st.success(f"Loaded campaign: {resume_file}")
-
