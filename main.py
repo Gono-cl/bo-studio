@@ -9,7 +9,6 @@ from pathlib import Path
 from auth import get_login_url, get_token, get_user_info
 
 
-
 # ===== Streamlit page configuration =====
 st.set_page_config(
     page_title="BO Studio – Bayesian Optimization Made Simple",
@@ -38,49 +37,62 @@ if "logout" in query_params:
     st.query_params.clear()
     st.rerun()
 
-if "user_email" not in st.session_state:
-    if "code" in query_params:
-        code = query_params["code"]
-        token_data = get_token(code)
-        access_token = token_data.get("access_token")
-        if access_token:
-            user_info = get_user_info(access_token)
-            st.session_state["user_email"] = user_info.get("email")
-            st.session_state["user_name"] = user_info.get("name", "")
-            st.session_state["token"] = access_token
-            st.query_params.clear()
-            st.rerun()
+# ===== Local vs Server login =====
+if os.getenv("RENDER") != "true":
+    # --- Local mode: skip login ---
+    st.session_state["user_email"] = "local_user@example.com"
+    st.session_state["user_name"] = "LocalUser"
+    st.session_state["token"] = "local_token"
+else:
+    # --- Server mode: normal OAuth login ---
+    if "user_email" not in st.session_state:
+        if "code" in query_params:
+            code = query_params["code"]
+            token_data = get_token(code)
+            access_token = token_data.get("access_token")
+            if access_token:
+                user_info = get_user_info(access_token)
+                st.session_state["user_email"] = user_info.get("email")
+                st.session_state["user_name"] = user_info.get("name", "")
+                st.session_state["token"] = access_token
+                st.query_params.clear()
+                st.rerun()
+            else:
+                st.error("Failed to get access token.")
+                st.stop()
         else:
-            st.error("Failed to get access token.")
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col2:
+                st.image("images/image.png", width=700)
+            st.markdown(
+                f"""
+                <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                    <p style="max-width: 600px; color: #555;">
+                        Welcome to <b>BO Studio</b>! Run, track, and analyze your optimization experiments with ease.<br>
+                        Log in with Google to get started and access your personal experiment database.
+                    </p>
+                </div>
+                <div style="display: flex; justify-content: center; margin-top: 30px;">
+                    <a href="{get_login_url()}" target="_self">
+                        <button style="font-size: 18px; padding: 8px 24px;">🔐 Log in with Google</button>
+                    </a>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
             st.stop()
-    else:
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col2:
-            st.image("images/image.png", width=700)
-        st.markdown(
-            """
-            <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                <p style="max-width: 600px; color: #555;">
-                    Welcome to <b>BO Studio</b>! Run, track, and analyze your optimization experiments with ease.<br>
-                    Log in with Google to get started and access your personal experiment database.
-                </p>
-            </div>
-            <div style="display: flex; justify-content: center; margin-top: 30px;">
-                <a href="{login_url}" target="_self">
-                    <button style="font-size: 18px; padding: 8px 24px;">🔐 Log in with Google</button>
-                </a>
-            </div>
-            """.format(login_url=get_login_url()),
-            unsafe_allow_html=True
-        )
-        st.stop()
 
 # --- User is logged in ---
 st.sidebar.write(f"👤 {st.session_state['user_name']}")
 st.sidebar.write(f"✉️ {st.session_state['user_email']}")
-if st.sidebar.button("🚪 Log out"):
-    st.experimental_set_query_params(logout="1")
-    st.rerun()
+
+# "Log out" only when in render (Render)
+if os.getenv("RENDER") == "true":
+    if st.sidebar.button("🚪 Log out"):
+        st.experimental_set_query_params(logout="1")
+        st.rerun()
+else:
+    st.sidebar.caption("Running in local mode")
 
 # ===== Define app pages =====
 PAGES = {
@@ -110,7 +122,3 @@ def load_page(page_path):
     spec.loader.exec_module(module)
 
 load_page(PAGES[selection])
-
-
-
-
