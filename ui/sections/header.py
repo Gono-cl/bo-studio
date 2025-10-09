@@ -17,7 +17,7 @@ from core.utils.bo_manual import sanitize_name
 
 
 def render_title_and_reset(defaults: dict) -> None:
-    st.title("Manual Optimization Campaign")
+    st.title("Single Objective Optimization Campaign")
     if st.button("Reset Campaign"):
         for key in list(st.session_state.keys()):
             if key not in ("user_email",):
@@ -73,8 +73,9 @@ def render_save_campaign(run_path: str) -> None:
             "experiment_name": st.session_state.get("experiment_name", ""),
             "experiment_notes": st.session_state.get("experiment_notes", ""),
             "initialization_complete": st.session_state.get("initial_results_submitted", False),
+            "response_direction": st.session_state.get("response_direction", "Maximize"),
+            "custom_objectives": st.session_state.get("custom_objectives", {}),
         }
         with open(os.path.join(run_path, "metadata.json"), "w") as f:
             json.dump(metadata, f, indent=4)
         st.sidebar.success(f"Campaign '{os.path.basename(run_path)}' saved successfully!")
-

@@ -101,7 +101,8 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
             if pd.notnull(result):
                 x = [next_row[name] for name, *_ in st.session_state.manual_variables]
                 y_val = float(result)
-                st.session_state.manual_optimizer.observe(x, -y_val)
+                observed = -y_val if st.session_state.get("response_direction", "Maximize") == "Maximize" else y_val
+                st.session_state.manual_optimizer.observe(x, observed)
                 row_data = {**next_row}
                 row_data[st.session_state.response] = y_val
                 row_data["Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -151,6 +152,8 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
                 "experiment_name": experiment_name,
                 "experiment_notes": experiment_notes,
                 "initialization_complete": st.session_state.get("initial_results_submitted", False),
+                "response_direction": st.session_state.get("response_direction", "Maximize"),
+                "custom_objectives": st.session_state.get("custom_objectives", {}),
             }
             with open(os.path.join(run_path, "metadata.json"), "w") as f:
                 json.dump(metadata, f, indent=4)

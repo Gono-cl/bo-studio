@@ -18,11 +18,22 @@ def render_setup_and_initials() -> None:
     st.subheader("Experiment Setup")
     col5, col6 = st.columns(2)
     with col5:
-        response = st.selectbox(
-            "Response to Optimize",
-            ["Yield", "Conversion", "Transformation", "Productivity"],
-            index=["Yield", "Conversion", "Transformation", "Productivity"].index(st.session_state.get("response", "Yield")),
-        )
+        # Build dynamic list of available responses: defaults + any existing numeric columns in data
+        base_responses = ["Yield", "Conversion", "Transformation", "Productivity"]
+        existing_cols = []
+        if st.session_state.get("manual_data"):
+            try:
+                df_tmp = pd.DataFrame(st.session_state.manual_data)
+                existing_cols = [c for c in df_tmp.columns if c not in [name for name, *_ in st.session_state.manual_variables]]
+            except Exception:
+                existing_cols = []
+        # Include any previously defined custom objectives
+        custom_defs = st.session_state.get("custom_objectives", {})
+        options = list(dict.fromkeys(base_responses + list(custom_defs.keys()) + existing_cols))
+        default_resp = st.session_state.get("response", "Yield")
+        if default_resp not in options:
+            options.insert(0, default_resp)
+        response = st.selectbox("Response to Optimize", options, index=options.index(default_resp))
         st.session_state.response = response
     with col6:
         st.number_input("# Initial Experiments", min_value=1, max_value=50, value=st.session_state.n_init, key="n_init")
@@ -43,6 +54,56 @@ def render_setup_and_initials() -> None:
         acq_options = ["EI", "PI", "LCB"]
         default_acq = st.session_state.get("acq_func", "EI")
         st.session_state.acq_func = st.selectbox("Acquisition Function", acq_options, index=acq_options.index(default_acq))
+
+    # Direction of optimization (single objective)
+    st.session_state.response_direction = st.selectbox(
+        "Direction",
+        ["Maximize", "Minimize"],
+        index=["Maximize", "Minimize"].index(st.session_state.get("response_direction", "Maximize")),
+    )
+
+    # Custom objective creation for single objective
+    with st.expander("Create Custom Objective", expanded=False):
+        st.caption("Define a new objective as an expression of existing columns (from current data), e.g., '0.7*Yield + 0.3*Purity' or 'Yield / Cost'.")
+        new_name = st.text_input("Objective name", key="so_custom_name")
+        expr = st.text_input("Expression (pandas eval)", key="so_custom_expr", placeholder="0.7*Yield + 0.3*Conversion")
+        if st.button("Add Custom Objective (Single)"):
+            if not new_name or not expr:
+                st.warning("Provide both a name and an expression.")
+            else:
+                # store definition
+                defs = dict(st.session_state.get("custom_objectives", {}))
+                defs[new_name] = expr
+                st.session_state.custom_objectives = defs
+                # evaluate on existing data if any
+                rows = st.session_state.get("manual_data", [])
+                if rows:
+                    try:
+                        dfc = pd.DataFrame(rows)
+                        dfc[new_name] = dfc.eval(expr)
+                        st.session_state.manual_data = dfc.to_dict("records")
+                        st.success(f"Custom objective '{new_name}' added and evaluated on current data.")
+                    except Exception as ex:
+                        st.error(f"Could not compute expression: {ex}")
+                else:
+                    st.info("Custom objective stored. It will be evaluated when data becomes available.")
+
+    # Evaluate any pending custom objectives on data if present
+    if st.session_state.get("manual_data") and st.session_state.get("custom_objectives"):
+        try:
+            dfc = pd.DataFrame(st.session_state.manual_data)
+            changed = False
+            for name, ex in st.session_state.custom_objectives.items():
+                if name not in dfc.columns:
+                    try:
+                        dfc[name] = dfc.eval(ex)
+                        changed = True
+                    except Exception:
+                        pass
+            if changed:
+                st.session_state.manual_data = dfc.to_dict("records")
+        except Exception:
+            pass
 
     if st.button("Suggest Initial Experiments"):
         if st.session_state.manual_initialized and st.session_state.manual_data:
@@ -107,7 +168,9 @@ def render_setup_and_initials() -> None:
             try:
                 y_val = float(value)
                 x = [row[name] for name, *_ in st.session_state.manual_variables]
-                st.session_state.manual_optimizer.observe(x, -y_val)
+                # Convert to minimization for skopt: if maximizing, pass -y; if minimizing, pass +y
+                observed = -y_val if st.session_state.get("response_direction", "Maximize") == "Maximize" else y_val
+                st.session_state.manual_optimizer.observe(x, observed)
                 row_data = row.to_dict()
                 row_data[resp] = y_val
                 row_data["Timestamp"] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")

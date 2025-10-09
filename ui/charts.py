@@ -47,8 +47,10 @@ class Charts:
         st.altair_chart(chart, use_container_width=True)
 
         if df_results[response_name].notna().any():
-            best_val = df_results[response_name].max()
-            st.markdown(f"**Current Best {response_name}:** {best_val:.4g}")
+            direction = st.session_state.get("response_direction", "Maximize")
+            best_val = df_results[response_name].max() if direction == "Maximize" else df_results[response_name].min()
+            label = "Best" if direction == "Maximize" else "Lowest"
+            st.markdown(f"**Current {label} {response_name}:** {best_val:.4g}")
 
 
     @staticmethod

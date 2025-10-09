@@ -59,7 +59,17 @@ render_resume_exact(user_save_dir)
 # Title, Header & Save
 # =========================================================
 render_title_and_reset(defaults)
-st.markdown("Reuse past experiments as seeds, fit on a UNION space, and keep new suggestions inside your current bounds.")
+st.success(
+    """
+    This session lets you:
+    - Define continuous/categorical variables.
+    - Choose an objective and direction (maximize/minimize), or define a custom objective via expression.
+    - Generate initial designs (Random, LHS, Halton, Maximin LHS) and preview coverage.
+    - Reuse previous campaigns as seeds (union bounds) and continue from there.
+    - Run step-by-step Bayesian Optimization with selectable acquisition (EI, PI, LCB).
+    - Save and resume campaigns (local and Render environments).
+    """
+)
 
 experiment_name, experiment_notes, run_name, run_path = render_experiment_header(user_save_dir)
 render_save_campaign(run_path)
