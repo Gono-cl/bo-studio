@@ -54,7 +54,10 @@ else:
                 st.error("Failed to get access token.")
                 st.stop()
         else:
-            st.image("images/image.png", width=700)
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col2:
+                st.image("images/image.png", width=500)
+            
             st.markdown(
                 f"""
                 <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
@@ -92,6 +95,7 @@ PAGES = {
     "📝 Preview Saved Run": "navigation/preview_run.py",
     "📚 Bayesian Optimization Classroom": "navigation/BO_classroom.py",
     "🧪 Simulation Case 1": "navigation/BO_classroom2.py",
+    "📈 Acquisition Explorer": "navigation/af_explorer.py",
     "📊 Data Analysis": "navigation/data_analysis.py",
     "❓ FAQ — Help & Guidance": "navigation/faq.py",
 }
