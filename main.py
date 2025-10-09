@@ -86,12 +86,13 @@ else:
 # Pages
 PAGES = {
     "🏠 Home": "navigation/Home.py",
-    "🎯 Single Objective": "navigation/manual_experiments.py",
-    "🎯 Multiobjective": "navigation/multi_objective.py",
+    "🧪 Manual Optimization": "navigation/manual_experiments.py",
+    "🎯 Multiobjective (Manual)": "navigation/multi_objective.py",
     "🗄️ Experiment DataBase": "navigation/experiment_database.py",
     "📝 Preview Saved Run": "navigation/preview_run.py",
     "📚 Bayesian Optimization Classroom": "navigation/BO_classroom.py",
     "🧪 Simulation Case 1": "navigation/BO_classroom2.py",
+    "📊 Data Analysis": "navigation/data_analysis.py",
     "❓ FAQ — Help & Guidance": "navigation/faq.py",
 }
 
@@ -113,4 +114,3 @@ def load_page(page_path: str) -> None:
 
 
 load_page(PAGES[selection])
-
