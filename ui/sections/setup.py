@@ -19,7 +19,7 @@ def render_setup_and_initials() -> None:
     col5, col6 = st.columns(2)
     with col5:
         # Build dynamic list of available responses: defaults + any existing numeric columns in data
-        base_responses = ["Yield", "Conversion", "Transformation", "Productivity"]
+        base_responses = ["Yield", "Conversion", "Transformation", "Productivity", "Byproduct", "Cost", "Time", "E-factor", "Space-Time Yield", "Selectivity", "Purity", "Mass Yield", "Atom Economy", "Carbon Efficiency", "Energy Efficiency", "Process Mass Intensity"]
         existing_cols = []
         if st.session_state.get("manual_data"):
             try:

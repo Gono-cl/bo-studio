@@ -14,7 +14,7 @@ def render_mo_setup_and_initials() -> None:
 
     st.subheader("Multiobjective Setup")
     # Build available objectives: defaults + any numeric columns present in mo_data
-    defaults = ["Yield", "Conversion", "Transformation", "Productivity"]
+    defaults = ["Yield", "Conversion", "Transformation", "Productivity", "Byproduct", "Cost", "Time", "E-factor", "Space-Time Yield", "Selectivity", "Purity", "Mass Yield", "Atom Economy", "Carbon Efficiency", "Energy Efficiency", "Process Mass Intensity"]
     extra = []
     if st.session_state.get("mo_data"):
         try:
