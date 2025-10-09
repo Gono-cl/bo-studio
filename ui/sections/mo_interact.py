@@ -55,6 +55,38 @@ def render_mo_interact_and_pareto(user_save_dir: str):
         df = pd.DataFrame(data)
         st.markdown("### Multiobjective Results")
         display_dataframe(df, key="mo_results_df")
+
+        # ---- Edit results (MO) ----
+        st.markdown("#### Edit Previous Results (MO)")
+        if st.button("Enable Edit Mode (MO)"):
+            st.session_state.edit_mode_mo = True
+        if st.session_state.get("edit_mode_mo"):
+            edited_df = data_editor(df, key="mo_edit_results_editor")
+            if st.button("Save Edits (MO)"):
+                try:
+                    st.session_state.mo_data = edited_df.to_dict("records") if hasattr(edited_df, "to_dict") else list(edited_df)
+                except Exception:
+                    st.session_state.mo_data = edited_df
+                st.session_state.edit_mode_mo = False
+                st.success("Edits saved.")
+                st.rerun()
+
+        # ---- Truncate to previous experiment (MO) ----
+        st.markdown("#### Return to a Previous Experiment (MO)")
+        max_idx = len(st.session_state.mo_data)
+        trunc_idx = st.number_input(
+            "Keep experiments up to (inclusive):",
+            min_value=1,
+            max_value=max_idx,
+            value=max_idx,
+            step=1,
+            key="mo_trunc_idx",
+        )
+        if st.button("Return and Restart From Here (MO)"):
+            st.session_state.mo_data = st.session_state.mo_data[:trunc_idx]
+            st.session_state.mo_iteration = trunc_idx
+            st.session_state.mo_suggestions = []
+            st.success("Truncated and ready to continue (MO).")
         # Pareto front indices
         # Apply per-objective direction: transform to maximization by flipping minimized ones
         dir_map = st.session_state.get("mo_directions", {})

@@ -1,11 +1,10 @@
 from __future__ import annotations
-
 import pandas as pd
 import streamlit as st
 from skopt.space import Real, Categorical
-
 from ui.sections.variables import render_variables_section
 from core.utils.init_designs import generate_initial_points
+from ui.charts import Charts
 
 
 def render_mo_setup_and_initials() -> None:
@@ -102,12 +101,24 @@ def render_mo_setup_and_initials() -> None:
 
     if st.session_state.get("mo_initialized") and st.session_state.get("mo_suggestions"):
         st.markdown("### Initial MO Experiments (Enter results for each objective)")
+        with st.expander("Preview Initial Design", expanded=False):
+            try:
+                Charts.show_initial_design(st.session_state.mo_suggestions, st.session_state.manual_variables)
+            except Exception:
+                pass
         default_rows = []
         for vals in st.session_state.mo_suggestions:
             row = {name: val for (name, *_), val in zip(st.session_state.manual_variables, vals)}
             for obj in st.session_state.mo_objectives:
                 row[obj] = None
             default_rows.append(row)
+        
+        with st.expander("Preview Initial Design", expanded=False):
+            try:
+                Charts.show_initial_design(st.session_state.suggestions, st.session_state.manual_variables)
+            except Exception:
+                pass
+
         edited_df = st.data_editor(pd.DataFrame(default_rows), key="mo_initial_editor")
         if st.button("Submit MO Initial Results"):
             df = edited_df.copy()

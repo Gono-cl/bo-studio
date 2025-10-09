@@ -5,6 +5,7 @@ from ui.sections.mo_setup import render_mo_setup_and_initials
 from ui.sections.mo_interact import render_mo_interact_and_pareto
 from ui.sections.mo_header import render_mo_experiment_header, render_mo_save_campaign
 from ui.sections.mo_resume import render_mo_resume
+from ui.sections.mo_reuse import render_mo_reuse_seeds
 
 
 def _ensure_defaults():
@@ -48,4 +49,5 @@ experiment_name, experiment_notes, run_name, run_path = render_mo_experiment_hea
 render_mo_save_campaign(run_path)
 
 render_mo_setup_and_initials()
+render_mo_reuse_seeds(user_save_dir)
 render_mo_interact_and_pareto(user_save_dir)
