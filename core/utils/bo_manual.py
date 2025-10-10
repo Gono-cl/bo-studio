@@ -140,14 +140,37 @@ def rebuild_optimizer_from_df(
     df[response_col] = pd.to_numeric(df[response_col], errors="coerce")
     df = df.dropna(subset=[response_col])
 
+    # Batch observe to avoid repeated refits (much faster than per-row)
+    X_batch = []
+    y_batch = []
     for _, row in df.iterrows():
-        x = [row[name] for name, *_ in variables]
         try:
             y = float(row[response_col])
-            if pd.notnull(y):
-                opt.observe(x, -y)
         except (ValueError, TypeError):
             continue
+        if pd.notnull(y):
+            X_batch.append([row.get(name) for name, *_ in variables])
+            y_batch.append(float(-y))  # maximize -> minimize convention
+
+    try:
+        if X_batch:
+            sk = getattr(opt, "skopt_optimizer", None) or getattr(opt, "_optimizer", None)
+            if sk is not None and hasattr(sk, "tell"):
+                sk.tell(X_batch, y_batch)
+                # keep wrapper history in sync (best-effort)
+                try:
+                    opt.x_iters.extend(X_batch)
+                    opt.y_iters.extend(y_batch)
+                except Exception:
+                    pass
+            else:
+                # fallback: per-point observe
+                for x, y in zip(X_batch, y_batch):
+                    opt.observe(x, y)
+    except Exception:
+        # As a safety net, fall back to slow path if batch fails
+        for x, y in zip(X_batch, y_batch):
+            opt.observe(x, y)
 
     if n_initial_points_remaining == 0:
         force_model_based(opt)

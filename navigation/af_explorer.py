@@ -43,7 +43,7 @@ elif source == "Saved Campaign":
                 except Exception:
                     continue
     sel = st.selectbox("Select campaign", options)
-    if sel != "None":
+if sel != "None":
         meta, data_p = metas[sel]
         df_loaded = pd.read_csv(data_p)
         vars_ms = meta.get("variables", [])
@@ -53,7 +53,15 @@ elif source == "Saved Campaign":
         st.session_state.manual_variables = vars_ms
         data = df_loaded.to_dict("records")
         try:
-            opt = rebuild_optimizer_from_df(vars_ms, df_loaded, resp, n_initial_points_remaining=0, acq_func=meta.get("acq_func", "EI"))
+            # Cache optimizer build for this dataset to avoid repeated costly refits
+            @st.cache_resource(show_spinner=False)
+            def _cached_opt(vars_tuple, df_json, response, acq):
+                df_in = pd.read_json(df_json, orient="records")
+                return rebuild_optimizer_from_df(list(vars_tuple), df_in, response, n_initial_points_remaining=0, acq_func=acq)
+
+            vars_tuple = tuple(tuple(v) for v in vars_ms)
+            df_json = df_loaded.to_json(orient="records")
+            opt = _cached_opt(vars_tuple, df_json, resp, meta.get("acq_func", "EI"))
         except Exception:
             opt = None
 elif source == "Database":
@@ -75,7 +83,14 @@ elif source == "Database":
             st.session_state.response_direction = st.session_state.get("response_direction", "Maximize")
             data = df_loaded.to_dict("records")
             try:
-                opt = rebuild_optimizer_from_df(vars_ms, df_loaded, resp, n_initial_points_remaining=0, acq_func=settings.get("acq_func", "EI"))
+                @st.cache_resource(show_spinner=False)
+                def _cached_opt_db(vars_tuple, df_json, response, acq):
+                    df_in = pd.read_json(df_json, orient="records")
+                    return rebuild_optimizer_from_df(list(vars_tuple), df_in, response, n_initial_points_remaining=0, acq_func=acq)
+
+                vars_tuple = tuple(tuple(v) for v in vars_ms)
+                df_json = df_loaded.to_json(orient="records")
+                opt = _cached_opt_db(vars_tuple, df_json, resp, settings.get("acq_func", "EI"))
             except Exception:
                 opt = None
 
@@ -111,9 +126,9 @@ for i, (name, v1, v2, _u, vtype) in enumerate(vars_ms):
             fixed[name] = st.selectbox(f"{name}", options=cats, index=cats.index(default) if default in cats else 0)
 
 xi = st.number_input("Exploration (xi)", min_value=0.0, max_value=1.0, value=0.01, step=0.01)
+res = st.slider("Resolution (points)", min_value=50, max_value=400, value=150, step=25)
 
 if st.button("Plot GP and Acquisition"):
     direction = st.session_state.get("response_direction", "Maximize")
     response = st.session_state.get("response", None)
-    plot_gp_and_acq_1d(opt, vary, fixed, data_df=df if not df.empty else None, response_name=response, direction=direction, xi=xi)
-
+    plot_gp_and_acq_1d(opt, vary, fixed, data_df=df if not df.empty else None, response_name=response, direction=direction, xi=xi, resolution=res)
