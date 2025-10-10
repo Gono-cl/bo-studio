@@ -5,6 +5,7 @@
 :hidden:
 
 home
+tutorial
 manual_optimization
 experiment_database
 preview_saved_run
