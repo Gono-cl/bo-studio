@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
 from skopt.acquisition import gaussian_ei
@@ -13,7 +14,14 @@ def plot_acquisition_1d(optimizer, resolution=200):
 
     dim = skopt_opt.space.dimensions[0]
     x = np.linspace(dim.low, dim.high, resolution).reshape(-1, 1)
-    acq = gaussian_ei(x, skopt_opt.models[-1], skopt_opt.space, skopt_opt.rng)
+    Xt = skopt_opt.space.transform(x)
+    model = skopt_opt.models[-1]
+    # best (minimal) observed y in skopt's convention
+    try:
+        y_opt = float(np.min(np.asarray(skopt_opt.yi)))
+    except Exception:
+        y_opt = None
+    acq = gaussian_ei(Xt, model, y_opt=y_opt)
 
     fig, ax = plt.subplots()
     ax.plot(x, acq, label="Expected Improvement", color="tab:orange")
@@ -71,12 +79,14 @@ def plot_gp_and_acq_1d(optimizer, var_name, fixed_values: dict, data_df=None, re
                 row.append(v)
         X_candidates.append(row)
 
-    # Acquisition values (EI)
-    model = skopt_opt.models[-1]
-    acq = gaussian_ei(X_candidates, model, skopt_opt.space, skopt_opt.rng, xi=xi)
-
-    # GP mean/std along line (in transformed space)
+    # Transform candidates and compute acquisition values (EI)
     Xt = skopt_opt.space.transform(X_candidates)
+    model = skopt_opt.models[-1]
+    try:
+        y_opt = float(np.min(np.asarray(skopt_opt.yi)))
+    except Exception:
+        y_opt = None
+    acq = gaussian_ei(Xt, model, y_opt=y_opt, xi=xi)
     mu, std = model.predict(Xt, return_std=True)
 
     # For display: if user maximizes, flip sign so plotted mean aligns with user notion
@@ -89,7 +99,7 @@ def plot_gp_and_acq_1d(optimizer, var_name, fixed_values: dict, data_df=None, re
     xaxis = xs if isinstance(xs, np.ndarray) else np.arange(len(xs))
     # Mean and uncertainty band
     ax1.plot(xaxis, mu_disp, color="tab:blue", label="GP mean")
-    ax1.fill_between(xaxis, mu_disp - std, mu_disp + std, color="tab:blue", alpha=0.2, label="±1σ")
+    ax1.fill_between(xaxis, mu_disp - std, mu_disp + std, color="tab:blue", alpha=0.2, label="+/- 1s")
     ax1.set_xlabel(var_name)
     ax1.set_ylabel("Objective (display scale)", color="tab:blue")
     ax1.tick_params(axis='y', labelcolor="tab:blue")

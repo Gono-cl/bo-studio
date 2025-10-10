@@ -126,6 +126,7 @@ def render_mo_interact_and_pareto(user_save_dir: str):
         with col3:
             seed = st.number_input("Seed", min_value=0, max_value=9999, value=42)
 
+        # Build or render pending suggestions persistently in session to survive reruns while editing
         if st.button("Propose K Scalarized Suggestions"):
             m = len(st.session_state.mo_objectives)
             W = sample_dirichlet_weights(m, int(k), seed=int(seed))
@@ -134,16 +135,21 @@ def render_mo_interact_and_pareto(user_save_dir: str):
                 opt = _build_scalarized_optimizer(w, method=method_key)
                 x = opt.suggest()
                 suggestions.append(x)
-            # Show suggestions and allow recording a batch
             cols = [name for name, *_ in st.session_state.manual_variables]
             df_sug = pd.DataFrame([dict(zip(cols, s)) for s in suggestions])
-            st.markdown("#### Proposed Points")
-            st.dataframe(df_sug, use_container_width=True)
-            st.markdown("#### Enter results for each proposed point")
             df_res = df_sug.copy()
             for obj in st.session_state.mo_objectives:
                 df_res[obj] = None
-            edited = st.data_editor(df_res, key="mo_batch_results")
+            st.session_state.mo_pending_df = df_res.to_dict("records")
+
+        # Render pending editor if exists
+        pending = st.session_state.get("mo_pending_df")
+        if pending:
+            df_pending = pd.DataFrame(pending)
+            st.markdown("#### Proposed Points")
+            st.dataframe(df_pending[[c for c in df_pending.columns if c not in st.session_state.mo_objectives]], use_container_width=True)
+            st.markdown("#### Enter results for each proposed point")
+            edited = st.data_editor(df_pending, key="mo_batch_results")
             if st.button("Submit MO Batch Results"):
                 df2 = edited.copy()
                 for obj in st.session_state.mo_objectives:
@@ -152,4 +158,5 @@ def render_mo_interact_and_pareto(user_save_dir: str):
                     st.error("Please fill all objective values with numbers.")
                 else:
                     st.session_state.mo_data.extend(df2.to_dict("records"))
+                    st.session_state.mo_pending_df = []
                     st.success("Batch results recorded.")
