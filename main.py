@@ -94,6 +94,7 @@ PAGES = {
     "🗄️ Experiment DataBase": "navigation/experiment_database.py",
     "📝 Preview Saved Run": "navigation/preview_run.py",
     "📚 Bayesian Optimization Classroom": "navigation/BO_classroom.py",
+    "📘 BO Classroom 2.0": "navigation/bo_classroom_v2.py",
     "🧪 Simulation Case 1": "navigation/BO_classroom2.py",
     "📈 Acquisition Explorer": "navigation/af_explorer.py",
     "📊 Data Analysis": "navigation/data_analysis.py",
