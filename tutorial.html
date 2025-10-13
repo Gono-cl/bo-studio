@@ -1,0 +1,389 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Single Objective Optimization Campaign — User Guide &mdash; BO-STUDIO 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="🧰 Manual Optimization" href="manual_optimization.html" />
+    <link rel="prev" title="🏠 Home" href="home.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            BO-STUDIO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="home.html">🏠 Home</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Single Objective Optimization Campaign — User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual_optimization.html">🧰 Manual Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiment_database.html">📚 Experiment DataBase</a></li>
+<li class="toctree-l1"><a class="reference internal" href="preview_saved_run.html">🔍 Preview Saved Run</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bayesian.html">🎓 Bayesian</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_case.html">🧪 Simulation Case 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ – Help &amp; Guidance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">BO-STUDIO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Single Objective Optimization Campaign — User Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorial.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="single-objective-optimization-campaign-user-guide">
+<h1>Single Objective Optimization Campaign — User Guide<a class="headerlink" href="#single-objective-optimization-campaign-user-guide" title="Link to this heading"></a></h1>
+<p>This page allows you to define and run a <strong>Single Objective Optimization (SOO)</strong> experiment.<br />
+A single objective optimization problem focuses on finding the <strong>best possible value</strong> (minimum or maximum) of one target function by adjusting one or more input variables within defined limits.
+When you want to optimaze multiobjective problem see the page <strong>Multi Objective Optimization</strong>.</p>
+<hr class="docutils" />
+<section id="what-is-a-single-objective-optimization">
+<h2>What Is a Single Objective Optimization?<a class="headerlink" href="#what-is-a-single-objective-optimization" title="Link to this heading"></a></h2>
+<p>In a <strong>Single Objective Optimization</strong>, you are trying to <strong>optimize one measurable outcome</strong> (the “objective”) by changing the values of one or more <strong>variables</strong>.</p>
+<p>Mathematically:</p>
+<blockquote>
+<div><p>Find x ∈ X such that<br />
+f(x) is minimized (or maximized)</p>
+</div></blockquote>
+<p>where:</p>
+<ul class="simple">
+<li><p><strong>x</strong> – vector of input variables</p></li>
+<li><p><strong>X</strong> – allowed range for each variable</p></li>
+<li><p><strong>f(x)</strong> – objective function (what you want to optimize)</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="step-by-step-guide">
+<h2>Step-by-Step Guide<a class="headerlink" href="#step-by-step-guide" title="Link to this heading"></a></h2>
+<p>TO DO: screenshot</p>
+<section id="experiment-name">
+<h3>1. Experiment Name<a class="headerlink" href="#experiment-name" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Experiment</span> <span class="pre">Name</span></code></p>
+<ul class="simple">
+<li><p>Enter a descriptive name for your experiment (e.g. <code class="docutils literal notranslate"><span class="pre">Optimization</span> <span class="pre">of</span> <span class="pre">Reaction</span> <span class="pre">Yield</span> <span class="pre">in</span> <span class="pre">Ethyl</span> <span class="pre">Acetate</span> <span class="pre">Synthesis</span></code>).</p></li>
+<li><p>This helps you identify your campaign later when saving or resuming.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="notes-optional">
+<h3>2. Notes (optional)<a class="headerlink" href="#notes-optional" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Notes</span></code></p>
+<ul class="simple">
+<li><p>Use this field to write any comments, goals, or context for the experiment.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="experiment-date">
+<h3>3. Experiment Date<a class="headerlink" href="#experiment-date" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Experiment</span> <span class="pre">Date</span></code></p>
+<ul class="simple">
+<li><p>Automatically filled with the current date. You can change the date by clicking inside the field.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="define-and-edit-variables">
+<h2>Define and Edit Variables<a class="headerlink" href="#define-and-edit-variables" title="Link to this heading"></a></h2>
+<p>This is where you define the <strong>input parameters</strong> that the optimizer can change.</p>
+<section id="variable-type">
+<h3>Variable Type<a class="headerlink" href="#variable-type" title="Link to this heading"></a></h3>
+<p><strong>Option:</strong> <code class="docutils literal notranslate"><span class="pre">Continuous</span></code> or <code class="docutils literal notranslate"><span class="pre">Categorical</span></code></p>
+<ul class="simple">
+<li><p><strong>Continuous:</strong> The variable can take any numerical value within a range (e.g., temperature = 20–100 °C).</p></li>
+<li><p><strong>Categorical:</strong> The variable can take only specific, named options (e.g., material type = {Aluminum, Steel, Copper}, solvents = {MeOH, THF, DMSO}).</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="variable-name">
+<h3>Variable Name<a class="headerlink" href="#variable-name" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Variable</span> <span class="pre">Name</span></code></p>
+<ul class="simple">
+<li><p>Type the name of your variable (e.g., <code class="docutils literal notranslate"><span class="pre">Temperature</span></code>, <code class="docutils literal notranslate"><span class="pre">Pressure</span></code>).</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="lower-bound-upper-bound">
+<h3>Lower Bound / Upper Bound<a class="headerlink" href="#lower-bound-upper-bound" title="Link to this heading"></a></h3>
+<p><strong>Fields:</strong> <code class="docutils literal notranslate"><span class="pre">Lower</span> <span class="pre">Bound</span></code>, <code class="docutils literal notranslate"><span class="pre">Upper</span> <span class="pre">Bound</span></code></p>
+<ul class="simple">
+<li><p>Define the minimum and maximum allowed values for the variable.</p></li>
+<li><p>These set the <strong>search space</strong> for the optimization.</p></li>
+<li><p>Example:</p>
+<ul>
+<li><p>Lower Bound = <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+<li><p>Upper Bound = <code class="docutils literal notranslate"><span class="pre">100</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="unit">
+<h3>Unit<a class="headerlink" href="#unit" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Unit</span></code></p>
+<ul class="simple">
+<li><p>(Optional) Specify the physical unit of the variable.</p></li>
+<li><p>Example: <code class="docutils literal notranslate"><span class="pre">°C</span></code>, <code class="docutils literal notranslate"><span class="pre">M</span></code>, <code class="docutils literal notranslate"><span class="pre">V</span></code>, <code class="docutils literal notranslate"><span class="pre">s</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="add-variable">
+<h3>Add Variable<a class="headerlink" href="#add-variable" title="Link to this heading"></a></h3>
+<p><strong>Button:</strong> <code class="docutils literal notranslate"><span class="pre">Add</span> <span class="pre">Variable</span></code></p>
+<ul class="simple">
+<li><p>Click to add the defined variable to your optimization setup.</p></li>
+<li><p>You can add multiple variables (e.g., Temperature, Voltage, Pressure).</p></li>
+<li><p>If you want to change the variable later you can do it in the table below. DO NOT FORGET TO PRESS “Save Variable Changes”!</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="delete-variable">
+<h3>Delete Variable<a class="headerlink" href="#delete-variable" title="Link to this heading"></a></h3>
+<p>Select variable you want to delete from the menu and press <strong>Delete Variable</strong>. To apply changes you also have to press <strong>Save Variable Changes</strong>.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="experiment-setup">
+<h2>Experiment Setup<a class="headerlink" href="#experiment-setup" title="Link to this heading"></a></h2>
+<p>This section defines <strong>how</strong> the optimization will run.</p>
+<section id="response-to-optimize">
+<h3>Response to Optimize<a class="headerlink" href="#response-to-optimize" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Response</span> <span class="pre">to</span> <span class="pre">Optimize</span></code></p>
+<ul class="simple">
+<li><p>Choose the <strong>objective function</strong> — the quantity you want to minimize or maximize.</p></li>
+<li><p>This is typically a measured or calculated field (e.g., “Yield”, “Error”, “Efficiency”, “Voltage Drop”).</p></li>
+</ul>
+<blockquote>
+<div><p>Example: If your goal is to <strong>maximize yield</strong>, select <code class="docutils literal notranslate"><span class="pre">Yield</span></code> as the response.</p>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="initial-experiments">
+<h3>Initial Experiments<a class="headerlink" href="#initial-experiments" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">Experiments</span></code></p>
+<ul class="simple">
+<li><p>Number of experiments to generate before optimization starts.</p></li>
+<li><p>These experiments give the optimizer initial data to learn from.</p></li>
+<li><p>Typical range: <code class="docutils literal notranslate"><span class="pre">3–10</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="total-iterations">
+<h3>Total Iterations<a class="headerlink" href="#total-iterations" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Total</span> <span class="pre">Iterations</span></code></p>
+<ul class="simple">
+<li><p>Total number of optimization cycles to perform.</p></li>
+<li><p>Each iteration tests a new set of variable values based on previous results.</p></li>
+</ul>
+<blockquote>
+<div><p>Example: If Total Iterations = 20, the optimizer will run 20 rounds of testing to find the best solution.</p>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="initialization-method">
+<h3>Initialization Method<a class="headerlink" href="#initialization-method" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Initialization</span> <span class="pre">Method</span></code></p>
+<p>Defines how the <strong>initial experimental points</strong> are chosen before optimization begins.</p>
+<p>Options:</p>
+<ul class="simple">
+<li><p><strong>Random:</strong> Initial points are generated randomly within variable ranges.</p></li>
+<li><p><strong>LHS:</strong></p></li>
+<li><p><strong>Halton:</strong></p></li>
+<li><p><strong>Maximin LHS:</strong></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="acquisition-function">
+<h3>Acquisition Function<a class="headerlink" href="#acquisition-function" title="Link to this heading"></a></h3>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Acquisition</span> <span class="pre">Function</span></code></p>
+<p>Controls how new experimental points are chosen during optimization.<br />
+Common methods:</p>
+<ul class="simple">
+<li><p><strong>EI (Expected Improvement):</strong> Chooses points that are most likely to improve the best result so far.</p></li>
+<li><p><strong>PI (Probability of Improvement):</strong> Focuses on points that have a high chance of being better than the current best.</p></li>
+<li><p><strong>LCB (Lower Confidence Bound):</strong> Balances exploration (trying new areas) and exploitation (improving known good areas).</p></li>
+</ul>
+<blockquote>
+<div><p>Choose EI if you’re unsure — it’s the most commonly used and balances exploration and exploitation.</p>
+</div></blockquote>
+</section>
+</section>
+<hr class="docutils" />
+<section id="generate-experiments">
+<h2>Generate Experiments<a class="headerlink" href="#generate-experiments" title="Link to this heading"></a></h2>
+<p><strong>Suggest Initial Experiments</strong></p>
+<ul class="simple">
+<li><p>Automatically generates initial experimental points based on:</p>
+<ul>
+<li><p>Variable ranges</p></li>
+<li><p>Initialization method</p></li>
+<li><p>Number of initial experiments</p></li>
+</ul>
+</li>
+</ul>
+<p>These points can then be used to start the optimization campaign.</p>
+</section>
+<hr class="docutils" />
+<section id="optimization-process-summary">
+<h2>Optimization Process Summary<a class="headerlink" href="#optimization-process-summary" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Define all variables and their limits.</p></li>
+<li><p>Choose the response to optimize (objective function).</p></li>
+<li><p>Select initialization method and acquisition function.</p></li>
+<li><p>Generate initial experiments.</p></li>
+<li><p>Run optimization — the system tests combinations of variables to find the best result.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="example-setup">
+<h2>Example Setup<a class="headerlink" href="#example-setup" title="Link to this heading"></a></h2>
+<p>TO DO: screenshot</p>
+<p>Goal: <strong>Maximize reaction yield</strong> by adjusting temperature and pressure.</p>
+</section>
+<hr class="docutils" />
+<section id="tips">
+<h2>Tips<a class="headerlink" href="#tips" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Always define realistic bounds to prevent invalid experiments.</p></li>
+<li><p>Start with a small number of variables to understand the workflow.</p></li>
+<li><p>If unsure, use:</p>
+<ul>
+<li><p>Initialization Method: <strong>Random</strong></p></li>
+<li><p>Acquisition Function: <strong>EI (Expected Improvement)</strong></p></li>
+</ul>
+</li>
+<li><p>Record notes about each campaign for traceability.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+</section>
+<section id="to-do-possible-problems">
+<h2>TO DO: Possible problems?<a class="headerlink" href="#to-do-possible-problems" title="Link to this heading"></a></h2>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<p>After running, the optimizer provides:</p>
+<ul class="simple">
+<li><p>A set of variable combinations tested.</p></li>
+<li><p>Corresponding objective values (measured or predicted).</p></li>
+<li><p>The <strong>best-performing configuration</strong> based on your chosen objective.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="glossary-of-key-terms">
+<h2>Glossary of Key Terms<a class="headerlink" href="#glossary-of-key-terms" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Term</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Variable</strong></p></td>
+<td><p>An input parameter that can be adjusted (e.g., temperature, speed).</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Objective Function</strong></p></td>
+<td><p>The quantity you want to optimize (e.g., maximize yield, minimize error).</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Bounds</strong></p></td>
+<td><p>Limits for variable values (minimum and maximum).</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Initialization</strong></p></td>
+<td><p>The first set of experiments before optimization begins.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Iteration</strong></p></td>
+<td><p>One cycle of testing and updating the optimization model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Acquisition Function</strong></p></td>
+<td><p>Mathematical rule to decide which point to test next.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Response</strong></p></td>
+<td><p>Measured or calculated output value that represents the objective.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="home.html" class="btn btn-neutral float-left" title="🏠 Home" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="manual_optimization.html" class="btn btn-neutral float-right" title="🧰 Manual Optimization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Araya Vargas, Gonzalo.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
