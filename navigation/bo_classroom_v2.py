@@ -47,6 +47,7 @@ with tab1:
         "Forrester (1D)",
         "Chemistry: Yield vs Temperature & Catalyst (2 vars)",
         "Chemistry: Yield vs Temp/Cat/Pressure/Residence/Polarity (5 vars)",
+        "Chemistry: Mixed (cont + cat)",
     ], index=0)
     if demo_fn.startswith("Forrester"):
         vars_ms = so_demo_space("forrester")
@@ -55,6 +56,9 @@ with tab1:
         if "5 vars" in demo_fn:
             vars_ms = chem_demo_space("extended")
             eval_fn = lambda row: chem_eval_row(row, mode="extended")
+        elif "Mixed" in demo_fn:
+            vars_ms = chem_demo_space("mixed")
+            eval_fn = lambda row: chem_eval_row(row, mode="mixed")
         else:
             vars_ms = chem_demo_space("basic")
             eval_fn = lambda row: chem_eval_row(row, mode="basic")
@@ -87,8 +91,12 @@ with tab1:
         if name == vary:
             continue
         with cols[i % 2]:
-            default = 0.5 * (float(v1) + float(v2))
-            fixed[name] = st.number_input(f"{name}", value=float(default), key=f"fix_{name}")
+            if vtype == "continuous":
+                default = 0.5 * (float(v1) + float(v2))
+                fixed[name] = st.number_input(f"{name}", value=float(default), key=f"fix_{name}")
+            else:
+                options = list(v1)
+                fixed[name] = st.selectbox(f"{name}", options=options, key=f"fix_{name}")
     xi = st.number_input("Exploration (xi)", min_value=0.0, max_value=1.0, value=0.01, step=0.01, key="classroom_xi")
     res = st.slider("Resolution (points)", 50, 400, 150, 25, key="classroom_res")
     if st.button("Plot 1D GP + AF", key="plot_gp_af"):
@@ -101,6 +109,7 @@ with tab2:
         "Forrester (1D)",
         "Chemistry: Yield vs Temperature & Catalyst (2 vars)",
         "Chemistry: Yield vs Temp/Cat/Pressure/Residence/Polarity (5 vars)",
+        "Chemistry: Mixed (cont + cat)",
     ], index=1)
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -119,6 +128,9 @@ with tab2:
             if "5 vars" in demo_choice:
                 space = chem_demo_space("extended")
                 fn = lambda row: chem_eval_row(row, mode="extended")
+            elif "Mixed" in demo_choice:
+                space = chem_demo_space("mixed")
+                fn = lambda row: chem_eval_row(row, mode="mixed")
             else:
                 space = chem_demo_space("basic")
                 fn = lambda row: chem_eval_row(row, mode="basic")
@@ -143,6 +155,8 @@ with tab2:
         df_run = pd.DataFrame([{space[i][0]: X[k][i] for i in range(len(space))} | {"y": Y[k]} for k in range(len(X))])
         st.session_state.setdefault("classroom_runs", {})[run_name] = {"df": df_run, "settings": {"budget": int(budget), "n_init": int(n_init), "acq": acq, "method": method, "demo": demo_choice}}
         st.success(f"Run '{run_name}' completed.")
+        st.markdown("### Experiment Conditions (this run)")
+        st.dataframe(df_run, use_container_width=True)
 
     # Compare runs
     runs = st.session_state.get("classroom_runs", {})
@@ -153,16 +167,49 @@ with tab2:
             df_run = payload["df"].copy()
             df_run["y"] = pd.to_numeric(df_run["y"], errors="coerce")
             vals = df_run["y"].tolist()
-            best = []
-            cur = None
-            for v in vals:
-                cur = v if cur is None else max(cur, v)
-                best.append(cur)
-            tdf = pd.DataFrame({"iteration": range(1, len(best) + 1), "best": best, "run": name})
-            fig = px.line(tdf, x="iteration", y="best", color="run", markers=True) if fig is None else fig.add_traces(px.line(tdf, x="iteration", y="best", color="run").data)
+            tdf = pd.DataFrame({"iteration": range(1, len(vals) + 1), "objective": vals, "run": name})
+            _fig = px.line(tdf, x="iteration", y="objective", color="run", markers=True)
+            fig = _fig if fig is None else fig.add_traces(_fig.data)
         st.plotly_chart(fig, use_container_width=True)
         st.caption("Tip: compare acquisitions and init methods; the chemistry demo mimics Temperature/Catalyst trade‑offs.")
 
+
+    # Manual yield calculator for the selected demo
+    st.markdown("---")
+    st.subheader("Manual Yield Calculator")
+    if demo_choice.startswith("Forrester"):
+        calc_space = so_demo_space("forrester")
+        calc_fn = so_demo_eval("forrester")
+    else:
+        if "5 vars" in demo_choice:
+            calc_space = chem_demo_space("extended")
+            calc_fn = lambda row: chem_eval_row(row, mode="extended")
+        elif "Mixed" in demo_choice:
+            calc_space = chem_demo_space("mixed")
+            calc_fn = lambda row: chem_eval_row(row, mode="mixed")
+        else:
+            calc_space = chem_demo_space("basic")
+            calc_fn = lambda row: chem_eval_row(row, mode="basic")
+
+    with st.expander("Enter variables and compute yield", expanded=False):
+        inputs = []
+        cols = st.columns(2)
+        for i, (name, v1, v2, _u, vtype) in enumerate(calc_space):
+            with cols[i % 2]:
+                if vtype == "continuous":
+                    default = 0.5 * (float(v1) + float(v2))
+                    val = st.number_input(f"{name}", value=float(default), key=f"calc_{name}")
+                    inputs.append(val)
+                else:
+                    options = list(v1)
+                    val = st.selectbox(f"{name}", options=options, key=f"calc_{name}")
+                    inputs.append(val)
+        if st.button("Compute Yield", key="compute_yield_btn"):
+            try:
+                y = calc_fn(inputs)
+                st.success(f"Simulated response: {float(y):.4f}")
+            except Exception as e:
+                st.error(f"Failed to compute: {e}")
 
 with tab3:
     st.subheader("Scalarization Trainer & Pareto")
