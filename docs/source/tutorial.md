@@ -24,24 +24,19 @@ where:
 
 ## Step-by-Step Guide
 
-TO DO: screenshot
+### 1. Define campaign
 
-### 1. Experiment Name
+![single objective start](./_static/single_objective_campain.png)
+
 **Field:** `Experiment Name`
 
 - Enter a descriptive name for your experiment (e.g. `Optimization of Reaction Yield in Ethyl Acetate Synthesis`).
 - This helps you identify your campaign later when saving or resuming.
 
----
-
-### 2. Notes (optional)
 **Field:** `Notes`
 
 - Use this field to write any comments, goals, or context for the experiment.
 
----
-
-### 3. Experiment Date
 **Field:** `Experiment Date`
 
 - Automatically filled with the current date. You can change the date by clicking inside the field.
@@ -52,22 +47,17 @@ TO DO: screenshot
 
 This is where you define the **input parameters** that the optimizer can change.
 
-### Variable Type
+![Variables](./_static/define_single_objective.png)
+
 **Option:** `Continuous` or `Categorical`
 
 - **Continuous:** The variable can take any numerical value within a range (e.g., temperature = 20–100 °C).
 - **Categorical:** The variable can take only specific, named options (e.g., material type = {Aluminum, Steel, Copper}, solvents = {MeOH, THF, DMSO}).
 
----
-
-### Variable Name
 **Field:** `Variable Name`
 
 - Type the name of your variable (e.g., `Temperature`, `Pressure`).
 
----
-
-### Lower Bound / Upper Bound
 **Fields:** `Lower Bound`, `Upper Bound`
 
 - Define the minimum and maximum allowed values for the variable.
@@ -76,27 +66,31 @@ This is where you define the **input parameters** that the optimizer can change.
   - Lower Bound = `0`
   - Upper Bound = `100`
 
----
-
-### Unit
 **Field:** `Unit`
 
 - (Optional) Specify the physical unit of the variable.
 - Example: `°C`, `M`, `V`, `s`
 
----
-
-### Add Variable
 **Button:** `Add Variable`
 
 - Click to add the defined variable to your optimization setup.
 - You can add multiple variables (e.g., Temperature, Voltage, Pressure).
+
+### Edit variables
 - If you want to change the variable later you can do it in the table below. DO NOT FORGET TO PRESS "Save Variable Changes"!
+
+![Edit variable](./_static/edit_variables.png)
 
 ---
 
 ### Delete Variable
-Select variable you want to delete from the menu and press **Delete Variable**. To apply changes you also have to press **Save Variable Changes**.
+Select variable you want to delete from the menu and press **Delete Variable**.
+
+![Delete variable](./_static/delete_variable.png)
+
+To apply changes you also have to press **Save Variable Changes**.
+
+![Delete variable](./_static/delete_variable_steps.png)
 
 ---
 
@@ -104,7 +98,8 @@ Select variable you want to delete from the menu and press **Delete Variable**. 
 
 This section defines **how** the optimization will run.
 
-### Response to Optimize
+![Setup experiment](./_static/experimentsetup.png)
+
 **Field:** `Response to Optimize`
 
 - Choose the **objective function** — the quantity you want to minimize or maximize.
@@ -112,18 +107,12 @@ This section defines **how** the optimization will run.
 
 > Example: If your goal is to **maximize yield**, select `Yield` as the response.
 
----
-
-### Initial Experiments
 **Field:** `Initial Experiments`
 
 - Number of experiments to generate before optimization starts.
 - These experiments give the optimizer initial data to learn from.
 - Typical range: `3–10`
 
----
-
-### Total Iterations
 **Field:** `Total Iterations`
 
 - Total number of optimization cycles to perform.
@@ -131,9 +120,6 @@ This section defines **how** the optimization will run.
 
 > Example: If Total Iterations = 20, the optimizer will run 20 rounds of testing to find the best solution.
 
----
-
-### Initialization Method
 **Field:** `Initialization Method`
 
 Defines how the **initial experimental points** are chosen before optimization begins.
@@ -144,9 +130,6 @@ Options:
 - **Halton:** 
 - **Maximin LHS:** 
 
----
-
-### Acquisition Function
 **Field:** `Acquisition Function`
 
 Controls how new experimental points are chosen during optimization.  
