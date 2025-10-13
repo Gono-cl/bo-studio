@@ -104,26 +104,18 @@ f(x) is minimized (or maximized)</p>
 <hr class="docutils" />
 <section id="step-by-step-guide">
 <h2>Step-by-Step Guide<a class="headerlink" href="#step-by-step-guide" title="Link to this heading"></a></h2>
-<p>TO DO: screenshot</p>
-<section id="experiment-name">
-<h3>1. Experiment Name<a class="headerlink" href="#experiment-name" title="Link to this heading"></a></h3>
+<section id="define-campaign">
+<h3>1. Define campaign<a class="headerlink" href="#define-campaign" title="Link to this heading"></a></h3>
+<p><img alt="single objective start" src="_images/single_objective_campain.png" /></p>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Experiment</span> <span class="pre">Name</span></code></p>
 <ul class="simple">
 <li><p>Enter a descriptive name for your experiment (e.g. <code class="docutils literal notranslate"><span class="pre">Optimization</span> <span class="pre">of</span> <span class="pre">Reaction</span> <span class="pre">Yield</span> <span class="pre">in</span> <span class="pre">Ethyl</span> <span class="pre">Acetate</span> <span class="pre">Synthesis</span></code>).</p></li>
 <li><p>This helps you identify your campaign later when saving or resuming.</p></li>
 </ul>
-</section>
-<hr class="docutils" />
-<section id="notes-optional">
-<h3>2. Notes (optional)<a class="headerlink" href="#notes-optional" title="Link to this heading"></a></h3>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Notes</span></code></p>
 <ul class="simple">
 <li><p>Use this field to write any comments, goals, or context for the experiment.</p></li>
 </ul>
-</section>
-<hr class="docutils" />
-<section id="experiment-date">
-<h3>3. Experiment Date<a class="headerlink" href="#experiment-date" title="Link to this heading"></a></h3>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Experiment</span> <span class="pre">Date</span></code></p>
 <ul class="simple">
 <li><p>Automatically filled with the current date. You can change the date by clicking inside the field.</p></li>
@@ -134,25 +126,16 @@ f(x) is minimized (or maximized)</p>
 <section id="define-and-edit-variables">
 <h2>Define and Edit Variables<a class="headerlink" href="#define-and-edit-variables" title="Link to this heading"></a></h2>
 <p>This is where you define the <strong>input parameters</strong> that the optimizer can change.</p>
-<section id="variable-type">
-<h3>Variable Type<a class="headerlink" href="#variable-type" title="Link to this heading"></a></h3>
+<p><img alt="Variables" src="_images/define_single_objective.png" /></p>
 <p><strong>Option:</strong> <code class="docutils literal notranslate"><span class="pre">Continuous</span></code> or <code class="docutils literal notranslate"><span class="pre">Categorical</span></code></p>
 <ul class="simple">
 <li><p><strong>Continuous:</strong> The variable can take any numerical value within a range (e.g., temperature = 20–100 °C).</p></li>
 <li><p><strong>Categorical:</strong> The variable can take only specific, named options (e.g., material type = {Aluminum, Steel, Copper}, solvents = {MeOH, THF, DMSO}).</p></li>
 </ul>
-</section>
-<hr class="docutils" />
-<section id="variable-name">
-<h3>Variable Name<a class="headerlink" href="#variable-name" title="Link to this heading"></a></h3>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Variable</span> <span class="pre">Name</span></code></p>
 <ul class="simple">
 <li><p>Type the name of your variable (e.g., <code class="docutils literal notranslate"><span class="pre">Temperature</span></code>, <code class="docutils literal notranslate"><span class="pre">Pressure</span></code>).</p></li>
 </ul>
-</section>
-<hr class="docutils" />
-<section id="lower-bound-upper-bound">
-<h3>Lower Bound / Upper Bound<a class="headerlink" href="#lower-bound-upper-bound" title="Link to this heading"></a></h3>
 <p><strong>Fields:</strong> <code class="docutils literal notranslate"><span class="pre">Lower</span> <span class="pre">Bound</span></code>, <code class="docutils literal notranslate"><span class="pre">Upper</span> <span class="pre">Bound</span></code></p>
 <ul class="simple">
 <li><p>Define the minimum and maximum allowed values for the variable.</p></li>
@@ -164,38 +147,37 @@ f(x) is minimized (or maximized)</p>
 </ul>
 </li>
 </ul>
-</section>
-<hr class="docutils" />
-<section id="unit">
-<h3>Unit<a class="headerlink" href="#unit" title="Link to this heading"></a></h3>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Unit</span></code></p>
 <ul class="simple">
 <li><p>(Optional) Specify the physical unit of the variable.</p></li>
 <li><p>Example: <code class="docutils literal notranslate"><span class="pre">°C</span></code>, <code class="docutils literal notranslate"><span class="pre">M</span></code>, <code class="docutils literal notranslate"><span class="pre">V</span></code>, <code class="docutils literal notranslate"><span class="pre">s</span></code></p></li>
 </ul>
-</section>
-<hr class="docutils" />
-<section id="add-variable">
-<h3>Add Variable<a class="headerlink" href="#add-variable" title="Link to this heading"></a></h3>
 <p><strong>Button:</strong> <code class="docutils literal notranslate"><span class="pre">Add</span> <span class="pre">Variable</span></code></p>
 <ul class="simple">
 <li><p>Click to add the defined variable to your optimization setup.</p></li>
 <li><p>You can add multiple variables (e.g., Temperature, Voltage, Pressure).</p></li>
+</ul>
+<section id="edit-variables">
+<h3>Edit variables<a class="headerlink" href="#edit-variables" title="Link to this heading"></a></h3>
+<ul class="simple">
 <li><p>If you want to change the variable later you can do it in the table below. DO NOT FORGET TO PRESS “Save Variable Changes”!</p></li>
 </ul>
+<p><img alt="Edit variable" src="_images/edit_variables.png" /></p>
 </section>
 <hr class="docutils" />
 <section id="delete-variable">
 <h3>Delete Variable<a class="headerlink" href="#delete-variable" title="Link to this heading"></a></h3>
-<p>Select variable you want to delete from the menu and press <strong>Delete Variable</strong>. To apply changes you also have to press <strong>Save Variable Changes</strong>.</p>
+<p>Select variable you want to delete from the menu and press <strong>Delete Variable</strong>.</p>
+<p><img alt="Delete variable" src="_images/delete_variable.png" /></p>
+<p>To apply changes you also have to press <strong>Save Variable Changes</strong>.</p>
+<p><img alt="Delete variable" src="_images/delete_variable_steps.png" /></p>
 </section>
 </section>
 <hr class="docutils" />
 <section id="experiment-setup">
 <h2>Experiment Setup<a class="headerlink" href="#experiment-setup" title="Link to this heading"></a></h2>
 <p>This section defines <strong>how</strong> the optimization will run.</p>
-<section id="response-to-optimize">
-<h3>Response to Optimize<a class="headerlink" href="#response-to-optimize" title="Link to this heading"></a></h3>
+<p><img alt="Setup experiment" src="_images/experimentsetup.png" /></p>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Response</span> <span class="pre">to</span> <span class="pre">Optimize</span></code></p>
 <ul class="simple">
 <li><p>Choose the <strong>objective function</strong> — the quantity you want to minimize or maximize.</p></li>
@@ -204,20 +186,12 @@ f(x) is minimized (or maximized)</p>
 <blockquote>
 <div><p>Example: If your goal is to <strong>maximize yield</strong>, select <code class="docutils literal notranslate"><span class="pre">Yield</span></code> as the response.</p>
 </div></blockquote>
-</section>
-<hr class="docutils" />
-<section id="initial-experiments">
-<h3>Initial Experiments<a class="headerlink" href="#initial-experiments" title="Link to this heading"></a></h3>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">Experiments</span></code></p>
 <ul class="simple">
 <li><p>Number of experiments to generate before optimization starts.</p></li>
 <li><p>These experiments give the optimizer initial data to learn from.</p></li>
 <li><p>Typical range: <code class="docutils literal notranslate"><span class="pre">3–10</span></code></p></li>
 </ul>
-</section>
-<hr class="docutils" />
-<section id="total-iterations">
-<h3>Total Iterations<a class="headerlink" href="#total-iterations" title="Link to this heading"></a></h3>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Total</span> <span class="pre">Iterations</span></code></p>
 <ul class="simple">
 <li><p>Total number of optimization cycles to perform.</p></li>
@@ -226,10 +200,6 @@ f(x) is minimized (or maximized)</p>
 <blockquote>
 <div><p>Example: If Total Iterations = 20, the optimizer will run 20 rounds of testing to find the best solution.</p>
 </div></blockquote>
-</section>
-<hr class="docutils" />
-<section id="initialization-method">
-<h3>Initialization Method<a class="headerlink" href="#initialization-method" title="Link to this heading"></a></h3>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Initialization</span> <span class="pre">Method</span></code></p>
 <p>Defines how the <strong>initial experimental points</strong> are chosen before optimization begins.</p>
 <p>Options:</p>
@@ -239,10 +209,6 @@ f(x) is minimized (or maximized)</p>
 <li><p><strong>Halton:</strong></p></li>
 <li><p><strong>Maximin LHS:</strong></p></li>
 </ul>
-</section>
-<hr class="docutils" />
-<section id="acquisition-function">
-<h3>Acquisition Function<a class="headerlink" href="#acquisition-function" title="Link to this heading"></a></h3>
 <p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Acquisition</span> <span class="pre">Function</span></code></p>
 <p>Controls how new experimental points are chosen during optimization.<br />
 Common methods:</p>
@@ -254,7 +220,6 @@ Common methods:</p>
 <blockquote>
 <div><p>Choose EI if you’re unsure — it’s the most commonly used and balances exploration and exploitation.</p>
 </div></blockquote>
-</section>
 </section>
 <hr class="docutils" />
 <section id="generate-experiments">
