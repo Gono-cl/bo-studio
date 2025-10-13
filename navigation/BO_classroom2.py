@@ -11,7 +11,7 @@ st.title("🎯 BO Classroom: Simulation Case 1")
 
 # Add an introductory section with the saved reaction image
 st.markdown("### Reaction Overview")
-st.image("image_reaction1.png", use_container_width=True)
+st.image("images/image_reaction1.png", use_container_width=True)
 
 st.markdown("""
 This example simulates the optimization of a copper-mediated radiofluorination reaction:
@@ -35,23 +35,30 @@ The [¹⁸F]pFBnOH synthesis reaction is a well-studied example in the field of 
 - The goal is to determine the minimum number of experiments needed to achieve the maximum radiochemical conversion (%RCC), showcasing the efficiency of BO in reducing experimental effort.
 """)
 
-# --- Synthetic surrogate model (mock coefficients based on DoE trends) ---
+# Function to scale variables to [-1, 1]
+def code(x, min_val, max_val):
+    return 2 * (x - min_val) / (max_val - min_val) - 1
+
+# RCC model with coded (normalized) variables
 def pfbnoh_model(params):
     Cu, Pyridine, Substrate = params
+    Cu_c = code(Cu, 1.0, 4.0)
+    Pyr_c = code(Pyridine, 5.0, 30.0)
+    Sub_c = code(Substrate, 5.0, 25.0)
+
     RCC = (
-        -6.59
-        + 14.53 * Cu
-        + 1.38 * Pyridine
-        + 3.79 * Substrate
-        + 0.13 * Cu * Pyridine
-        - 0.19 * Cu * Substrate
-        - 0.09 * Pyridine * Substrate
-        - 1.04 * Cu**2
-        - 0.04 * Pyridine**2
-        - 0.06 * Substrate**2
+        52.97
+        + 13.35 * Cu_c
+        - 13.43 * Pyr_c
+        - 1.08 * Sub_c
+        + 2.53 * Cu_c * Pyr_c
+        - 2.78 * Cu_c * Sub_c
+        - 11.48 * Pyr_c * Sub_c
+        - 2.35 * Cu_c**2
+        - 6.30 * Pyr_c**2
+        - 6.10 * Sub_c**2
     )
-    RCC = np.clip(RCC, 0, 100)
-    return -RCC  # for maximization
+    return -np.clip(RCC, 0, 100)
 
 
 # --- User settings ---
