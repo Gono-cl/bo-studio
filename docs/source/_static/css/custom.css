@@ -1,0 +1,30 @@
+/* === Make content wider but keep sidebar working === */
+
+/* Prevent sidebar from overlapping content */
+.wy-nav-content-wrap {
+    margin-left: 300px; /* space for sidebar */
+}
+
+/* Adjust sidebar width (default is ~300px) */
+.wy-side-nav-search,
+.wy-nav-side {
+    width: 300px;
+}
+
+/* Expand content width smoothly */
+.wy-nav-content {
+    max-width: 95% !important; /* use most of screen width */
+    width: auto !important;
+    padding: 2rem;
+}
+
+/* Keep content centered and readable */
+.rst-content {
+    max-width: 100% !important;
+    margin: 0 auto;
+}
+
+/* Optional: make background seamless */
+.wy-body-for-nav {
+    background-color: #fff;
+}
