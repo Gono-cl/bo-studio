@@ -1,0 +1,346 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Single Objective Optimization Campaign — Case Study Tutorial &mdash; BO-STUDIO 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=0275fc1b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="About" href="about.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            BO-STUDIO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="home.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Single Objective Optimization Campaign — User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multi.html">Multiobjective Optimization Campaign — User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual_optimization.html">🧰 Manual Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiment_database.html">📚 Experiment DataBase</a></li>
+<li class="toctree-l1"><a class="reference internal" href="preview_saved_run.html">🔍 Preview Saved Run</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bayesian.html">🎓 Bayesian</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_case.html">🧪 Simulation Case 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ – Help &amp; Guidance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Single Objective Optimization Campaign — Case Study Tutorial</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">BO-STUDIO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Single Objective Optimization Campaign — Case Study Tutorial</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/case_study.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="single-objective-optimization-campaign-case-study-tutorial">
+<h1>Single Objective Optimization Campaign — Case Study Tutorial<a class="headerlink" href="#single-objective-optimization-campaign-case-study-tutorial" title="Link to this heading"></a></h1>
+<p>This tutorial walks you through a complete single objective optimization campaign step by step.<br />
+You will learn how to define variables, set up the optimization, enter experimental results, and interpret the outcome.</p>
+<hr class="docutils" />
+<section id="goal-of-the-case-study">
+<h2>Goal of the Case Study<a class="headerlink" href="#goal-of-the-case-study" title="Link to this heading"></a></h2>
+<p>We will perform a <strong>reaction yield optimization</strong> — our goal is to <strong>maximize the reaction yield (%)</strong> by adjusting:</p>
+<ul class="simple">
+<li><p>Temperature (°C)</p></li>
+<li><p>Catalyst concentration</p></li>
+<li><p>Pressure (bar)</p></li>
+<li><p>Residence Time (min)</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="define-the-campaign">
+<h2>1. Define the Campaign<a class="headerlink" href="#define-the-campaign" title="Link to this heading"></a></h2>
+<p><img alt="Single objective start" src="_images/metadata.png" /></p>
+<ol class="arabic simple">
+<li><p>Enter a descriptive <strong>Experiment Name</strong> — e.g.<br />
+<code class="docutils literal notranslate"><span class="pre">Optimization</span> <span class="pre">tutorial</span></code>.</p></li>
+<li><p>Optionally, add <strong>Notes</strong> (e.g., “5 variables and 1 objective, using a synthetic funtion for the tutorial”).</p></li>
+<li><p>The <strong>Experiment Date</strong> field fills automatically — you can edit it if needed.</p></li>
+</ol>
+<p>Press <strong>Save Campaign</strong> to store the configuration.</p>
+</section>
+<hr class="docutils" />
+<section id="define-and-edit-variables">
+<h2>2. Define and Edit Variables<a class="headerlink" href="#define-and-edit-variables" title="Link to this heading"></a></h2>
+<p>Next, define the experimental variables that the optimizer can change.</p>
+<p><img alt="Define Variables" src="_images/variables.png" /></p>
+<p>For each variable:</p>
+<ul class="simple">
+<li><p><strong>Variable Type:</strong> Choose <code class="docutils literal notranslate"><span class="pre">Continuous</span></code> (numeric range) or <code class="docutils literal notranslate"><span class="pre">Categorical</span></code> (discrete options).</p></li>
+<li><p><strong>Variable Name:</strong> For example, <code class="docutils literal notranslate"><span class="pre">Temperature</span></code>.</p></li>
+<li><p><strong>Lower/Upper Bound:</strong> Define the allowed range (e.g., 30–120 °C).</p></li>
+<li><p><strong>Unit (optional):</strong> Add units like <code class="docutils literal notranslate"><span class="pre">°C</span></code>, <code class="docutils literal notranslate"><span class="pre">bar</span></code>, or <code class="docutils literal notranslate"><span class="pre">min</span></code>.</p></li>
+</ul>
+<p>Click <strong>Add Variable</strong> to include it in your setup.</p>
+<hr class="docutils" />
+<section id="edit-variables">
+<h3>Edit Variables<a class="headerlink" href="#edit-variables" title="Link to this heading"></a></h3>
+<p>If you make changes later, update them directly in the table and click <strong>Save Variable Changes</strong>.</p>
+<p><img alt="Edit variable" src="_images/variables_edit.png" /></p>
+</section>
+<section id="delete-variables">
+<h3>Delete Variables<a class="headerlink" href="#delete-variables" title="Link to this heading"></a></h3>
+<p>Select a variable from the dropdown menu, click <strong>Delete Variable</strong>, and then confirm with <strong>Save Variable Changes</strong>.</p>
+<p><img alt="Delete variable steps" src="_images/delete_variable_steps.png" />
+<img alt="Delete variable steps" src="_images/variables_delete.png" />
+<img alt="Delete variable steps" src="_images/variable_delete_2.png" />
+<img alt="Delete variable steps" src="_images/variable_delete_3.png" /></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="experiment-setup">
+<h2>3. Experiment Setup<a class="headerlink" href="#experiment-setup" title="Link to this heading"></a></h2>
+<p><img alt="Experiment Setup" src="_images/experiment_setup.png" /></p>
+<p>Define how the optimization will proceed.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Response to Optimize</strong></p></td>
+<td><p>Select the measured value to optimize (e.g., <code class="docutils literal notranslate"><span class="pre">Yield</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Initial Experiments</strong></p></td>
+<td><p>Number of points used for initialization (e.g., <code class="docutils literal notranslate"><span class="pre">10</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Total Iterations</strong></p></td>
+<td><p>Total optimization rounds (e.g., <code class="docutils literal notranslate"><span class="pre">20</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Initialization Method</strong></p></td>
+<td><p>How initial points are generated:<br>• <strong>Random</strong> – random sampling<br>• <strong>LHS (Latin Hypercube Sampling)</strong> – evenly distributed samples<br>• <strong>Halton</strong> – low-discrepancy sequence<br>• <strong>Maximin LHS</strong> – maximizes spacing between points</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Acquisition Function</strong></p></td>
+<td><p>Strategy for choosing next experiments:<br>• <strong>EI</strong> – Expected Improvement<br>• <strong>PI</strong> – Probability of Improvement<br>• <strong>LCB</strong> – Lower Confidence Bound</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Direction</strong></p></td>
+<td><p>Choose <strong>Maximize</strong> or <strong>Minimize</strong> the response.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="generate-initial-experiments">
+<h2>4. Generate Initial Experiments<a class="headerlink" href="#generate-initial-experiments" title="Link to this heading"></a></h2>
+<p>Click <strong>Suggest Initial Experiments</strong>.<br />
+The system generates a design table based on your variable ranges and initialization method.</p>
+<p><img alt="Initial Experiments" src="_images/init_complete.png" /></p>
+<p>Fill in your <strong>measured results</strong> (e.g., Yield) for each row.<br />
+Press <strong>Submit Initial Results</strong> when done.</p>
+</section>
+<hr class="docutils" />
+<section id="run-the-optimization-loop">
+<h2>5. Run the Optimization Loop<a class="headerlink" href="#run-the-optimization-loop" title="Link to this heading"></a></h2>
+<p>Once initial data is submitted, the optimizer proposes the <strong>Next Experiment Suggestion</strong> — the next best parameter combination to test.</p>
+<p><img alt="Next suggestion" src="_images/next_suggestion_okok.png" /></p>
+<ol class="arabic simple">
+<li><p>Perform the experiment with the suggested parameters.</p></li>
+<li><p>Enter the measured value (e.g., <code class="docutils literal notranslate"><span class="pre">Yield</span> <span class="pre">=</span> <span class="pre">41.08</span></code>) in the <strong>Result for Yield</strong> field.</p></li>
+<li><p>Press <strong>Submit Result</strong>.</p></li>
+</ol>
+<p>The system automatically updates the model and suggests the next point.</p>
+<p>Repeat until all iterations are completed.</p>
+</section>
+<hr class="docutils" />
+<section id="monitor-optimization-progress">
+<h2>6. Monitor Optimization Progress<a class="headerlink" href="#monitor-optimization-progress" title="Link to this heading"></a></h2>
+<p>During or after the optimization, you can visualize how the process evolves.</p>
+<section id="parallel-coordinates-plot">
+<h3>Parallel Coordinates Plot<a class="headerlink" href="#parallel-coordinates-plot" title="Link to this heading"></a></h3>
+<p>Shows all tested experiments and how each variable affects the yield.</p>
+<p><img alt="Parallel Coordinates Plot" src="_images/parallel_coordinates_ok.png" /></p>
+<ul class="simple">
+<li><p>Each line = one experiment</p></li>
+<li><p>Color = Yield value</p></li>
+<li><p>Patterns indicate which variables most influence the result.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="optimization-progress-chart">
+<h3>Optimization Progress Chart<a class="headerlink" href="#optimization-progress-chart" title="Link to this heading"></a></h3>
+<p>Displays selected variable progress versus experiment number.</p>
+<p><img alt="Optimization Progress Chart" src="_images/pregress_chart_ok.png" /></p>
+<p>This chart helps you track whether the optimization is converging toward higher yields.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="optimization-completed">
+<h2>7. Optimization Completed<a class="headerlink" href="#optimization-completed" title="Link to this heading"></a></h2>
+<p>When all iterations are done, you’ll see a summary table with all tested conditions.</p>
+<p><img alt="Optimization Completed" src="_images/complete_campaign.png" /></p>
+<section id="exporting-data">
+<h3>Exporting Data<a class="headerlink" href="#exporting-data" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Download Results as CSV</strong> – Save all data locally.</p></li>
+<li><p><strong>Save to Database</strong> – Store results for future campaigns.</p></li>
+</ul>
+<p><img alt="Save to Database" src="_images/save_to_database.png" /></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="resume-or-reuse-campaigns">
+<h2>8. Resume or Reuse Campaigns<a class="headerlink" href="#resume-or-reuse-campaigns" title="Link to this heading"></a></h2>
+<p>You can reuse or continue previous campaigns.</p>
+<p><img alt="Reuse Data" src="_images/reuse_data_tutorial_2.png" /></p>
+<ul class="simple">
+<li><p><strong>Resume from Previous Manual Campaign:</strong> Continue an interrupted run.</p></li>
+<li><p><strong>Reuse Previous Campaign as Seeds:</strong> Start a new campaign using previous results as training data.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="edit-and-reuse-previous-experiments">
+<h2>9. Edit and Reuse Previous Experiments<a class="headerlink" href="#edit-and-reuse-previous-experiments" title="Link to this heading"></a></h2>
+<p>If you want to adjust or reselect previous results:</p>
+<p><img alt="Select Previous Experiments" src="_images/select_previous_exp_table.png" /></p>
+<ol class="arabic simple">
+<li><p>Check or uncheck experiments you want to include.</p></li>
+<li><p>Click <strong>Use Selected Experiments</strong>.</p></li>
+<li><p>Optionally, enable “Skip additional random initial points” to start optimization immediately from the existing dataset.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="results-and-best-conditions">
+<h2>10. Results and Best Conditions<a class="headerlink" href="#results-and-best-conditions" title="Link to this heading"></a></h2>
+<p>Once finished, the optimizer reports the <strong>best-performing conditions</strong> based on your objective (e.g., maximum yield).</p>
+<p>You can:</p>
+<ul class="simple">
+<li><p>Review all results in the table</p></li>
+<li><p>Export as CSV</p></li>
+<li><p>Save to the database for later use or reporting</p></li>
+<li><p>Add new suggestions if you are not satisfied</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="summary-of-the-case-study">
+<h2>Summary of the Case Study<a class="headerlink" href="#summary-of-the-case-study" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Step</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Key Action</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>Define campaign</p></td>
+<td><p>Set experiment name and notes</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>Add variables</p></td>
+<td><p>Define parameter ranges</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>Configure setup</p></td>
+<td><p>Select response, iterations, and acquisition</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>Generate initial experiments</p></td>
+<td><p>Create starting dataset</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>Enter data</p></td>
+<td><p>Input measured yield</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p>Get next suggestion</p></td>
+<td><p>Run next experiment</p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p>Monitor progress</p></td>
+<td><p>Check charts and convergence</p></td>
+</tr>
+<tr class="row-odd"><td><p>8</p></td>
+<td><p>Save results</p></td>
+<td><p>Export CSV or database</p></td>
+</tr>
+<tr class="row-even"><td><p>9</p></td>
+<td><p>Reuse or modify campaign</p></td>
+<td><p>Resume or retrain optimizer</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="about.html" class="btn btn-neutral float-left" title="About" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Araya Vargas, Gonzalo.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -14,3 +14,4 @@ bayesian
 simulation_case
 faq
 about
+case_study
