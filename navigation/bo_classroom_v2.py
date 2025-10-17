@@ -11,6 +11,37 @@ from core.sim.so_functions import so_demo_space, so_demo_eval
 from core.sim.mo_functions import mo_demo_space, mo_demo_eval
 from core.sim.chem_functions import chem_demo_space, chem_eval_row
 
+# --- pFBnOH RCC (RSM) demo helpers ---
+def _pfbnoh_code(x: float, a: float, b: float) -> float:
+    return 2 * (x - a) / (b - a) - 1
+
+def pfbnoh_rsm_eval(row: list[float]) -> float:
+    """Returns RCC (%) for [18F]pFBnOH RSM within its valid region."""
+    cu, pyr, sub = row
+    cu_c = _pfbnoh_code(cu, 1.0, 4.0)
+    pyr_c = _pfbnoh_code(pyr, 5.0, 30.0)
+    sub_c = _pfbnoh_code(sub, 5.0, 25.0)
+    rcc = (
+        52.97
+        + 13.35 * cu_c
+        - 13.43 * pyr_c
+        - 1.08 * sub_c
+        + 2.53 * cu_c * pyr_c
+        - 2.78 * cu_c * sub_c
+        - 11.48 * pyr_c * sub_c
+        - 2.35 * cu_c**2
+        - 6.30 * pyr_c**2
+        - 6.10 * sub_c**2
+    )
+    return float(max(0.0, min(100.0, rcc)))
+
+def pfbnoh_space() -> list[tuple[str, float, float, str, str]]:
+    return [
+        ("Cu_eq", 1.0, 4.0, "eq", "continuous"),
+        ("Pyridine_eq", 5.0, 30.0, "eq", "continuous"),
+        ("Substrate_µmol", 5.0, 25.0, "µmol", "continuous"),
+    ]
+
 
 st.title("BO Classroom 2.0")
 st.success(
@@ -48,12 +79,16 @@ with tab1:
         "Chemistry: Yield vs Temperature & Catalyst (2 vars)",
         "Chemistry: Yield vs Temp/Cat/Pressure/Residence/Polarity (5 vars)",
         "Chemistry: Mixed (cont + cat)",
+        "Chemistry: [18F]pFBnOH RCC (3 vars, RSM)",
     ], index=0)
     if demo_fn.startswith("Forrester"):
         vars_ms = so_demo_space("forrester")
         eval_fn = so_demo_eval("forrester")
     else:
-        if "5 vars" in demo_fn:
+        if "[18F]pFBnOH" in demo_fn:
+            vars_ms = pfbnoh_space()
+            eval_fn = lambda row: pfbnoh_rsm_eval(row)
+        elif "5 vars" in demo_fn:
             vars_ms = chem_demo_space("extended")
             eval_fn = lambda row: chem_eval_row(row, mode="extended")
         elif "Mixed" in demo_fn:
@@ -110,6 +145,7 @@ with tab2:
         "Chemistry: Yield vs Temperature & Catalyst (2 vars)",
         "Chemistry: Yield vs Temp/Cat/Pressure/Residence/Polarity (5 vars)",
         "Chemistry: Mixed (cont + cat)",
+        "Chemistry: [18F]pFBnOH RCC (3 vars, RSM)",
     ], index=1)
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -125,7 +161,10 @@ with tab2:
             space = so_demo_space("forrester")
             fn = so_demo_eval("forrester")
         else:
-            if "5 vars" in demo_choice:
+            if "[18F]pFBnOH" in demo_choice:
+                space = pfbnoh_space()
+                fn = lambda row: pfbnoh_rsm_eval(row)
+            elif "5 vars" in demo_choice:
                 space = chem_demo_space("extended")
                 fn = lambda row: chem_eval_row(row, mode="extended")
             elif "Mixed" in demo_choice:
@@ -181,7 +220,10 @@ with tab2:
         calc_space = so_demo_space("forrester")
         calc_fn = so_demo_eval("forrester")
     else:
-        if "5 vars" in demo_choice:
+        if "[18F]pFBnOH" in demo_choice:
+            calc_space = pfbnoh_space()
+            calc_fn = lambda row: pfbnoh_rsm_eval(row)
+        elif "5 vars" in demo_choice:
             calc_space = chem_demo_space("extended")
             calc_fn = lambda row: chem_eval_row(row, mode="extended")
         elif "Mixed" in demo_choice:

@@ -190,15 +190,15 @@ def chem_demo_space(mode: str = "basic") -> List[Tuple[str, float, float, str, s
             ("Temperature", 20.0, 120.0, "��C", "continuous"),
             ("Catalyst", 0.0, 1.0, "fraction", "continuous"),
             ("Pressure", 1.0, 20.0, "bar", "continuous"),
-            ("Residence", 0.1, 10.0, "h", "continuous"),
-            ("Polarity", 0.0, 1.0, "", "continuous"),
+            ("Residence Time", 0.1, 10.0, "h", "continuous"),
+            ("Solvent Polarity", 0.0, 1.0, "", "continuous"),
         ]
     if mode == "mixed":
         # Provide the mixed-variable demonstration space
         return chem_demo_space_mixed()  # type: ignore[return-value]
     return [
         ("Temperature", 20.0, 120.0, "��C", "continuous"),
-        ("Catalyst", 0.0, 1.0, "fraction", "continuous"),
+        ("Catalyst", 0.0, 1.0, "fraction", "continuous"),   
     ]
 
 

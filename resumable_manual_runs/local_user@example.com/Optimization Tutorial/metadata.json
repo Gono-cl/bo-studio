@@ -1,0 +1,71 @@
+{
+    "variables": [
+        [
+            "Temperature",
+            40.0,
+            120.0,
+            "\u00b0C",
+            "continuous"
+        ],
+        [
+            "Catalyst",
+            0.0,
+            1.0,
+            "fraction",
+            "continuous"
+        ],
+        [
+            "Pressure",
+            1.0,
+            20.0,
+            "bar",
+            "continuous"
+        ],
+        [
+            "Residence Time",
+            1.0,
+            10.0,
+            "h",
+            "continuous"
+        ]
+    ],
+    "model_variables": [
+        [
+            "Temperature",
+            40.0,
+            120.0,
+            "\u00b0C",
+            "continuous"
+        ],
+        [
+            "Catalyst",
+            0.0,
+            1.0,
+            "fraction",
+            "continuous"
+        ],
+        [
+            "Pressure",
+            1.0,
+            20.0,
+            "bar",
+            "continuous"
+        ],
+        [
+            "Residence Time",
+            1.0,
+            10.0,
+            "h",
+            "continuous"
+        ]
+    ],
+    "iteration": 20,
+    "n_init": 10,
+    "total_iters": 20,
+    "response": "Yield",
+    "experiment_name": "Optimization Tutorial",
+    "experiment_notes": "5 Variables and 1 Objective, using a synthetic function for the tutorial. ",
+    "initialization_complete": true,
+    "response_direction": "Maximize",
+    "custom_objectives": {}
+}
