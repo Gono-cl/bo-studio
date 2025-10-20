@@ -5,7 +5,7 @@
 :hidden:
 
 home
-tutorial
+case_study
 multi
 manual_optimization
 experiment_database
@@ -14,4 +14,4 @@ bayesian
 simulation_case
 faq
 about
-case_study
+

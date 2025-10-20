@@ -21,7 +21,8 @@
     <link rel="author" title="About these documents" href="about.html" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="About" href="about.html" /> 
+    <link rel="next" title="Multiobjective Optimization Campaign — User Guide" href="multi.html" />
+    <link rel="prev" title="🏠 Home" href="home.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,7 +47,7 @@
               <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="home.html">🏠 Home</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Single Objective Optimization Campaign — User Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Single Objective Optimization Campaign — Case Study Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multi.html">Multiobjective Optimization Campaign — User Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="manual_optimization.html">🧰 Manual Optimization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="experiment_database.html">📚 Experiment DataBase</a></li>
@@ -55,7 +56,6 @@
 <li class="toctree-l1"><a class="reference internal" href="simulation_case.html">🧪 Simulation Case 1</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ – Help &amp; Guidance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Single Objective Optimization Campaign — Case Study Tutorial</a></li>
 </ul>
 
         </div>
@@ -84,27 +84,40 @@
              
   <section id="single-objective-optimization-campaign-case-study-tutorial">
 <h1>Single Objective Optimization Campaign — Case Study Tutorial<a class="headerlink" href="#single-objective-optimization-campaign-case-study-tutorial" title="Link to this heading"></a></h1>
+<p>This page allows you to define and run a <strong>Single Objective Optimization (SOO)</strong> experiment.<br />
+A single objective optimization problem focuses on finding the <strong>best possible value</strong> (minimum or maximum) of one target function by adjusting one or more input variables within defined limits.
+When you want to optimaze multiobjective problem see the page <strong>Multi Objective Optimization</strong>.</p>
 <p>This tutorial walks you through a complete single objective optimization campaign step by step.<br />
 You will learn how to define variables, set up the optimization, enter experimental results, and interpret the outcome.</p>
 <hr class="docutils" />
+<section id="what-is-a-single-objective-optimization">
+<h2>What Is a Single Objective Optimization?<a class="headerlink" href="#what-is-a-single-objective-optimization" title="Link to this heading"></a></h2>
+<p>In a <strong>Single Objective Optimization</strong>, you are trying to <strong>optimize one measurable outcome</strong> (the “objective”) by changing the values of one or more <strong>variables</strong>.</p>
+<p>Mathematically:</p>
+<blockquote>
+<div><p>Find x ∈ X such that<br />
+f(x) is minimized (or maximized)</p>
+</div></blockquote>
+<p>where:</p>
+<ul class="simple">
+<li><p><strong>x</strong> – vector of input variables</p></li>
+<li><p><strong>X</strong> – allowed range for each variable</p></li>
+<li><p><strong>f(x)</strong> – objective function (what you want to optimize)</p></li>
+</ul>
+</section>
+<hr class="docutils" />
 <section id="goal-of-the-case-study">
 <h2>Goal of the Case Study<a class="headerlink" href="#goal-of-the-case-study" title="Link to this heading"></a></h2>
-<p>We will perform a <strong>reaction yield optimization</strong> — our goal is to <strong>maximize the reaction yield (%)</strong> by adjusting:</p>
-<ul class="simple">
-<li><p>Temperature (°C)</p></li>
-<li><p>Catalyst concentration</p></li>
-<li><p>Pressure (bar)</p></li>
-<li><p>Residence Time (min)</p></li>
-</ul>
+<p>We will perform a <strong>reaction yield optimization</strong> — our goal is to <strong>maximize the reaction yield (%)</strong>. For this case study example reaction of TO DO is used.</p>
 </section>
 <hr class="docutils" />
 <section id="define-the-campaign">
 <h2>1. Define the Campaign<a class="headerlink" href="#define-the-campaign" title="Link to this heading"></a></h2>
-<p><img alt="Single objective start" src="_images/metadata.png" /></p>
+<p><img alt="Single objective start" src="_images/start.png" /></p>
 <ol class="arabic simple">
 <li><p>Enter a descriptive <strong>Experiment Name</strong> — e.g.<br />
 <code class="docutils literal notranslate"><span class="pre">Optimization</span> <span class="pre">tutorial</span></code>.</p></li>
-<li><p>Optionally, add <strong>Notes</strong> (e.g., “5 variables and 1 objective, using a synthetic funtion for the tutorial”).</p></li>
+<li><p>Optionally, add <strong>Notes</strong>.</p></li>
 <li><p>The <strong>Experiment Date</strong> field fills automatically — you can edit it if needed.</p></li>
 </ol>
 <p>Press <strong>Save Campaign</strong> to store the configuration.</p>
@@ -113,10 +126,15 @@ You will learn how to define variables, set up the optimization, enter experimen
 <section id="define-and-edit-variables">
 <h2>2. Define and Edit Variables<a class="headerlink" href="#define-and-edit-variables" title="Link to this heading"></a></h2>
 <p>Next, define the experimental variables that the optimizer can change.</p>
-<p><img alt="Define Variables" src="_images/variables.png" /></p>
+<p><img alt="Define Variables" src="_images/define.png" /></p>
 <p>For each variable:</p>
 <ul class="simple">
-<li><p><strong>Variable Type:</strong> Choose <code class="docutils literal notranslate"><span class="pre">Continuous</span></code> (numeric range) or <code class="docutils literal notranslate"><span class="pre">Categorical</span></code> (discrete options).</p></li>
+<li><p><strong>Variable Type:</strong> Choose <code class="docutils literal notranslate"><span class="pre">Continuous</span></code> (numeric range) or <code class="docutils literal notranslate"><span class="pre">Categorical</span></code> (discrete options).</p>
+<ul>
+<li><p>Continuous: The variable can take any numerical value within a range (e.g., temperature = 20–100 °C).</p></li>
+<li><p>Categorical: The variable can take only specific, named options (e.g., material type = {Aluminum, Steel, Copper}, solvents = {MeOH, THF, DMSO}).</p></li>
+</ul>
+</li>
 <li><p><strong>Variable Name:</strong> For example, <code class="docutils literal notranslate"><span class="pre">Temperature</span></code>.</p></li>
 <li><p><strong>Lower/Upper Bound:</strong> Define the allowed range (e.g., 30–120 °C).</p></li>
 <li><p><strong>Unit (optional):</strong> Add units like <code class="docutils literal notranslate"><span class="pre">°C</span></code>, <code class="docutils literal notranslate"><span class="pre">bar</span></code>, or <code class="docutils literal notranslate"><span class="pre">min</span></code>.</p></li>
@@ -126,56 +144,67 @@ You will learn how to define variables, set up the optimization, enter experimen
 <section id="edit-variables">
 <h3>Edit Variables<a class="headerlink" href="#edit-variables" title="Link to this heading"></a></h3>
 <p>If you make changes later, update them directly in the table and click <strong>Save Variable Changes</strong>.</p>
-<p><img alt="Edit variable" src="_images/variables_edit.png" /></p>
+<p><img alt="Edit variable" src="_images/edit.png" /></p>
 </section>
 <section id="delete-variables">
 <h3>Delete Variables<a class="headerlink" href="#delete-variables" title="Link to this heading"></a></h3>
-<p>Select a variable from the dropdown menu, click <strong>Delete Variable</strong>, and then confirm with <strong>Save Variable Changes</strong>.</p>
-<p><img alt="Delete variable steps" src="_images/delete_variable_steps.png" />
-<img alt="Delete variable steps" src="_images/variables_delete.png" />
-<img alt="Delete variable steps" src="_images/variable_delete_2.png" />
-<img alt="Delete variable steps" src="_images/variable_delete_3.png" /></p>
+<p>Select a desired variable to be deleted from the dropdown menu, click <strong>Delete Variable</strong>, and then confirm with <strong>Save Variable Changes</strong>.</p>
+<p><img alt="Delete variable steps" src="_images/delete_variable_steps.png" /></p>
 </section>
 </section>
 <hr class="docutils" />
 <section id="experiment-setup">
 <h2>3. Experiment Setup<a class="headerlink" href="#experiment-setup" title="Link to this heading"></a></h2>
 <p><img alt="Experiment Setup" src="_images/experiment_setup.png" /></p>
-<p>Define how the optimization will proceed.</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Field</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><strong>Response to Optimize</strong></p></td>
-<td><p>Select the measured value to optimize (e.g., <code class="docutils literal notranslate"><span class="pre">Yield</span></code>).</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Initial Experiments</strong></p></td>
-<td><p>Number of points used for initialization (e.g., <code class="docutils literal notranslate"><span class="pre">10</span></code>).</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Total Iterations</strong></p></td>
-<td><p>Total optimization rounds (e.g., <code class="docutils literal notranslate"><span class="pre">20</span></code>).</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Initialization Method</strong></p></td>
-<td><p>How initial points are generated:<br>• <strong>Random</strong> – random sampling<br>• <strong>LHS (Latin Hypercube Sampling)</strong> – evenly distributed samples<br>• <strong>Halton</strong> – low-discrepancy sequence<br>• <strong>Maximin LHS</strong> – maximizes spacing between points</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Acquisition Function</strong></p></td>
-<td><p>Strategy for choosing next experiments:<br>• <strong>EI</strong> – Expected Improvement<br>• <strong>PI</strong> – Probability of Improvement<br>• <strong>LCB</strong> – Lower Confidence Bound</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Direction</strong></p></td>
-<td><p>Choose <strong>Maximize</strong> or <strong>Minimize</strong> the response.</p></td>
-</tr>
-</tbody>
-</table>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Response</span> <span class="pre">to</span> <span class="pre">Optimize</span></code></p>
+<ul class="simple">
+<li><p>Choose the <strong>objective function</strong> — the quantity you want to minimize or maximize.</p></li>
+<li><p>This is typically a measured or calculated field (e.g., “Yield”, “Error”, “Efficiency”, “Voltage Drop”).</p></li>
+</ul>
+<blockquote>
+<div><p>Example: If your goal is to <strong>maximize yield</strong>, select <code class="docutils literal notranslate"><span class="pre">Yield</span></code> as the response.</p>
+</div></blockquote>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">Experiments</span></code></p>
+<ul class="simple">
+<li><p>Number of experiments to generate before optimization starts.</p></li>
+<li><p>These experiments give the optimizer initial data to learn from.</p></li>
+<li><p>Typical range: <code class="docutils literal notranslate"><span class="pre">3–10</span></code></p></li>
+</ul>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Total</span> <span class="pre">Iterations</span></code></p>
+<ul class="simple">
+<li><p>Total number of optimization cycles to perform.</p></li>
+<li><p>Each iteration tests a new set of variable values based on previous results.</p></li>
+</ul>
+<blockquote>
+<div><p>Example: If Total Iterations = 20, the optimizer will run 20 rounds of testing to find the best solution.</p>
+</div></blockquote>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Initialization</span> <span class="pre">Method</span></code></p>
+<p>Defines how the <strong>initial experimental points</strong> are chosen before optimization begins.</p>
+<p>Options:</p>
+<ul class="simple">
+<li><p><strong>Random:</strong> Initial points are generated randomly within variable ranges.</p></li>
+<li><p><strong>LHS:</strong></p></li>
+<li><p><strong>Halton:</strong></p></li>
+<li><p><strong>Maximin LHS:</strong></p></li>
+</ul>
+<p><strong>Field:</strong> <code class="docutils literal notranslate"><span class="pre">Acquisition</span> <span class="pre">Function</span></code></p>
+<p>Controls how new experimental points are chosen during optimization.<br />
+Common methods:</p>
+<ul class="simple">
+<li><p><strong>EI (Expected Improvement):</strong> Chooses points that are most likely to improve the best result so far.</p></li>
+<li><p><strong>PI (Probability of Improvement):</strong> Focuses on points that have a high chance of being better than the current best.</p></li>
+<li><p><strong>LCB (Lower Confidence Bound):</strong> Balances exploration (trying new areas) and exploitation (improving known good areas).</p></li>
+</ul>
+<blockquote>
+<div><p>Choose EI if you’re unsure — it’s the most commonly used and balances exploration and exploitation.</p>
+</div></blockquote>
 </section>
 <hr class="docutils" />
 <section id="generate-initial-experiments">
 <h2>4. Generate Initial Experiments<a class="headerlink" href="#generate-initial-experiments" title="Link to this heading"></a></h2>
 <p>Click <strong>Suggest Initial Experiments</strong>.<br />
 The system generates a design table based on your variable ranges and initialization method.</p>
-<p><img alt="Initial Experiments" src="_images/init_complete.png" /></p>
+<p><img alt="Initial Experiments" src="_images/initial_experiments.png" /></p>
 <p>Fill in your <strong>measured results</strong> (e.g., Yield) for each row.<br />
 Press <strong>Submit Initial Results</strong> when done.</p>
 </section>
@@ -183,7 +212,7 @@ Press <strong>Submit Initial Results</strong> when done.</p>
 <section id="run-the-optimization-loop">
 <h2>5. Run the Optimization Loop<a class="headerlink" href="#run-the-optimization-loop" title="Link to this heading"></a></h2>
 <p>Once initial data is submitted, the optimizer proposes the <strong>Next Experiment Suggestion</strong> — the next best parameter combination to test.</p>
-<p><img alt="Next suggestion" src="_images/next_suggestion_okok.png" /></p>
+<p><img alt="Next suggestion" src="_images/next_suggestion.png" /></p>
 <ol class="arabic simple">
 <li><p>Perform the experiment with the suggested parameters.</p></li>
 <li><p>Enter the measured value (e.g., <code class="docutils literal notranslate"><span class="pre">Yield</span> <span class="pre">=</span> <span class="pre">41.08</span></code>) in the <strong>Result for Yield</strong> field.</p></li>
@@ -199,7 +228,7 @@ Press <strong>Submit Initial Results</strong> when done.</p>
 <section id="parallel-coordinates-plot">
 <h3>Parallel Coordinates Plot<a class="headerlink" href="#parallel-coordinates-plot" title="Link to this heading"></a></h3>
 <p>Shows all tested experiments and how each variable affects the yield.</p>
-<p><img alt="Parallel Coordinates Plot" src="_images/parallel_coordinates_ok.png" /></p>
+<p><img alt="Parallel Coordinates Plot" src="_images/parallel_plot_initial.png" /></p>
 <ul class="simple">
 <li><p>Each line = one experiment</p></li>
 <li><p>Color = Yield value</p></li>
@@ -210,7 +239,7 @@ Press <strong>Submit Initial Results</strong> when done.</p>
 <section id="optimization-progress-chart">
 <h3>Optimization Progress Chart<a class="headerlink" href="#optimization-progress-chart" title="Link to this heading"></a></h3>
 <p>Displays selected variable progress versus experiment number.</p>
-<p><img alt="Optimization Progress Chart" src="_images/pregress_chart_ok.png" /></p>
+<p><img alt="Optimization Progress Chart" src="_images/progress_initial_run_yield.png" /></p>
 <p>This chart helps you track whether the optimization is converging toward higher yields.</p>
 </section>
 </section>
@@ -218,7 +247,7 @@ Press <strong>Submit Initial Results</strong> when done.</p>
 <section id="optimization-completed">
 <h2>7. Optimization Completed<a class="headerlink" href="#optimization-completed" title="Link to this heading"></a></h2>
 <p>When all iterations are done, you’ll see a summary table with all tested conditions.</p>
-<p><img alt="Optimization Completed" src="_images/complete_campaign.png" /></p>
+<p><img alt="Optimization Completed" src="_images/optimization_completed.png" /></p>
 <section id="exporting-data">
 <h3>Exporting Data<a class="headerlink" href="#exporting-data" title="Link to this heading"></a></h3>
 <ul class="simple">
@@ -232,7 +261,7 @@ Press <strong>Submit Initial Results</strong> when done.</p>
 <section id="resume-or-reuse-campaigns">
 <h2>8. Resume or Reuse Campaigns<a class="headerlink" href="#resume-or-reuse-campaigns" title="Link to this heading"></a></h2>
 <p>You can reuse or continue previous campaigns.</p>
-<p><img alt="Reuse Data" src="_images/reuse_data_tutorial_2.png" /></p>
+<p><img alt="Reuse Data" src="_images/resume_reuse.png" /></p>
 <ul class="simple">
 <li><p><strong>Resume from Previous Manual Campaign:</strong> Continue an interrupted run.</p></li>
 <li><p><strong>Reuse Previous Campaign as Seeds:</strong> Start a new campaign using previous results as training data.</p></li>
@@ -242,7 +271,7 @@ Press <strong>Submit Initial Results</strong> when done.</p>
 <section id="edit-and-reuse-previous-experiments">
 <h2>9. Edit and Reuse Previous Experiments<a class="headerlink" href="#edit-and-reuse-previous-experiments" title="Link to this heading"></a></h2>
 <p>If you want to adjust or reselect previous results:</p>
-<p><img alt="Select Previous Experiments" src="_images/select_previous_exp_table.png" /></p>
+<p><img alt="Select Previous Experiments" src="_images/edit_select_previous.png" /></p>
 <ol class="arabic simple">
 <li><p>Check or uncheck experiments you want to include.</p></li>
 <li><p>Click <strong>Use Selected Experiments</strong>.</p></li>
@@ -317,7 +346,8 @@ Press <strong>Submit Initial Results</strong> when done.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="about.html" class="btn btn-neutral float-left" title="About" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="home.html" class="btn btn-neutral float-left" title="🏠 Home" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="multi.html" class="btn btn-neutral float-right" title="Multiobjective Optimization Campaign — User Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
