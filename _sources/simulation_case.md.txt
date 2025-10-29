@@ -50,14 +50,26 @@ Think of them as the adjustable knobs on your virtual reactor.
 
 1. **Set up your parameters**  
    Use the sliders to adjust parameter ranges and BO settings.  
+
 2. **Choose acquisition function**  
    From the dropdown, pick your strategy (EI, PI, or UCB).  
+
 3. **Click “Run Optimization”**  
+
+![Run](./_static/simulation_case/run.png)
    The system will simulate the reaction multiple times.  
    You’ll see points explored and the best %RCC found.  
+
 4. **Check Results**  
-   The app displays the best conditions found and how exploration evolved.  
-5. **Reset with “Clear Campaign”**  
+   The app displays the best conditions found and how exploration evolved. You can also make all the figures and tables full screen.
+![Results](./_static/simulation_case/results.png)
+
+5. **Change the parameters and start new simulation.**
+You can later compare all the results also in the visual form.
+![Results](./_static/simulation_case/compare.png)
+![Results](./_static/simulation_case/compare_visual.png)
+
+6. **Reset with “Clear Campaign”**  
    Starts a new optimization session — great for testing new ideas.  
 
 ---
