@@ -82,4 +82,3 @@ Think of them as the adjustable knobs on your virtual reactor.
 - That “optimal” depends not only on chemistry — but also on **how you guide the algorithm**.
 
 ---
-
