@@ -14,10 +14,11 @@ release = '1.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["myst_parser"]
+extensions = ["myst_parser", "sphinx_rtd_size"]
 master_doc = 'index'
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+sphinx_rtd_size_width = "90%"
 
 
 
@@ -26,9 +27,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
-html_css_files = [
-    'css/custom.css',
-]
+
 source_suffix = {
     '.rst': 'restructuredtext',
     '.md': 'markdown',
