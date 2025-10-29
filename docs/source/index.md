@@ -14,4 +14,3 @@ bayesian
 simulation_case
 faq
 about
-
