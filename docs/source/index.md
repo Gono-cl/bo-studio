@@ -1,4 +1,3 @@
-@ -1,54 +0,0 @@
 # 🏠 Home
 ## 🧪 BO Studio – Bayesian Optimization Made Simple
 ![BO Studio Logo](./_static/image3.png)
