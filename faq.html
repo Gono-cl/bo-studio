@@ -50,7 +50,6 @@
 <li class="toctree-l1"><a class="reference internal" href="multi.html">Multiobjective Optimization Campaign — User Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="experiment_database.html">📚 Experiment DataBase</a></li>
 <li class="toctree-l1"><a class="reference internal" href="simulation_case.html">Simulation Case 1</a></li>
-<li class="toctree-l1"><a class="reference internal" href="simulation_case.html#bayesian-optimization-playground-manual">Bayesian Optimization Playground Manual</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">FAQ – Help &amp; Guidance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
 </ul>
@@ -82,12 +81,6 @@
   <section id="faq-help-guidance">
 <h1>FAQ – Help &amp; Guidance<a class="headerlink" href="#faq-help-guidance" title="Link to this heading"></a></h1>
 <hr class="docutils" />
-<section id="what-is-the-difference-between-manual-and-automated-optimization-modes-in-vol">
-<h2>What is the difference between manual and automated optimization modes in VOL?<a class="headerlink" href="#what-is-the-difference-between-manual-and-automated-optimization-modes-in-vol" title="Link to this heading"></a></h2>
-<p>In <strong>manual mode</strong>, the user inputs results from experiments manually — ideal for offline or lab-scale work.<br />
-In <strong>automated mode</strong>, VOL communicates directly with hardware and inline analytics to execute and evaluate experiments autonomously.</p>
-<hr class="docutils" />
-</section>
 <section id="how-do-i-choose-the-number-of-initial-experiments-n-init-for-bayesian-optimization">
 <h2>How do I choose the number of initial experiments (<code class="docutils literal notranslate"><span class="pre">n_init</span></code>) for Bayesian Optimization?<a class="headerlink" href="#how-do-i-choose-the-number-of-initial-experiments-n-init-for-bayesian-optimization" title="Link to this heading"></a></h2>
 <p>A common rule is to set<br />
@@ -110,12 +103,6 @@ or when the <strong>acquisition function</strong> suggests very low improvement 
 </ul>
 <hr class="docutils" />
 </section>
-<section id="can-i-run-vol-if-i-dont-have-automated-hardware-or-inline-analytics">
-<h2>Can I run VOL if I don’t have automated hardware or inline analytics?<a class="headerlink" href="#can-i-run-vol-if-i-dont-have-automated-hardware-or-inline-analytics" title="Link to this heading"></a></h2>
-<p>Yes! You can use <strong>manual mode</strong> to suggest experiments and input results yourself.<br />
-VOL still guides the optimization intelligently.</p>
-<hr class="docutils" />
-</section>
 <section id="what-does-the-yield-graph-show-and-why-is-it-useful-during-optimization">
 <h2>What does the “Yield” graph show, and why is it useful during optimization?<a class="headerlink" href="#what-does-the-yield-graph-show-and-why-is-it-useful-during-optimization" title="Link to this heading"></a></h2>
 <p>The <strong>Yield</strong> graph shows the <strong>best result found over time</strong>.<br />
@@ -124,24 +111,18 @@ It helps you track progress, detect plateaus, and decide when the optimization m
 </section>
 <section id="how-is-the-next-suggestion-generated-and-what-data-is-used-to-make-it">
 <h2>How is the “next suggestion” generated, and what data is used to make it?<a class="headerlink" href="#how-is-the-next-suggestion-generated-and-what-data-is-used-to-make-it" title="Link to this heading"></a></h2>
-<p>VOL uses the <strong>surrogate model</strong> (built from your past data)<br />
+<p>BO studio uses the <strong>surrogate model</strong> (built from your past data)<br />
 and the <strong>acquisition function</strong> to choose the next experimental condition with the highest potential.</p>
 <hr class="docutils" />
 </section>
 <section id="how-do-i-export-my-optimization-results-and-what-formats-are-supported">
 <h2>How do I export my optimization results, and what formats are supported?<a class="headerlink" href="#how-do-i-export-my-optimization-results-and-what-formats-are-supported" title="Link to this heading"></a></h2>
-<p>You can export results as a <strong>CSV file</strong> after the campaign ends.<br />
-Support for <strong>Excel</strong> and <strong>database export</strong> is being developed.</p>
-<hr class="docutils" />
-</section>
-<section id="can-i-pause-and-resume-an-optimization-campaign">
-<h2>Can I pause and resume an optimization campaign?<a class="headerlink" href="#can-i-pause-and-resume-an-optimization-campaign" title="Link to this heading"></a></h2>
-<p>Yes. VOL stores your <strong>session state</strong> and <strong>campaign data</strong> so you can resume where you left off — especially in automated mode.</p>
+<p>You can export results as a <strong>CSV file</strong> after the campaign ends or you can store them in the <strong>database</strong>.</p>
 <hr class="docutils" />
 </section>
 <section id="is-it-possible-to-optimize-more-than-one-objective-e-g-yield-and-productivity">
 <h2>Is it possible to optimize more than one objective (e.g., Yield and Productivity)?<a class="headerlink" href="#is-it-possible-to-optimize-more-than-one-objective-e-g-yield-and-productivity" title="Link to this heading"></a></h2>
-<p>Yes! VOL supports <strong>multi-objective optimization</strong>.<br />
+<p>Yes! BO studio supports <strong>multi-objective optimization</strong>.<br />
 You can select more than one target and explore trade-offs using <strong>Pareto front analysis</strong>.</p>
 <hr class="docutils" />
 </section>
