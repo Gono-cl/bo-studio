@@ -1,7 +1,5 @@
 # Simulation Case 1
-
-# Bayesian Optimization Playground Manual
-### Optimize the [¹⁸F]pFBnOH Synthesis Experiment
+## Optimize the [¹⁸F]pFBnOH Synthesis Experiment
 
 This simulation lets you explore how **Bayesian Optimization (BO)** can be used to improve a chemical reaction — in this case, the copper-mediated radiofluorination to produce **[¹⁸F]pFBnOH**.  
 You can freely experiment with the settings to see how BO explores parameter space and improves yield (radio-chemical conversion, %RCC).

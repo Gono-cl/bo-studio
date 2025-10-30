@@ -2,12 +2,6 @@
 
 ---
 
-### What is the difference between manual and automated optimization modes in VOL?
-In **manual mode**, the user inputs results from experiments manually — ideal for offline or lab-scale work.  
-In **automated mode**, VOL communicates directly with hardware and inline analytics to execute and evaluate experiments autonomously.
-
----
-
 ### How do I choose the number of initial experiments (`n_init`) for Bayesian Optimization?
 A common rule is to set  
 **`n_init = 2 to 3 × number of variables`**.  
@@ -28,12 +22,6 @@ or when the **acquisition function** suggests very low improvement potential.
 
 ---
 
-### Can I run VOL if I don’t have automated hardware or inline analytics?
-Yes! You can use **manual mode** to suggest experiments and input results yourself.  
-VOL still guides the optimization intelligently.
-
----
-
 ### What does the “Yield” graph show, and why is it useful during optimization?
 The **Yield** graph shows the **best result found over time**.  
 It helps you track progress, detect plateaus, and decide when the optimization might be complete.
@@ -41,24 +29,18 @@ It helps you track progress, detect plateaus, and decide when the optimization m
 ---
 
 ### How is the “next suggestion” generated, and what data is used to make it?
-VOL uses the **surrogate model** (built from your past data)  
+BO studio uses the **surrogate model** (built from your past data)  
 and the **acquisition function** to choose the next experimental condition with the highest potential.
 
 ---
 
 ### How do I export my optimization results, and what formats are supported?
-You can export results as a **CSV file** after the campaign ends.  
-Support for **Excel** and **database export** is being developed.
-
----
-
-### Can I pause and resume an optimization campaign?
-Yes. VOL stores your **session state** and **campaign data** so you can resume where you left off — especially in automated mode.
+You can export results as a **CSV file** after the campaign ends or you can store them in the **database**.
 
 ---
 
 ### Is it possible to optimize more than one objective (e.g., Yield and Productivity)?
-Yes! VOL supports **multi-objective optimization**.  
+Yes! BO studio supports **multi-objective optimization**.  
 You can select more than one target and explore trade-offs using **Pareto front analysis**.
 
 ---
