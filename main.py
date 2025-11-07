@@ -89,16 +89,12 @@ else:
 # Pages
 PAGES = {
     "🏠 Home": "navigation/Home.py",
-    "🧪 Single Objective Optimization": "navigation/manual_experiments.py",
-    "🎯 Multi Objective Optimization": "navigation/multi_objective.py",
-    "📝 Preview Saved Run": "navigation/preview_run.py",
+    "🎯 Single Objective Optimization": "navigation/manual_experiments.py",
+    "⚖️ Multi Objective Optimization": "navigation/multi_objective.py",
     "📊 Data Analysis": "navigation/data_analysis.py",
-    "📈 Acquisition Explorer": "navigation/af_explorer.py",
-    "📚 Bayesian Optimization Classroom": "navigation/BO_classroom.py",
-    "📘 BO Classroom 2.0": "navigation/bo_classroom_v2.py",
+    "🏫 Bayesian Optimization Classroom": "navigation/BO_classroom.py",
     "🧪 Simulation Case 1": "navigation/BO_classroom2.py",
-    "🗄️ Experiment DataBase": "navigation/experiment_database.py",
-    "❓ FAQ — Help & Guidance": "navigation/faq.py",
+    "📚 Experiment DataBase": "navigation/experiment_database.py",
 }
 
 st.sidebar.image("images/image.png", width=300)

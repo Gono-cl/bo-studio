@@ -5,14 +5,14 @@ import seaborn as sns
 from skopt import gp_minimize
 from skopt.utils import use_named_args
 
-st.title("🎓 Bayesian Optimization Classroom")
+st.title("Bayesian Optimization Classroom")
 
 st.markdown("""
 This page introduces the key concepts of **Bayesian Optimization (BO)** through simple explanations and an example based on **reaction optimization in chemistry**.
 """)
 
 # --- Section 1: Introduction ---
-st.header("📘 What is Bayesian Optimization?")
+st.header(" What is Bayesian Optimization?")
 
 st.markdown("""
 Bayesian Optimization is a method for optimizing expensive or unknown functions.
@@ -24,13 +24,13 @@ BO is particularly useful when:
 - You want to minimize the number of trials
 
 Key components:
-- 🎯 **Objective Function**: the outcome you're trying to optimize (e.g. yield)
-- 🧠 **Surrogate Model**: usually a Gaussian Process (GP) that models your data
-- 🚦 **Acquisition Function**: decides where to sample next
+-  **Objective Function**: the outcome you're trying to optimize (e.g. yield)
+-  **Surrogate Model**: usually a Gaussian Process (GP) that models your data
+-  **Acquisition Function**: decides where to sample next
 """)
 
 # --- Section 2: Visual Intuition ---
-st.header("🧠 Visualizing the BO Process")
+st.header("Visualizing the BO Process")
 
 with st.expander("Step-by-step Explanation"):
     st.markdown("""
@@ -41,7 +41,7 @@ with st.expander("Step-by-step Explanation"):
     """)
 
 # --- Section 3: Interactive Demo ---
-st.header("⚗️ Reaction Yield Optimization (Simulated)")
+st.header("Reaction Yield Optimization (Simulated)")
 
 st.markdown("""
 We will optimize a simulated reaction yield depending on:
@@ -59,7 +59,7 @@ def chemical_yield(params):
         np.exp(-((t - 30)**2) / 200)
     )  # Negative for minimization
 
-with st.expander("🔬 Show True Yield Surface (for illustration)"):
+with st.expander(" Show True Yield Surface (for illustration)"):
     T_grid = np.linspace(30, 110, 80)
     t_grid = np.linspace(10, 60, 80)
     TT, tt = np.meshgrid(T_grid, t_grid)
@@ -78,7 +78,7 @@ n_calls = st.slider("Number of BO Iterations", min_value=5, max_value=30, value=
 n_initial_points = st.slider("Number of Initial Points", min_value=1, max_value=10, value=3)
 acq_func = st.selectbox("Acquisition Function", options=["EI", "PI", "LCB"], index=0)
 
-if st.button("🚀 Run Optimization"):
+if st.button(" Run Optimization"):
     result = gp_minimize(
         chemical_yield,
         dimensions=[(30.0, 110.0), (10.0, 60.0)],
@@ -141,7 +141,7 @@ if st.button("🚀 Run Optimization"):
 
 
 # --- Section 4: Glossary ---
-st.header("📚 BO Glossary")
+st.header("BO Glossary")
 
 with st.expander("Key Terms"):
     st.markdown("""
