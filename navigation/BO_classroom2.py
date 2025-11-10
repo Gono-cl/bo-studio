@@ -6,12 +6,14 @@ from skopt.space import Real
 import pandas as pd
 import plotly.express as px
 
+from core.utils.path_utils import resource_path
+
 
 st.title("BO Classroom: Simulation Case 1")
 
 # Add an introductory section with the saved reaction image
 st.markdown("### Reaction Overview")
-st.image("images/image_reaction1.png", use_container_width=True)
+st.image(str(resource_path("images/image_reaction1.png")), use_container_width=True)
 
 st.markdown(
     """

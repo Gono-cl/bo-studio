@@ -45,15 +45,6 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 
-# =========================================================
-# Sidebar: Resume Exact Previous Run
-# =========================================================
-user_email = st.session_state.get("user_email", "default_user")
-user_save_dir = os.path.join(SAVE_DIR, user_email)
-os.makedirs(user_save_dir, exist_ok=True)
-
-render_resume_exact(user_save_dir)
-
 
 # =========================================================
 # Title, Header & Save
@@ -71,8 +62,19 @@ st.success(
     """
 )
 
+# =========================================================
+# Resume Exact Previous Run (main content expander)
+# =========================================================
+user_email = st.session_state.get("user_email", "default_user")
+user_save_dir = os.path.join(SAVE_DIR, user_email)
+os.makedirs(user_save_dir, exist_ok=True)
+
+with st.expander("Resume a previous campaign", expanded=False):
+    container = st.container()
+    render_resume_exact(user_save_dir, target=container, show_divider=False)
+
+
 experiment_name, experiment_notes, run_name, run_path = render_experiment_header(user_save_dir)
-render_save_campaign(run_path)
 
 
 # =========================================================
@@ -80,6 +82,11 @@ render_save_campaign(run_path)
 # =========================================================
 render_variables_section()
 render_setup_and_initials()
-render_reuse_seeds(user_save_dir)
+reuse_container = st.container()
+render_reuse_seeds(user_save_dir, target=reuse_container, show_divider=False)
+# (resume logic lives inside the expander above)
 render_interact_and_complete(user_save_dir, experiment_name, experiment_notes, run_name)
+
+st.divider()
+render_save_campaign(run_path, target=st)
 

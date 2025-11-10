@@ -21,8 +21,9 @@ def campaign_selector(campaigns: list[str] | tuple[str, ...], key: str = "campai
     return st.sidebar.selectbox("Select Campaign", campaigns, key=key)
 
 
-def save_button(label: str = "Save Campaign") -> bool:
-    return st.sidebar.button(label)
+def save_button(label: str = "Save Campaign", target=None) -> bool:
+    target = target or st.sidebar
+    return target.button(label)
 
 
 def data_editor(data, key: str, editable: bool = True, **kwargs) -> pd.DataFrame:
@@ -50,22 +51,30 @@ def list_valid_campaigns(base_dir: str) -> list[str]:
     return valid
 
 
-def resume_campaign_selector(user_save_dir: str, key: str = "resume_campaign") -> str:
+def resume_campaign_selector(
+    user_save_dir: str,
+    key: str = "resume_campaign",
+    target=None,
+    show_divider: bool = True,
+) -> str:
     """
-    Sidebar selectbox to choose a previous campaign to resume.
+    Selectbox to choose a previous campaign to resume.
     Returns the selected campaign name or "None".
     """
-    st.sidebar.markdown("---")
+    target = target or st.sidebar
+    if show_divider:
+        target.markdown("---")
     options = ["None"] + list_valid_campaigns(user_save_dir)
-    return st.sidebar.selectbox("Resume from Previous Manual Campaign", options=options, key=key)
+    return target.selectbox("Resume from Previous Manual Campaign", options=options, key=key)
 
 # Backcompat alias (internal callers in older code)
 _list_valid_campaigns = list_valid_campaigns
 
 
-def load_campaign_button(label: str = "Load Previous Manual Campaign") -> bool:
+def load_campaign_button(label: str = "Load Previous Manual Campaign", target=None) -> bool:
     """Sidebar button to load the selected campaign."""
-    return st.sidebar.button(label)
+    target = target or st.sidebar
+    return target.button(label)
 
 
 # ----------------------------- Messaging helpers -----------------------------

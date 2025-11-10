@@ -1,6 +1,8 @@
 import streamlit as st
 
-st.image("images/image3.png",  width=900)
+from core.utils.path_utils import resource_path
+
+st.image(str(resource_path("images/image3.png")), width=900)
 
 # Horizontal line
 st.markdown("---")
@@ -32,7 +34,7 @@ st.markdown("💬 Have suggestions or found a bug? [Click here to give feedback]
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    st.image("images/image.png", use_container_width=True)
+    st.image(str(resource_path("images/image.png")), use_container_width=True)
 
 with col2:
     st.markdown("### How to Get Started:")

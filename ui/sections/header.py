@@ -45,14 +45,15 @@ def render_experiment_header(user_save_dir: str):
     return experiment_name, experiment_notes, run_name, run_path
 
 
-def render_save_campaign(run_path: str) -> None:
-    """Sidebar Save button: writes optimizer (best-effort), data CSV and metadata JSON."""
-    if save_button("Save Campaign"):
+def render_save_campaign(run_path: str, target=None) -> None:
+    """Save button: writes optimizer (best-effort), data CSV and metadata JSON."""
+    target = target or st.sidebar
+    if save_button("Save Campaign", target=target):
         try:
             with open(os.path.join(run_path, "optimizer.pkl"), "wb") as f:
                 pickle.dump(st.session_state.manual_optimizer, f)
         except Exception:
-            st.sidebar.warning("Could not save optimizer.pkl (optimizer may be None). Proceeding with data and metadata.")
+            target.warning("Could not save optimizer.pkl (optimizer may be None). Proceeding with data and metadata.")
 
         if st.session_state.manual_data:
             df_save = pd.DataFrame(st.session_state.manual_data)
@@ -78,4 +79,4 @@ def render_save_campaign(run_path: str) -> None:
         }
         with open(os.path.join(run_path, "metadata.json"), "w") as f:
             json.dump(metadata, f, indent=4)
-        st.sidebar.success(f"Campaign '{os.path.basename(run_path)}' saved successfully!")
+        target.success(f"Campaign '{os.path.basename(run_path)}' saved successfully!")

@@ -62,48 +62,7 @@ def render_setup_and_initials() -> None:
         index=["Maximize", "Minimize"].index(st.session_state.get("response_direction", "Maximize")),
     )
 
-    # Custom objective creation for single objective
-    with st.expander("Create Custom Objective", expanded=False):
-        st.caption("Define a new objective as an expression of existing columns (from current data), e.g., '0.7*Yield + 0.3*Purity' or 'Yield / Cost'.")
-        new_name = st.text_input("Objective name", key="so_custom_name")
-        expr = st.text_input("Expression (pandas eval)", key="so_custom_expr", placeholder="0.7*Yield + 0.3*Conversion")
-        if st.button("Add Custom Objective (Single)"):
-            if not new_name or not expr:
-                st.warning("Provide both a name and an expression.")
-            else:
-                # store definition
-                defs = dict(st.session_state.get("custom_objectives", {}))
-                defs[new_name] = expr
-                st.session_state.custom_objectives = defs
-                # evaluate on existing data if any
-                rows = st.session_state.get("manual_data", [])
-                if rows:
-                    try:
-                        dfc = pd.DataFrame(rows)
-                        dfc[new_name] = dfc.eval(expr)
-                        st.session_state.manual_data = dfc.to_dict("records")
-                        st.success(f"Custom objective '{new_name}' added and evaluated on current data.")
-                    except Exception as ex:
-                        st.error(f"Could not compute expression: {ex}")
-                else:
-                    st.info("Custom objective stored. It will be evaluated when data becomes available.")
-
-    # Evaluate any pending custom objectives on data if present
-    if st.session_state.get("manual_data") and st.session_state.get("custom_objectives"):
-        try:
-            dfc = pd.DataFrame(st.session_state.manual_data)
-            changed = False
-            for name, ex in st.session_state.custom_objectives.items():
-                if name not in dfc.columns:
-                    try:
-                        dfc[name] = dfc.eval(ex)
-                        changed = True
-                    except Exception:
-                        pass
-            if changed:
-                st.session_state.manual_data = dfc.to_dict("records")
-        except Exception:
-            pass
+   
 
     if st.button("Suggest Initial Experiments"):
         if st.session_state.manual_initialized and st.session_state.manual_data:

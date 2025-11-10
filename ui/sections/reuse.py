@@ -14,12 +14,13 @@ from ui.components import data_editor
 from core.utils.bo_manual import unionize_bounds, rebuild_optimizer_from_df
 
 
-def render_reuse_seeds(user_save_dir: str) -> None:
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Reuse Previous Campaign as Seeds")
+def render_reuse_seeds(user_save_dir: str, target=None, show_divider: bool = True) -> None:
+    target = target or st.sidebar
+    if show_divider:
+        target.markdown("---")
 
     _reuse_options = ["None"] + [d for d in os.listdir(user_save_dir) if os.path.isdir(os.path.join(user_save_dir, d))]
-    reuse_campaign = st.sidebar.selectbox("Select a Previous Campaign to Reuse", options=_reuse_options)
+    reuse_campaign = target.selectbox("Select a Previous Campaign to Reuse", options=_reuse_options)
     if reuse_campaign == "None":
         return
 
@@ -65,10 +66,10 @@ def render_reuse_seeds(user_save_dir: str) -> None:
         st.session_state.prev_df_editor_cache = df_for_editor
         st.session_state.prev_df_source_campaign = reuse_campaign
 
-    st.markdown("### Previous Experiments (edit + select)")
+    target.markdown("### Previous Experiments (edit + select)")
     default_cols = ["Use"] + required_cols + [resp]
     extra_cols = [c for c in st.session_state.prev_df_editor_cache.columns if c not in default_cols]
-    show_cols = st.multiselect(
+    show_cols = target.multiselect(
         "Columns to display",
         options=list(st.session_state.prev_df_editor_cache.columns),
         default=default_cols + ([c for c in extra_cols if c.lower() in ["timestamp"]]),
@@ -88,23 +89,23 @@ def render_reuse_seeds(user_save_dir: str) -> None:
     )
     st.session_state.prev_df_editor_cache.loc[:, show_cols] = edited_prev_df
 
-    c1, c2, c3 = st.columns([1, 1, 2])
+    c1, c2, c3 = target.columns([1, 1, 2])
     with c1:
-        if st.button("Select all"):
+        if target.button("Select all"):
             st.session_state.prev_df_editor_cache["Use"] = True
             st.rerun()
     with c2:
-        if st.button("Clear all"):
+        if target.button("Clear all"):
             st.session_state.prev_df_editor_cache["Use"] = False
             st.rerun()
     with c3:
-        skip_random = st.checkbox(
+        skip_random = target.checkbox(
             "Skip additional random initial points (start BO suggestions immediately)",
             value=True,
             key="reuse_skip_random",
         )
 
-    if st.button("Use selected experiments"):
+    if target.button("Use selected experiments"):
         selected_df = st.session_state.prev_df_editor_cache.copy()
         selected_df[resp] = pd.to_numeric(selected_df[resp], errors="coerce")
         selected_df = selected_df[selected_df["Use"] & selected_df[resp].notna()]
@@ -142,4 +143,3 @@ def render_reuse_seeds(user_save_dir: str) -> None:
         msg = f"Reused {seed_count} experiment(s) from '{reuse_campaign}'. "
         msg += "Starting BO now." if remaining_init == 0 else f"{remaining_init} initial random(s) remain."
         st.success(msg)
-

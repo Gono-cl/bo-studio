@@ -15,13 +15,17 @@ from ui.components import resume_campaign_selector, load_campaign_button
 from core.utils.bo_manual import safe_build_optimizer, force_model_based
 
 
-def render_resume_exact(user_save_dir: str) -> None:
-    st.sidebar.markdown("---")
-    resume_file = resume_campaign_selector(user_save_dir, key="resume_campaign")
+def render_resume_exact(user_save_dir: str, target=None, show_divider: bool = True) -> None:
+    target = target or st.sidebar
+    if show_divider:
+        target.markdown("---")
+    resume_file = resume_campaign_selector(
+        user_save_dir, key="resume_campaign", target=target, show_divider=False
+    )
 
     if resume_file == "None":
         return
-    if not load_campaign_button():
+    if not load_campaign_button(target=target):
         return
 
     run_path = os.path.join(user_save_dir, resume_file)
