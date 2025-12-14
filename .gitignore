@@ -174,3 +174,21 @@ cython_debug/
 .pypirc
 
 .streamlit/secrets.toml
+
+# Local credentials / configs 
+credentials.yaml
+credentials.yml
+config.yaml
+config.yml
+*.env
+
+# Local databases / artifacts
+*.db
+*.sqlite
+*.sqlite3
+
+# User/run artifacts 
+resumable_manual_runs/
+manual_runs/
+runs/
+data/
