@@ -33,6 +33,7 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
                     resp,
                     n_initial_points_remaining=0,
                     acq_func=st.session_state.get("acq_func", "EI"),
+                    direction=st.session_state.get("response_direction", "Maximize"),
                 )
                 st.session_state.manual_optimizer = optimizer
                 st.session_state.iteration = len(df)
@@ -120,13 +121,21 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
 
         if st.button("Save to Database"):
             if st.session_state.response in df_results.columns and df_results[st.session_state.response].notna().any():
-                best_row = df_results.loc[df_results[st.session_state.response].idxmax()].to_dict()
+                response_series = pd.to_numeric(df_results[st.session_state.response], errors="coerce")
+                if st.session_state.get("response_direction", "Maximize") == "Minimize":
+                    best_idx = response_series.idxmin()
+                else:
+                    best_idx = response_series.idxmax()
+                best_row = df_results.loc[best_idx].to_dict()
             else:
                 best_row = {}
             optimization_settings = {
                 "initial_experiments": st.session_state.n_init,
                 "total_iterations": st.session_state.total_iters,
                 "objective": st.session_state.response,
+                "response_direction": st.session_state.get("response_direction", "Maximize"),
+                "acq_func": st.session_state.get("acq_func", "EI"),
+                "init_method": st.session_state.get("init_method", "random"),
                 "method": "Manual Bayesian Optimization",
             }
             db_handler.save_experiment(
@@ -149,6 +158,8 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
                 "n_init": st.session_state.n_init,
                 "total_iters": st.session_state.total_iters,
                 "response": st.session_state.response,
+                "acq_func": st.session_state.get("acq_func", "EI"),
+                "init_method": st.session_state.get("init_method", "random"),
                 "experiment_name": experiment_name,
                 "experiment_notes": experiment_notes,
                 "initialization_complete": st.session_state.get("initial_results_submitted", False),

@@ -8,7 +8,7 @@ from core.utils.path_utils import resource_path
 
 st.set_page_config(
     page_title="BO Studio - Bayesian Optimization Made Simple",
-    page_icon="📊",
+    page_icon="BO",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -59,23 +59,23 @@ def render_page(page_path: str, sidebar_ctx) -> None:
 
 
 PAGES = {
-    "🏠 Home": "navigation/Home.py",
-    "🎯 Single Objective Optimization": "navigation/manual_experiments.py",
-    "🔁 Multi Objective Optimization": "navigation/multi_objective.py",
-    "📊 Data Analysis": "navigation/data_analysis.py",
-    "🎓 Bayesian Optimization Classroom": "navigation/BO_classroom.py",
-    "🧪 Simulation Case 1": "navigation/BO_classroom2.py",
-    "📚 Experiment DataBase": "navigation/experiment_database.py",
+    "Home": "navigation/Home.py",
+    "Single Objective Optimization": "navigation/manual_experiments.py",
+    "Multi Objective Optimization": "navigation/multi_objective.py",
+    "Data Analysis": "navigation/data_analysis.py",
+    "Bayesian Optimization Classroom": "navigation/bo_classroom_v2.py",
+    "Simulation Case 1": "navigation/BO_classroom2.py",
+    "Experiment Database": "navigation/experiment_database.py",
 }
 
 # Build the entire sidebar inside a single container so it resets every rerun.
 sidebar_root = st.sidebar.empty()
 sidebar_ctx = sidebar_root.container()
-sidebar_ctx.write(f"👤 {st.session_state.get('user_name', '')}")
-sidebar_ctx.write(f"✉️ {st.session_state.get('user_email', '')}")
+sidebar_ctx.write(f"User: {st.session_state.get('user_name', '')}")
+sidebar_ctx.write(f"Email: {st.session_state.get('user_email', '')}")
 sidebar_ctx.caption("Running in local mode (authentication disabled)")
 sidebar_ctx.image(str(resource_path("images/image.png")), width=300)
-sidebar_ctx.title("📁 Navigation")
+sidebar_ctx.title("Navigation")
 selection = sidebar_ctx.radio("Go to", list(PAGES.keys()))
 
 # Dynamic controls for the current page render below the navigation.

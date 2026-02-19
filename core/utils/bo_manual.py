@@ -123,6 +123,7 @@ def rebuild_optimizer_from_df(
     response_col: str,
     n_initial_points_remaining: int = 0,
     acq_func: str = "EI",
+    direction: str = "Maximize",
 ) -> StepBayesianOptimizer:
     """Build StepBayesianOptimizer on 'variables' (ModelSpace), and observe seeds once."""
     space = []
@@ -143,6 +144,7 @@ def rebuild_optimizer_from_df(
     # Batch observe to avoid repeated refits (much faster than per-row)
     X_batch = []
     y_batch = []
+    maximize = str(direction).lower() != "minimize"
     for _, row in df.iterrows():
         try:
             y = float(row[response_col])
@@ -150,7 +152,8 @@ def rebuild_optimizer_from_df(
             continue
         if pd.notnull(y):
             X_batch.append([row.get(name) for name, *_ in variables])
-            y_batch.append(float(-y))  # maximize -> minimize convention
+            observed = -y if maximize else y
+            y_batch.append(float(observed))
 
     try:
         if X_batch:

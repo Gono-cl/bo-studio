@@ -1,9 +1,9 @@
 from __future__ import annotations
 import pandas as pd
 import streamlit as st
-from skopt.space import Real, Categorical
 from ui.sections.variables import render_variables_section
 from core.utils.init_designs import generate_initial_points
+from core.utils.n_init_guidance import recommend_n_init_range, format_n_init_range
 from ui.charts import Charts
 
 
@@ -21,7 +21,16 @@ def render_mo_setup_and_initials() -> None:
             extra = [c for c in df_existing.columns if c not in [n for n, *_ in st.session_state.manual_variables]]
         except Exception:
             extra = []
-    available_objs = list(dict.fromkeys(defaults + extra))
+    custom_names = st.session_state.get("mo_custom_objectives", [])
+    if isinstance(custom_names, set):
+        custom_names = sorted(custom_names)
+    elif isinstance(custom_names, dict):
+        custom_names = list(custom_names.keys())
+    elif not isinstance(custom_names, list):
+        custom_names = []
+    st.session_state.mo_custom_objectives = custom_names
+
+    available_objs = list(dict.fromkeys(defaults + custom_names + extra))
     selected = st.multiselect(
         "Select Objectives",
         available_objs,
@@ -35,7 +44,14 @@ def render_mo_setup_and_initials() -> None:
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.number_input("# Initial Experiments", min_value=2, max_value=100, value=st.session_state.get("mo_n_init", 6), key="mo_n_init")
+        st.number_input(
+            "# Initial Experiments",
+            min_value=2,
+            max_value=100,
+            value=st.session_state.get("mo_n_init", 6),
+            key="mo_n_init",
+            help="Number of initial design points before scalarization-based BO suggestions.",
+        )
     with col2:
         init_options = ["Random", "LHS", "Halton", "Maximin LHS"]
         init_keys = ["random", "lhs", "halton", "maximin_lhs"]
@@ -44,6 +60,22 @@ def render_mo_setup_and_initials() -> None:
         st.session_state.mo_init_method = init_keys[init_options.index(init_choice)]
     with col3:
         st.number_input("Total Iterations", min_value=1, max_value=200, value=st.session_state.get("mo_total_iters", 20), key="mo_total_iters")
+
+    n_vars = max(1, len(st.session_state.get("manual_variables", [])))
+    mixed = any((len(v) >= 5 and str(v[4]).lower() == "categorical") for v in st.session_state.get("manual_variables", []))
+    rec_low, rec_high, rec_text = recommend_n_init_range(
+        n_vars,
+        total_budget=int(st.session_state.get("mo_total_iters", 20)),
+        mixed=mixed,
+        multiobjective=True,
+    )
+    rec_range_text = format_n_init_range(rec_low, rec_high)
+    st.caption(f"n_init guidance: {rec_text}")
+    if int(st.session_state.get("mo_n_init", 0)) < rec_low or int(st.session_state.get("mo_n_init", 0)) > rec_high:
+        st.info(
+            f"Current n_init={int(st.session_state.get('mo_n_init', 0))} is outside the suggested range ({rec_range_text}). "
+            "This can be valid, but often changes convergence quality."
+        )
 
     # Direction selection per objective (explicit selectboxes for compatibility)
     if st.session_state.get("mo_objectives"):
@@ -70,17 +102,24 @@ def render_mo_setup_and_initials() -> None:
             if not new_name or not expr:
                 st.warning("Provide both a name and an expression.")
             else:
+                custom = st.session_state.get("mo_custom_objectives", [])
+                if not isinstance(custom, list):
+                    custom = []
                 # Build df context from current mo_data if any, else from variables only
                 source_rows = st.session_state.get("mo_data", [])
                 if not source_rows:
                     st.info("No data yet; the custom objective will appear once results exist.")
-                    st.session_state.setdefault("mo_custom_objectives", set()).add(new_name)
+                    if new_name not in custom:
+                        custom.append(new_name)
+                    st.session_state.mo_custom_objectives = custom
                 else:
                     dfc = pd.DataFrame(source_rows)
                     try:
                         dfc[new_name] = dfc.eval(expr)
                         st.session_state.mo_data = dfc.to_dict("records")
-                        st.session_state.setdefault("mo_custom_objectives", set()).add(new_name)
+                        if new_name not in custom:
+                            custom.append(new_name)
+                        st.session_state.mo_custom_objectives = custom
                         st.success(f"Custom objective '{new_name}' added.")
                     except Exception as ex:
                         st.error(f"Could not compute expression: {ex}")
@@ -112,12 +151,6 @@ def render_mo_setup_and_initials() -> None:
             for obj in st.session_state.mo_objectives:
                 row[obj] = None
             default_rows.append(row)
-        
-        with st.expander("Preview Initial Design", expanded=False):
-            try:
-                Charts.show_initial_design(st.session_state.suggestions, st.session_state.manual_variables)
-            except Exception:
-                pass
 
         edited_df = st.data_editor(pd.DataFrame(default_rows), key="mo_initial_editor")
         if st.button("Submit MO Initial Results"):
@@ -129,4 +162,5 @@ def render_mo_setup_and_initials() -> None:
             else:
                 st.session_state.mo_data.extend(df.to_dict("records"))
                 st.session_state.mo_iteration = len(st.session_state.mo_data)
+                st.session_state.mo_suggestions = []
                 st.success("MO initial results recorded.")

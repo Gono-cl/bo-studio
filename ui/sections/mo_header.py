@@ -26,7 +26,7 @@ def render_mo_experiment_header(user_save_dir: str):
 
 def render_mo_save_campaign(run_path: str) -> None:
     """Sidebar Save button for MO campaigns: writes data and metadata."""
-    if st.sidebar.button("💾 Save Campaign (MO)"):
+    if st.sidebar.button("Save Campaign (MO)"):
         mo_data = st.session_state.get("mo_data", [])
         if mo_data:
             df_save = pd.DataFrame(mo_data)
@@ -48,7 +48,7 @@ def render_mo_save_campaign(run_path: str) -> None:
             "acq_func": st.session_state.get("acq_func", "EI"),
             "experiment_name": st.session_state.get("experiment_name", ""),
             "experiment_notes": st.session_state.get("experiment_notes", ""),
-            "custom_objectives": st.session_state.get("custom_objectives", {}),
+            "mo_custom_objectives": st.session_state.get("mo_custom_objectives", []),
         }
         with open(os.path.join(run_path, "metadata.json"), "w") as f:
             json.dump(metadata, f, indent=4)

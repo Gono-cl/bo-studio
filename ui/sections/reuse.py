@@ -44,6 +44,10 @@ def render_reuse_seeds(user_save_dir: str, target=None, show_divider: bool = Tru
         return
 
     resp = st.session_state.get("response", "Yield")
+    st.session_state.response_direction = prev_meta.get(
+        "response_direction",
+        st.session_state.get("response_direction", "Maximize"),
+    )
     if resp not in prev_df_raw.columns:
         candidates = ["Yield", "Conversion", "Transformation", "Productivity"]
         fallback = next((c for c in candidates if c in prev_df_raw.columns), None)
@@ -127,7 +131,8 @@ def render_reuse_seeds(user_save_dir: str, target=None, show_divider: bool = Tru
             selected_df,
             resp,
             n_initial_points_remaining=remaining_init,
-            acq_func="EI",
+            acq_func=st.session_state.get("acq_func", "EI"),
+            direction=st.session_state.get("response_direction", "Maximize"),
         )
 
         st.session_state.model_variables = model_variables

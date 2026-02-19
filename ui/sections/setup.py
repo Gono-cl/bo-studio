@@ -11,6 +11,7 @@ from skopt.space import Real, Categorical
 from ui.components import data_editor
 from core.utils.bo_manual import safe_build_optimizer, force_model_based
 from core.utils.init_designs import generate_initial_points
+from core.utils.n_init_guidance import recommend_n_init_range, format_n_init_range
 from ui.charts import Charts
 
 
@@ -36,8 +37,31 @@ def render_setup_and_initials() -> None:
         response = st.selectbox("Response to Optimize", options, index=options.index(default_resp))
         st.session_state.response = response
     with col6:
-        st.number_input("# Initial Experiments", min_value=1, max_value=50, value=st.session_state.n_init, key="n_init")
+        st.number_input(
+            "# Initial Experiments",
+            min_value=1,
+            max_value=50,
+            value=st.session_state.n_init,
+            key="n_init",
+            help="Number of initial design points collected before BO suggestions dominate.",
+        )
         st.number_input("Total Iterations", min_value=1, max_value=100, value=st.session_state.total_iters, key="total_iters")
+
+    n_vars = max(1, len(st.session_state.get("manual_variables", [])))
+    mixed = any((len(v) >= 5 and str(v[4]).lower() == "categorical") for v in st.session_state.get("manual_variables", []))
+    rec_low, rec_high, rec_text = recommend_n_init_range(
+        n_vars,
+        total_budget=int(st.session_state.total_iters),
+        mixed=mixed,
+        multiobjective=False,
+    )
+    rec_range_text = format_n_init_range(rec_low, rec_high)
+    st.caption(f"n_init guidance: {rec_text}")
+    if int(st.session_state.n_init) < rec_low or int(st.session_state.n_init) > rec_high:
+        st.info(
+            f"Current n_init={int(st.session_state.n_init)} is outside the suggested range ({rec_range_text}). "
+            "You can still use it, but this may affect BO efficiency."
+        )
 
     col7, col8 = st.columns(2)
     with col7:

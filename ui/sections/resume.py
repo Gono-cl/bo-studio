@@ -8,11 +8,10 @@ import os
 import json
 import pandas as pd
 import streamlit as st
-from skopt.space import Real, Categorical
 import dill as pickle
 
 from ui.components import resume_campaign_selector, load_campaign_button
-from core.utils.bo_manual import safe_build_optimizer, force_model_based
+from core.utils.bo_manual import rebuild_optimizer_from_df
 
 
 def render_resume_exact(user_save_dir: str, target=None, show_divider: bool = True) -> None:
@@ -53,6 +52,9 @@ def render_resume_exact(user_save_dir: str, target=None, show_divider: bool = Tr
     st.session_state.n_init = metadata.get("n_init", 1)
     st.session_state.total_iters = metadata.get("total_iters", 1)
     st.session_state.response = metadata.get("response", st.session_state.get("response", "Yield"))
+    st.session_state.response_direction = metadata.get("response_direction", st.session_state.get("response_direction", "Maximize"))
+    st.session_state.acq_func = metadata.get("acq_func", st.session_state.get("acq_func", "EI"))
+    st.session_state.init_method = metadata.get("init_method", st.session_state.get("init_method", "random"))
     st.session_state.manual_initialized = True
     st.session_state.initial_results_submitted = metadata.get("initialization_complete", False)
     st.session_state.experiment_name = metadata.get("experiment_name", "")
@@ -61,27 +63,18 @@ def render_resume_exact(user_save_dir: str, target=None, show_divider: bool = Tr
     # Rebuild optimizer from data to ensure space is correct
     if st.session_state.manual_variables and len(st.session_state.manual_data) > 0:
         model_vars = st.session_state.model_variables or st.session_state.manual_variables
-        opt_vars = []
-        for name, v1, v2, _, vtype in model_vars:
-            if vtype == "continuous":
-                opt_vars.append(Real(v1, v2, name=name))
-            else:
-                opt_vars.append(Categorical(v1, name=name))
-
-        optimizer = safe_build_optimizer(opt_vars, n_initial_points_remaining=0, acq_func="EI")
         df_tmp = pd.DataFrame(st.session_state.manual_data)
         resp = st.session_state.response
         if resp in df_tmp.columns:
-            df_tmp[resp] = pd.to_numeric(df_tmp[resp], errors="coerce")
-            for _, row in df_tmp.iterrows():
-                try:
-                    y_val = float(row.get(resp, float("nan")))
-                    if pd.notnull(y_val):
-                        x = [row.get(name) for name, *_ in model_vars]
-                        optimizer.observe(x, -y_val)
-                except (ValueError, TypeError):
-                    continue
-        force_model_based(optimizer)
-        st.session_state.manual_optimizer = optimizer
+            st.session_state.manual_optimizer = rebuild_optimizer_from_df(
+                model_vars,
+                df_tmp,
+                resp,
+                n_initial_points_remaining=0,
+                acq_func=st.session_state.get("acq_func", "EI"),
+                direction=st.session_state.get("response_direction", "Maximize"),
+            )
+        else:
+            st.warning("Response column not found in loaded data. Optimizer was not rebuilt.")
 
     st.success(f"Loaded campaign: {resume_file}")

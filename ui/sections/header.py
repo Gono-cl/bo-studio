@@ -71,6 +71,8 @@ def render_save_campaign(run_path: str, target=None) -> None:
             "n_init": st.session_state.n_init,
             "total_iters": st.session_state.total_iters,
             "response": st.session_state.get("response", "Yield"),
+            "acq_func": st.session_state.get("acq_func", "EI"),
+            "init_method": st.session_state.get("init_method", "random"),
             "experiment_name": st.session_state.get("experiment_name", ""),
             "experiment_notes": st.session_state.get("experiment_notes", ""),
             "initialization_complete": st.session_state.get("initial_results_submitted", False),

@@ -38,7 +38,7 @@ class Charts:
         df_results["Iteration"] = range(1, len(df_results) + 1)
         df_results[response_name] = pd.to_numeric(df_results[response_name], errors="coerce")
 
-        st.markdown("### 📈 Optimization Progress")
+        st.markdown("### Optimization Progress")
         chart = alt.Chart(df_results).mark_line(point=True).encode(
             x=alt.X("Iteration", title="Experiment Number"),
             y=alt.Y(response_name, title=response_name),
@@ -88,7 +88,7 @@ class Charts:
             return
         df = df[cols_to_plot]
 
-        st.markdown("### 🔀 Parallel Coordinates Plot")
+        st.markdown("### Parallel Coordinates Plot")
 
         legend_entries = []
         for col in df.columns:
