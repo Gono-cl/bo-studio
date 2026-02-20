@@ -1,4 +1,4 @@
-```{toctree}
+﻿```{toctree}
 :maxdepth: 3
 :titlesonly:
 :caption: Documentation
@@ -6,6 +6,7 @@
 
 home
 tutorial
+classroom_guide
 multi
 manual_optimization
 experiment_database
