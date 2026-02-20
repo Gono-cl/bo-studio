@@ -39,6 +39,9 @@ defaults = {
     "response": "Yield",
     "var_type": "Continuous",
     "user_name": "Guest",
+    "acq_xi": 0.01,
+    "acq_kappa": 1.96,
+    "bo_seed": 42,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -56,9 +59,9 @@ st.success(
     - Define continuous/categorical variables.
     - Choose an objective and direction (maximize/minimize), or define a custom objective via expression.
     - Generate initial designs (Random, LHS, Halton, Maximin LHS) and preview coverage.
-    - Reuse previous campaigns as seeds (union bounds) and continue from there.
-    - Run step-by-step Bayesian Optimization with selectable acquisition (EI, PI, LCB).
-    - Save and resume campaigns (local and Render environments).
+    - Reuse previous campaigns as seeds and continue from there.
+    - Run step-by-step Bayesian Optimization with selectable acquisition functions (EI, PI, LCB).
+    - Save and resume campaigns.
     """
 )
 
@@ -69,12 +72,12 @@ user_email = st.session_state.get("user_email", "default_user")
 user_save_dir = os.path.join(SAVE_DIR, user_email)
 os.makedirs(user_save_dir, exist_ok=True)
 
-with st.expander("Resume a previous campaign", expanded=False):
-    container = st.container()
-    render_resume_exact(user_save_dir, target=container, show_divider=False)
+# Sidebar controls (below navigation): resume/reuse follow MO structure.
+render_resume_exact(user_save_dir, target=st.sidebar, show_divider=True)
 
 
 experiment_name, experiment_notes, run_name, run_path = render_experiment_header(user_save_dir)
+render_save_campaign(run_path, target=st.sidebar)
 
 
 # =========================================================
@@ -82,11 +85,6 @@ experiment_name, experiment_notes, run_name, run_path = render_experiment_header
 # =========================================================
 render_variables_section()
 render_setup_and_initials()
-reuse_container = st.container()
-render_reuse_seeds(user_save_dir, target=reuse_container, show_divider=False)
-# (resume logic lives inside the expander above)
+render_reuse_seeds(user_save_dir, target=st.sidebar, show_divider=True)
 render_interact_and_complete(user_save_dir, experiment_name, experiment_notes, run_name)
-
-st.divider()
-render_save_campaign(run_path, target=st)
 

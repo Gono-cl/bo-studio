@@ -65,7 +65,7 @@ def resume_campaign_selector(
     if show_divider:
         target.markdown("---")
     options = ["None"] + list_valid_campaigns(user_save_dir)
-    return target.selectbox("Resume from Previous Manual Campaign", options=options, key=key)
+    return target.selectbox("Resume Previous Single Objective Campaign", options=options, key=key)
 
 # Backcompat alias (internal callers in older code)
 _list_valid_campaigns = list_valid_campaigns

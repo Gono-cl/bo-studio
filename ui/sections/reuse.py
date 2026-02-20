@@ -18,6 +18,7 @@ def render_reuse_seeds(user_save_dir: str, target=None, show_divider: bool = Tru
     target = target or st.sidebar
     if show_divider:
         target.markdown("---")
+    target.subheader("Reuse Previous SO Campaign as Seeds")
 
     _reuse_options = ["None"] + [d for d in os.listdir(user_save_dir) if os.path.isdir(os.path.join(user_save_dir, d))]
     reuse_campaign = target.selectbox("Select a Previous Campaign to Reuse", options=_reuse_options)
@@ -133,6 +134,9 @@ def render_reuse_seeds(user_save_dir: str, target=None, show_divider: bool = Tru
             n_initial_points_remaining=remaining_init,
             acq_func=st.session_state.get("acq_func", "EI"),
             direction=st.session_state.get("response_direction", "Maximize"),
+            acq_xi=float(st.session_state.get("acq_xi", 0.01)),
+            acq_kappa=float(st.session_state.get("acq_kappa", 1.96)),
+            random_state=int(st.session_state.get("bo_seed", 42)),
         )
 
         st.session_state.model_variables = model_variables

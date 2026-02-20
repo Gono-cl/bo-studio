@@ -25,7 +25,14 @@ def _build_scalarized_optimizer(weights: np.ndarray, method: str = "weighted_sum
             dims.append(Real(v1, v2, name=name))
         else:
             dims.append(Categorical(v1, name=name))
-    opt = safe_build_optimizer(dims, n_initial_points_remaining=0, acq_func=st.session_state.get("acq_func", "EI"))
+    opt = safe_build_optimizer(
+        dims,
+        n_initial_points_remaining=0,
+        acq_func=st.session_state.get("acq_func", "EI"),
+        acq_xi=float(st.session_state.get("acq_xi", 0.01)),
+        acq_kappa=float(st.session_state.get("acq_kappa", 1.96)),
+        random_state=int(st.session_state.get("bo_seed", 42)),
+    )
     # Observe existing data using scalarized objective
     data = st.session_state.get("mo_data", [])
     objs = st.session_state.get("mo_objectives", [])

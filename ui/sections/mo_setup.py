@@ -61,6 +61,45 @@ def render_mo_setup_and_initials() -> None:
     with col3:
         st.number_input("Total Iterations", min_value=1, max_value=200, value=st.session_state.get("mo_total_iters", 20), key="mo_total_iters")
 
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        acq_options = ["EI", "PI", "LCB"]
+        default_acq = st.session_state.get("acq_func", "EI")
+        st.session_state.acq_func = st.selectbox(
+            "Acquisition Function",
+            acq_options,
+            index=acq_options.index(default_acq) if default_acq in acq_options else 0,
+            key="mo_acq_func_select",
+        )
+    with col5:
+        st.number_input(
+            "Optimizer Seed",
+            min_value=0,
+            max_value=9999,
+            value=int(st.session_state.get("bo_seed", 42)),
+            key="bo_seed",
+            help="Controls reproducibility of initialization design and BO suggestion sequence.",
+        )
+    with col6:
+        st.number_input(
+            "Exploration xi (EI/PI)",
+            min_value=0.0,
+            max_value=0.5,
+            value=float(st.session_state.get("acq_xi", 0.01)),
+            step=0.01,
+            key="acq_xi",
+            help="Higher xi increases exploration pressure for EI/PI.",
+        )
+    st.number_input(
+        "Exploration kappa (LCB)",
+        min_value=0.1,
+        max_value=10.0,
+        value=float(st.session_state.get("acq_kappa", 1.96)),
+        step=0.1,
+        key="acq_kappa",
+        help="Higher kappa increases exploration pressure for LCB.",
+    )
+
     n_vars = max(1, len(st.session_state.get("manual_variables", [])))
     mixed = any((len(v) >= 5 and str(v[4]).lower() == "categorical") for v in st.session_state.get("manual_variables", []))
     rec_low, rec_high, rec_text = recommend_n_init_range(
@@ -132,7 +171,7 @@ def render_mo_setup_and_initials() -> None:
                 st.session_state.manual_variables,
                 int(st.session_state.mo_n_init),
                 method=st.session_state.mo_init_method,
-                seed=42,
+                seed=int(st.session_state.get("bo_seed", 42)),
             )
             st.session_state.mo_initialized = True
             st.session_state.mo_data = []

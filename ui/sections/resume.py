@@ -54,6 +54,9 @@ def render_resume_exact(user_save_dir: str, target=None, show_divider: bool = Tr
     st.session_state.response = metadata.get("response", st.session_state.get("response", "Yield"))
     st.session_state.response_direction = metadata.get("response_direction", st.session_state.get("response_direction", "Maximize"))
     st.session_state.acq_func = metadata.get("acq_func", st.session_state.get("acq_func", "EI"))
+    st.session_state.acq_xi = metadata.get("acq_xi", st.session_state.get("acq_xi", 0.01))
+    st.session_state.acq_kappa = metadata.get("acq_kappa", st.session_state.get("acq_kappa", 1.96))
+    st.session_state.bo_seed = metadata.get("bo_seed", st.session_state.get("bo_seed", 42))
     st.session_state.init_method = metadata.get("init_method", st.session_state.get("init_method", "random"))
     st.session_state.manual_initialized = True
     st.session_state.initial_results_submitted = metadata.get("initialization_complete", False)
@@ -73,6 +76,9 @@ def render_resume_exact(user_save_dir: str, target=None, show_divider: bool = Tr
                 n_initial_points_remaining=0,
                 acq_func=st.session_state.get("acq_func", "EI"),
                 direction=st.session_state.get("response_direction", "Maximize"),
+                acq_xi=float(st.session_state.get("acq_xi", 0.01)),
+                acq_kappa=float(st.session_state.get("acq_kappa", 1.96)),
+                random_state=int(st.session_state.get("bo_seed", 42)),
             )
         else:
             st.warning("Response column not found in loaded data. Optimizer was not rebuilt.")

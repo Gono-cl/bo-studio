@@ -63,7 +63,7 @@ def render_setup_and_initials() -> None:
             "You can still use it, but this may affect BO efficiency."
         )
 
-    col7, col8 = st.columns(2)
+    col7, col8, col9 = st.columns(3)
     with col7:
         init_options = ["Random", "LHS", "Halton", "Maximin LHS"]
         init_keys = ["random", "lhs", "halton", "maximin_lhs"]
@@ -78,6 +78,37 @@ def render_setup_and_initials() -> None:
         acq_options = ["EI", "PI", "LCB"]
         default_acq = st.session_state.get("acq_func", "EI")
         st.session_state.acq_func = st.selectbox("Acquisition Function", acq_options, index=acq_options.index(default_acq))
+    with col9:
+        st.number_input(
+            "Optimizer Seed",
+            min_value=0,
+            max_value=9999,
+            value=int(st.session_state.get("bo_seed", 42)),
+            key="bo_seed",
+            help="Controls reproducibility of initialization design and BO suggestion sequence.",
+        )
+
+    col10, col11 = st.columns(2)
+    with col10:
+        st.number_input(
+            "Exploration xi (EI/PI)",
+            min_value=0.0,
+            max_value=0.5,
+            value=float(st.session_state.get("acq_xi", 0.01)),
+            step=0.01,
+            key="acq_xi",
+            help="Higher xi increases exploration pressure for EI/PI.",
+        )
+    with col11:
+        st.number_input(
+            "Exploration kappa (LCB)",
+            min_value=0.1,
+            max_value=10.0,
+            value=float(st.session_state.get("acq_kappa", 1.96)),
+            step=0.1,
+            key="acq_kappa",
+            help="Higher kappa increases exploration pressure for LCB.",
+        )
 
     # Direction of optimization (single objective)
     st.session_state.response_direction = st.selectbox(
@@ -101,7 +132,14 @@ def render_setup_and_initials() -> None:
                     opt_vars.append(Real(val1, val2, name=name))
                 else:
                     opt_vars.append(Categorical(val1, name=name))
-            optimizer = safe_build_optimizer(opt_vars, n_initial_points_remaining=0, acq_func=st.session_state.acq_func)
+            optimizer = safe_build_optimizer(
+                opt_vars,
+                n_initial_points_remaining=0,
+                acq_func=st.session_state.acq_func,
+                acq_xi=float(st.session_state.get("acq_xi", 0.01)),
+                acq_kappa=float(st.session_state.get("acq_kappa", 1.96)),
+                random_state=int(st.session_state.get("bo_seed", 42)),
+            )
             st.session_state.manual_optimizer = optimizer
             st.session_state.manual_data = []
             st.session_state.manual_initialized = True
@@ -112,7 +150,7 @@ def render_setup_and_initials() -> None:
                 st.session_state.model_variables,
                 st.session_state.n_init,
                 method=st.session_state.get("init_method", "random"),
-                seed=42,
+                seed=int(st.session_state.get("bo_seed", 42)),
             )
             st.success("Initial experiments suggested successfully!")
 

@@ -33,7 +33,36 @@ def list_valid_campaigns(base_dir: str) -> List[str]:
     return valid
 
 
-def safe_build_optimizer(space, n_initial_points_remaining: int = 0, acq_func: str = "EI") -> StepBayesianOptimizer:
+def _apply_optimizer_acq_settings(opt: StepBayesianOptimizer, acq_func: str, acq_xi: float, acq_kappa: float) -> None:
+    """Best-effort configuration of acquisition hyperparameters on underlying skopt optimizer."""
+    sk = getattr(opt, "skopt_optimizer", None) or getattr(opt, "_optimizer", None)
+    if sk is None:
+        return
+    try:
+        acq = str(acq_func).upper()
+        kwargs = dict(getattr(sk, "acq_func_kwargs", {}) or {})
+        if acq in {"EI", "PI"}:
+            kwargs["xi"] = float(acq_xi)
+        elif acq == "LCB":
+            kwargs["kappa"] = float(acq_kappa)
+        if hasattr(sk, "acq_func_kwargs"):
+            setattr(sk, "acq_func_kwargs", kwargs)
+        if hasattr(sk, "xi"):
+            setattr(sk, "xi", float(acq_xi))
+        if hasattr(sk, "kappa"):
+            setattr(sk, "kappa", float(acq_kappa))
+    except Exception:
+        pass
+
+
+def safe_build_optimizer(
+    space,
+    n_initial_points_remaining: int = 0,
+    acq_func: str = "EI",
+    acq_xi: float = 0.01,
+    acq_kappa: float = 1.96,
+    random_state: int = 42,
+) -> StepBayesianOptimizer:
     """
     Build StepBayesianOptimizer and set underlying skopt.Optimizer knobs.
 
@@ -42,7 +71,7 @@ def safe_build_optimizer(space, n_initial_points_remaining: int = 0, acq_func: s
     `n_initial_points` to the wrapper constructor, so we set it directly on the
     underlying optimizer after construction.
     """
-    opt = StepBayesianOptimizer(space, acq_func=acq_func)
+    opt = StepBayesianOptimizer(space, acq_func=acq_func, random_state=int(random_state))
     sk = getattr(opt, "skopt_optimizer", None) or getattr(opt, "_optimizer", None)
     try:
         if sk is not None:
@@ -54,6 +83,7 @@ def safe_build_optimizer(space, n_initial_points_remaining: int = 0, acq_func: s
                 setattr(sk, "acq_func", acq_func)
     except Exception:
         pass
+    _apply_optimizer_acq_settings(opt, acq_func=acq_func, acq_xi=acq_xi, acq_kappa=acq_kappa)
     return opt
 
 
@@ -124,6 +154,9 @@ def rebuild_optimizer_from_df(
     n_initial_points_remaining: int = 0,
     acq_func: str = "EI",
     direction: str = "Maximize",
+    acq_xi: float = 0.01,
+    acq_kappa: float = 1.96,
+    random_state: int = 42,
 ) -> StepBayesianOptimizer:
     """Build StepBayesianOptimizer on 'variables' (ModelSpace), and observe seeds once."""
     space = []
@@ -133,7 +166,14 @@ def rebuild_optimizer_from_df(
         else:
             space.append(Categorical(v1, name=name))
 
-    opt = safe_build_optimizer(space, n_initial_points_remaining, acq_func)
+    opt = safe_build_optimizer(
+        space,
+        n_initial_points_remaining=n_initial_points_remaining,
+        acq_func=acq_func,
+        acq_xi=acq_xi,
+        acq_kappa=acq_kappa,
+        random_state=random_state,
+    )
 
     df = df.copy()
     if response_col not in df.columns:

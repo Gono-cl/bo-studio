@@ -34,6 +34,9 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
                     n_initial_points_remaining=0,
                     acq_func=st.session_state.get("acq_func", "EI"),
                     direction=st.session_state.get("response_direction", "Maximize"),
+                    acq_xi=float(st.session_state.get("acq_xi", 0.01)),
+                    acq_kappa=float(st.session_state.get("acq_kappa", 1.96)),
+                    random_state=int(st.session_state.get("bo_seed", 42)),
                 )
                 st.session_state.manual_optimizer = optimizer
                 st.session_state.iteration = len(df)
@@ -135,7 +138,10 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
                 "objective": st.session_state.response,
                 "response_direction": st.session_state.get("response_direction", "Maximize"),
                 "acq_func": st.session_state.get("acq_func", "EI"),
+                "acq_xi": float(st.session_state.get("acq_xi", 0.01)),
+                "acq_kappa": float(st.session_state.get("acq_kappa", 1.96)),
                 "init_method": st.session_state.get("init_method", "random"),
+                "bo_seed": int(st.session_state.get("bo_seed", 42)),
                 "method": "Manual Bayesian Optimization",
             }
             db_handler.save_experiment(
@@ -159,7 +165,10 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
                 "total_iters": st.session_state.total_iters,
                 "response": st.session_state.response,
                 "acq_func": st.session_state.get("acq_func", "EI"),
+                "acq_xi": float(st.session_state.get("acq_xi", 0.01)),
+                "acq_kappa": float(st.session_state.get("acq_kappa", 1.96)),
                 "init_method": st.session_state.get("init_method", "random"),
+                "bo_seed": int(st.session_state.get("bo_seed", 42)),
                 "experiment_name": experiment_name,
                 "experiment_notes": experiment_notes,
                 "initialization_complete": st.session_state.get("initial_results_submitted", False),

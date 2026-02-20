@@ -23,7 +23,7 @@ def render_mo_resume(user_save_dir: str) -> None:
             except Exception:
                 pass
 
-    resume_file = st.sidebar.selectbox("Resume Multiobjective Campaign", options=options, key="mo_resume_campaign")
+    resume_file = st.sidebar.selectbox("Resume Previous MO Campaign", options=options, key="mo_resume_campaign")
     if resume_file == "None":
         return
 
@@ -45,6 +45,9 @@ def render_mo_resume(user_save_dir: str) -> None:
         st.session_state.mo_total_iters = metadata.get("mo_total_iters", 0)
         st.session_state.mo_init_method = metadata.get("mo_init_method", "lhs")
         st.session_state.acq_func = metadata.get("acq_func", "EI")
+        st.session_state.acq_xi = metadata.get("acq_xi", 0.01)
+        st.session_state.acq_kappa = metadata.get("acq_kappa", 1.96)
+        st.session_state.bo_seed = metadata.get("bo_seed", 42)
         st.session_state.experiment_name = metadata.get("experiment_name", "")
         st.session_state.experiment_notes = metadata.get("experiment_notes", "")
         st.session_state.mo_custom_objectives = metadata.get("mo_custom_objectives", [])

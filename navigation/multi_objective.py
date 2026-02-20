@@ -18,13 +18,26 @@ def _ensure_defaults():
         "mo_n_init": 6,
         "mo_total_iters": 20,
         "mo_init_method": "lhs",
+        "acq_func": "EI",
+        "acq_xi": 0.01,
+        "acq_kappa": 1.96,
+        "bo_seed": 42,
     }
     for k, v in defaults.items():
         st.session_state.setdefault(k, v)
+    return defaults
 
 
-_ensure_defaults()
+defaults = _ensure_defaults()
 st.title("Multiobjective Optimization Campaign")
+if st.button("Reset Campaign"):
+    for key in list(st.session_state.keys()):
+        if key not in ("user_email",):
+            del st.session_state[key]
+    for k, v in defaults.items():
+        st.session_state[k] = v
+    st.rerun()
+
 st.success(
     """
     This session lets you:
