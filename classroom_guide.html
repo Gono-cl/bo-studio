@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📚 Experiment DataBase &mdash; BO-STUDIO 1.0 documentation</title>
+  <title>BO Classroom Guide &mdash; BO-STUDIO 1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/css/sphinx_rtd_size.css?v=3b072d6b" />
@@ -21,8 +21,8 @@
     <link rel="author" title="About these documents" href="about.html" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Simulation Case 1" href="simulation_case.html" />
-    <link rel="prev" title="Multiobjective Optimization Campaign — User Guide" href="multi.html" /> 
+    <link rel="next" title="Multiobjective Optimization Campaign — User Guide" href="multi.html" />
+    <link rel="prev" title="Single Objective Optimization Campaign — Case Study Tutorial" href="case_study.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,9 +47,9 @@
               <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="case_study.html">Single Objective Optimization Campaign — Case Study Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="classroom_guide.html">BO Classroom Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">BO Classroom Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multi.html">Multiobjective Optimization Campaign — User Guide</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">📚 Experiment DataBase</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiment_database.html">📚 Experiment DataBase</a></li>
 <li class="toctree-l1"><a class="reference internal" href="simulation_case.html">Simulation Case 1</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ – Help &amp; Guidance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
@@ -69,9 +69,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">📚 Experiment DataBase</li>
+      <li class="breadcrumb-item active">BO Classroom Guide</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/experiment_database.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/classroom_guide.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -79,16 +79,60 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="experiment-database">
-<h1>📚 Experiment DataBase<a class="headerlink" href="#experiment-database" title="Link to this heading"></a></h1>
+  <section id="bo-classroom-guide">
+<h1>BO Classroom Guide<a class="headerlink" href="#bo-classroom-guide" title="Link to this heading"></a></h1>
+<p>This guide explains how to use BO Classroom as a structured learning path.</p>
+<section id="learning-path">
+<h2>Learning path<a class="headerlink" href="#learning-path" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>BO Intuition</p></li>
+<li><p>BO Mechanics</p></li>
+<li><p>Chemist Workflow</p></li>
+<li><p>Multiobjective Decisions</p></li>
+</ol>
+</section>
+<section id="recommended-usage">
+<h2>Recommended usage<a class="headerlink" href="#recommended-usage" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Start in Beginner mode.</p></li>
+<li><p>Change one parameter at a time.</p></li>
+<li><p>Observe how GP and AF behavior changes.</p></li>
+<li><p>Compare EI, PI, and LCB strategies.</p></li>
+<li><p>Repeat with Advanced mode for deeper theory.</p></li>
+</ol>
+</section>
+<section id="parameters-that-matter-most">
+<h2>Parameters that matter most<a class="headerlink" href="#parameters-that-matter-most" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Initial experiments (<code class="docutils literal notranslate"><span class="pre">n_init</span></code>)</p></li>
+<li><p>Initialization method</p></li>
+<li><p>Acquisition function</p></li>
+<li><p>Exploration controls (<code class="docutils literal notranslate"><span class="pre">xi</span></code>, <code class="docutils literal notranslate"><span class="pre">kappa</span></code>)</p></li>
+<li><p>Total iterations</p></li>
+<li><p>Measurement noise and failure probability</p></li>
+</ul>
+</section>
+<section id="chemistry-perspective">
+<h2>Chemistry perspective<a class="headerlink" href="#chemistry-perspective" title="Link to this heading"></a></h2>
+<p>In reaction optimization, objective functions are often yield, selectivity, productivity, or a weighted combination.</p>
+<p>BO helps you balance exploitation of known good regions with exploration of uncertain regions.</p>
+</section>
+<section id="after-classroom">
+<h2>After classroom<a class="headerlink" href="#after-classroom" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Use Single Objective Optimization for one target metric.</p></li>
+<li><p>Use Multi Objective Optimization for tradeoff analysis.</p></li>
+<li><p>Use Data Analysis and Experiment Database to compare campaigns.</p></li>
+</ul>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="multi.html" class="btn btn-neutral float-left" title="Multiobjective Optimization Campaign — User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="simulation_case.html" class="btn btn-neutral float-right" title="Simulation Case 1" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="case_study.html" class="btn btn-neutral float-left" title="Single Objective Optimization Campaign — Case Study Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="multi.html" class="btn btn-neutral float-right" title="Multiobjective Optimization Campaign — User Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
