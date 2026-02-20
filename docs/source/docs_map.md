@@ -29,7 +29,7 @@ Purpose:
 - clarify Beginner vs Advanced use,
 - explain what to focus on in each module.
 
-## 4. Single Objective Reference
+## 4. Single Objective Optimization
 
 **Page:** `manual_optimization`
 
@@ -38,7 +38,7 @@ Purpose:
 - include save/resume/reuse behavior,
 - include common mistakes and troubleshooting.
 
-## 5. Multi Objective Reference
+## 5. Multi Objective Optimization
 
 **Page:** `multi`
 
@@ -92,8 +92,8 @@ For a clean docs experience, keep this menu order:
 2. docs_map
 3. tutorial
 4. classroom_guide
-5. manual_optimization
-6. multi
+5. Single Objective Optimization (`manual_optimization`)
+6. Multi Objective Optimization (`multi`)
 7. experiment_database
 8. bayesian
 9. faq
