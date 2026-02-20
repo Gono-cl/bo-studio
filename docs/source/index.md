@@ -1,12 +1,12 @@
-# 🏠 Home
-## 🧪 BO Studio – Bayesian Optimization Made Simple
+﻿# ðŸ  Home
+## ðŸ§ª BO Studio â€“ Bayesian Optimization Made Simple
 ![BO Studio Logo](./_static/image3.png)
 
 ---
 ## Why BO Studio?
 
 **BO Studio** is a user-friendly and modular Streamlit web app designed for manual experimentation with Bayesian Optimization.  
-Whether you're learning, simulating, or running real-world experiments, BO Studio provides an intuitive interface for designing, tracking, and analyzing your optimization campaigns — no automation required.
+Whether you're learning, simulating, or running real-world experiments, BO Studio provides an intuitive interface for designing, tracking, and analyzing your optimization campaigns â€” no automation required.
 
 Ideal for:
 
@@ -18,35 +18,35 @@ Interactive exploration and simulation
 
 ---
 
-### 🌐 Try It Online
+### ðŸŒ Try It Online
 
-🟢 **BO Studio is available as a web app** – no installation needed!  
-👉 [Launch BO Studio in your browser](https://bo-studio.onrender.com/)
-
----
-
-### 🚀 Features
-
-- 🧰 Manual Bayesian Optimization campaigns (with simulated or real data)
-- 📊 Live visualization of optimization progress
-- 💾 Save, resume, and preview optimization runs
-- 📚 Built-in **Bayesian Optimization Classroom** to learn BO concepts
-- 🗂️ Structured **experiment database** with user-linked access
-- ❓ Integrated **FAQ and help section**
+ðŸŸ¢ **BO Studio is available as a web app** â€“ no installation needed!  
+ðŸ‘‰ [Launch BO Studio in your browser](https://bo-studio.onrender.com/)
 
 ---
 
-### 🖼️ Preview
+### ðŸš€ Features
+
+- ðŸ§° Manual Bayesian Optimization campaigns (with simulated or real data)
+- ðŸ“Š Live visualization of optimization progress
+- ðŸ’¾ Save, resume, and preview optimization runs
+- ðŸ“š Built-in **Bayesian Optimization Classroom** to learn BO concepts
+- ðŸ—‚ï¸ Structured **experiment database** with user-linked access
+- â“ Integrated **FAQ and help section**
+
+---
+
+### ðŸ–¼ï¸ Preview
 
 ![BO Studio Logo](./_static/image.png)
 
 ---
 
-### 🛠️ Getting Started (Local Installation)
+### ðŸ› ï¸ Getting Started (Local Installation)
 
 > You can run BO Studio locally if you prefer.
 
-#### 📦 Installation
+#### ðŸ“¦ Installation
 
 1. Clone the repository:
    ```bash
@@ -61,6 +61,7 @@ Interactive exploration and simulation
 
 home
 case_study
+classroom_guide
 multi
 manual_optimization
 experiment_database
