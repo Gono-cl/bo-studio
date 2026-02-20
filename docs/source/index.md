@@ -8,10 +8,9 @@ home
 docs_map
 tutorial
 classroom_guide
-multi
-manual_optimization
+Single Objective Optimization <manual_optimization>
+Multi Objective Optimization <multi>
 experiment_database
-preview_saved_run
 bayesian
 faq
 about
