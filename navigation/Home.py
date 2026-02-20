@@ -118,3 +118,8 @@ st.markdown(
     "Feedback form: "
     "[Open feedback form](https://docs.google.com/forms/d/e/1FAIpQLSeVOxjUAOUZJ4T4fqF6i2Vuq7n854onoZAE7pFxSzPg9d_6lQ/viewform?usp=dialog)"
 )
+
+st.markdown(
+    "Documentation: "
+    "[Open BO Studio docs](https://gono-cl.github.io/bo-studio/index.html)"
+)

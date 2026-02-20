@@ -55,9 +55,14 @@ with st.sidebar:
     st.write(f"User: {st.session_state.get('user_name', '')}")
     st.write(f"Email: {st.session_state.get('user_email', '')}")
     st.caption("Running in local mode (authentication disabled)")
-    st.caption("Build: manual-router-v1")
+    st.caption("Build: manual-router-v3")
     st.image(str(resource_path("images/image.png")), width=300)
     st.title("Navigation")
     selection = st.radio("Go to", list(PAGES.keys()), key="main_nav_selection")
+    st.markdown("---")
+    st.markdown(
+        "Documentation: "
+        "[Open GitHub Pages](https://gono-cl.github.io/bo-studio/index.html)"
+    )
 
 render_page(PAGES[selection])
