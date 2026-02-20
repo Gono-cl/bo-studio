@@ -60,13 +60,11 @@ Interactive exploration and simulation
 :hidden:
 
 home
-case_study
+docs_map
+tutorial
 classroom_guide
-multi
-manual_optimization
+Single Objective Optimization <case_study>
+Multi Objective Optimization <multi>
 experiment_database
-preview_saved_run
-bayesian
-simulation_case
 faq
 about

@@ -1,0 +1,261 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorial: Your First BO Studio Campaign (15 minutes) &mdash; BO-STUDIO 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/css/sphinx_rtd_size.css?v=3b072d6b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="BO Classroom Guide" href="classroom_guide.html" />
+    <link rel="prev" title="Documentation Map" href="docs_map.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            BO-STUDIO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="docs_map.html">Documentation Map</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial: Your First BO Studio Campaign (15 minutes)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="classroom_guide.html">BO Classroom Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="case_study.html">Single Objective Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multi.html">Multi Objective Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiment_database.html">📚 Experiment DataBase</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ – Help &amp; Guidance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">BO-STUDIO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Tutorial: Your First BO Studio Campaign (15 minutes)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorial.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tutorial-your-first-bo-studio-campaign-15-minutes">
+<h1>Tutorial: Your First BO Studio Campaign (15 minutes)<a class="headerlink" href="#tutorial-your-first-bo-studio-campaign-15-minutes" title="Link to this heading"></a></h1>
+<p>This tutorial gives you one full end-to-end workflow in BO Studio.</p>
+<p>Goal:</p>
+<ul class="simple">
+<li><p>run one single-objective campaign,</p></li>
+<li><p>understand why BO proposes each next experiment,</p></li>
+<li><p>save results for later comparison.</p></li>
+</ul>
+<section id="before-you-start">
+<h2>Before you start<a class="headerlink" href="#before-you-start" title="Link to this heading"></a></h2>
+<p>You should have:</p>
+<ul class="simple">
+<li><p>BO Studio running,</p></li>
+<li><p>a basic idea of your variables and target metric,</p></li>
+<li><p>10-15 minutes.</p></li>
+</ul>
+<p>If you are completely new to BO, first review <strong>BO Classroom -&gt; BO Intuition</strong>.</p>
+</section>
+<section id="step-1-define-your-objective">
+<h2>Step 1: Define your objective<a class="headerlink" href="#step-1-define-your-objective" title="Link to this heading"></a></h2>
+<p>Open <strong>Single Objective Optimization</strong>.</p>
+<p>Set:</p>
+<ul class="simple">
+<li><p>objective function: <code class="docutils literal notranslate"><span class="pre">Yield</span></code> (or your metric),</p></li>
+<li><p>direction: <code class="docutils literal notranslate"><span class="pre">Maximize</span></code>.</p></li>
+</ul>
+<p>Practical note:</p>
+<ul class="simple">
+<li><p>keep the objective measurable and comparable across runs.</p></li>
+</ul>
+</section>
+<section id="step-2-define-variables-and-bounds">
+<h2>Step 2: Define variables and bounds<a class="headerlink" href="#step-2-define-variables-and-bounds" title="Link to this heading"></a></h2>
+<p>Add your process variables (example):</p>
+<ul class="simple">
+<li><p>Temperature: 20 to 120 C</p></li>
+<li><p>Catalyst loading: 0.00 to 1.00</p></li>
+<li><p>Pressure: 1 to 20 bar</p></li>
+<li><p>Residence time: 30 to 300 s</p></li>
+</ul>
+<p>Rule of thumb:</p>
+<ul class="simple">
+<li><p>choose realistic bounds you can actually execute in lab.</p></li>
+</ul>
+</section>
+<section id="step-3-configure-bo-settings">
+<h2>Step 3: Configure BO settings<a class="headerlink" href="#step-3-configure-bo-settings" title="Link to this heading"></a></h2>
+<p>Use this starter setup:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">n_init</span></code>: 6</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">total</span> <span class="pre">iterations</span></code>: 20</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">init</span> <span class="pre">method</span></code>: LHS</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">acquisition</span></code>: EI</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">seed</span></code>: 42</p></li>
+</ul>
+<p>Why this setup:</p>
+<ul class="simple">
+<li><p>LHS improves initial space coverage,</p></li>
+<li><p>EI is a balanced default for most campaigns,</p></li>
+<li><p>fixed seed improves reproducibility while learning.</p></li>
+</ul>
+</section>
+<section id="step-4-initialize-and-enter-results">
+<h2>Step 4: Initialize and enter results<a class="headerlink" href="#step-4-initialize-and-enter-results" title="Link to this heading"></a></h2>
+<p>Click the button that initializes/suggests initial experiments.</p>
+<p>For each suggested experiment:</p>
+<ol class="arabic simple">
+<li><p>run it (or simulate it),</p></li>
+<li><p>enter measured objective value,</p></li>
+<li><p>submit.</p></li>
+</ol>
+<p>After initial points are recorded, BO starts proposing new experiments sequentially.</p>
+</section>
+<section id="step-5-continue-bo-suggestions">
+<h2>Step 5: Continue BO suggestions<a class="headerlink" href="#step-5-continue-bo-suggestions" title="Link to this heading"></a></h2>
+<p>For each new suggestion:</p>
+<ol class="arabic simple">
+<li><p>run experiment,</p></li>
+<li><p>submit measured result,</p></li>
+<li><p>inspect progress plot and candidate behavior.</p></li>
+</ol>
+<p>What to observe:</p>
+<ul class="simple">
+<li><p>early stage: broader exploration,</p></li>
+<li><p>later stage: stronger exploitation near high-performing regions.</p></li>
+</ul>
+</section>
+<section id="step-6-interpret-model-behavior">
+<h2>Step 6: Interpret model behavior<a class="headerlink" href="#step-6-interpret-model-behavior" title="Link to this heading"></a></h2>
+<p>Use the charts to answer:</p>
+<ul class="simple">
+<li><p>Are suggestions clustering too early?</p></li>
+<li><p>Is uncertainty still high in unsampled regions?</p></li>
+<li><p>Is improvement plateauing?</p></li>
+</ul>
+<p>If campaign stalls, test one change at a time:</p>
+<ul class="simple">
+<li><p>increase total iterations,</p></li>
+<li><p>increase exploration pressure (<code class="docutils literal notranslate"><span class="pre">xi</span></code> or <code class="docutils literal notranslate"><span class="pre">kappa</span></code> depending on AF),</p></li>
+<li><p>increase <code class="docutils literal notranslate"><span class="pre">n_init</span></code> for larger search spaces.</p></li>
+</ul>
+</section>
+<section id="step-7-save-campaign">
+<h2>Step 7: Save campaign<a class="headerlink" href="#step-7-save-campaign" title="Link to this heading"></a></h2>
+<p>When you have a meaningful trajectory:</p>
+<ul class="simple">
+<li><p>save campaign,</p></li>
+<li><p>add notes about settings and best run,</p></li>
+<li><p>keep this as baseline for comparison.</p></li>
+</ul>
+</section>
+<section id="step-8-compare-with-an-alternative-strategy">
+<h2>Step 8: Compare with an alternative strategy<a class="headerlink" href="#step-8-compare-with-an-alternative-strategy" title="Link to this heading"></a></h2>
+<p>Repeat quickly with one controlled change, for example:</p>
+<ul class="simple">
+<li><p>EI -&gt; LCB, or</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_init</span></code> from 6 -&gt; 10.</p></li>
+</ul>
+<p>Then compare:</p>
+<ul class="simple">
+<li><p>best objective value reached,</p></li>
+<li><p>number of iterations to reach near-best,</p></li>
+<li><p>stability/consistency of suggestions.</p></li>
+</ul>
+<p>This is where BO Studio becomes most useful: strategy comparison, not just one run.</p>
+</section>
+<section id="common-beginner-mistakes">
+<h2>Common beginner mistakes<a class="headerlink" href="#common-beginner-mistakes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Too few initial points for high-dimensional spaces.</p></li>
+<li><p>Changing many settings at once and losing interpretability.</p></li>
+<li><p>Treating noisy measurements as exact truth.</p></li>
+<li><p>Forgetting to save campaign metadata.</p></li>
+</ul>
+</section>
+<section id="what-to-do-next">
+<h2>What to do next<a class="headerlink" href="#what-to-do-next" title="Link to this heading"></a></h2>
+<p>After this tutorial:</p>
+<ul class="simple">
+<li><p>Study <strong>classroom_guide</strong> to understand behavior in more depth.</p></li>
+<li><p>Use <strong>multi</strong> if you need yield-productivity tradeoff optimization.</p></li>
+<li><p>Use <strong>experiment_database</strong> to build a reusable campaign library.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="docs_map.html" class="btn btn-neutral float-left" title="Documentation Map" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="classroom_guide.html" class="btn btn-neutral float-right" title="BO Classroom Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Araya Vargas, Gonzalo.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
