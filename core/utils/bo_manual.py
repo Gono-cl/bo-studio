@@ -147,6 +147,61 @@ def _project_to_suggest_space(x, suggest_variables):
     return out
 
 
+def _coerce_categorical_to_levels(value: Any, levels: list[Any]) -> Any | None:
+    """Return the canonical level object from `levels` matching `value`."""
+    if pd.isna(value):
+        return None
+
+    # Exact match first (keeps original level type).
+    for level in levels:
+        if value == level:
+            return level
+
+    # String-equivalent match.
+    sval = str(value).strip()
+    for level in levels:
+        if str(level).strip() == sval:
+            return level
+
+    # Numeric-equivalent match (e.g., 7 <-> "7", 7.0 <-> "7").
+    try:
+        fval = float(sval)
+        if pd.notna(fval):
+            for level in levels:
+                try:
+                    if float(str(level).strip()) == fval:
+                        return level
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+    return None
+
+
+def coerce_point_to_variables(point: list[Any], variables) -> list[Any] | None:
+    """Coerce a point to match variable domain types exactly; return None if invalid."""
+    if len(point) != len(variables):
+        return None
+
+    coerced: list[Any] = []
+    for raw_value, (_name, v1, v2, _unit, vtype) in zip(point, variables):
+        if str(vtype).lower() == "continuous":
+            num = pd.to_numeric(pd.Series([raw_value]), errors="coerce").iloc[0]
+            if pd.isna(num):
+                return None
+            fv = float(num)
+            lo, hi = float(v1), float(v2)
+            coerced.append(min(max(fv, lo), hi))
+        else:
+            levels = list(v1) if isinstance(v1, list) else [v1]
+            val = _coerce_categorical_to_levels(raw_value, levels)
+            if val is None:
+                return None
+            coerced.append(val)
+    return coerced
+
+
 def rebuild_optimizer_from_df(
     variables,
     df: pd.DataFrame,
@@ -191,7 +246,11 @@ def rebuild_optimizer_from_df(
         except (ValueError, TypeError):
             continue
         if pd.notnull(y):
-            X_batch.append([row.get(name) for name, *_ in variables])
+            raw_x = [row.get(name) for name, *_ in variables]
+            x = coerce_point_to_variables(raw_x, variables)
+            if x is None:
+                continue
+            X_batch.append(x)
             observed = -y if maximize else y
             y_batch.append(float(observed))
 

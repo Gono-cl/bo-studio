@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+from core.utils.app_paths import get_campaigns_dir
 
 from ui.sections.mo_setup import render_mo_setup_and_initials
 from ui.sections.mo_interact import render_mo_interact_and_pareto
@@ -15,6 +16,7 @@ def _ensure_defaults():
         "mo_initialized": False,
         "mo_suggestions": [],
         "mo_data": [],
+        "mo_custom_objectives": [],
         "mo_n_init": 6,
         "mo_total_iters": 20,
         "mo_init_method": "lhs",
@@ -31,26 +33,16 @@ def _ensure_defaults():
 defaults = _ensure_defaults()
 st.title("Multiobjective Optimization Campaign")
 if st.button("Reset Campaign"):
+    keep_keys = {"user_email", "main_nav_selection"}
     for key in list(st.session_state.keys()):
-        if key not in ("user_email",):
+        if key not in keep_keys:
             del st.session_state[key]
     for k, v in defaults.items():
         st.session_state[k] = v
     st.rerun()
 
-st.success(
-    """
-    This session lets you:
-    - Define variables and select multiple objectives with per-objective directions (maximize/minimize).
-    - Create custom objectives from expressions (e.g., 0.7*Yield + 0.3*Purity).
-    - Generate initial designs (Random, LHS, Halton, Maximin LHS), input results, and view the Pareto front (red line connects non-dominated points).
-    - Get scalarization-based suggestions (Weighted Sum, Tchebycheff) and record batch results.
-    - Save and resume multiobjective campaigns (local and Render environments).
-    """
-)
-
 user_email = st.session_state.get("user_email", "default_user")
-SAVE_DIR = "resumable_manual_runs" if os.getenv("RENDER") != "true" else "/mnt/data/resumable_manual_runs"
+SAVE_DIR = str(get_campaigns_dir())
 user_save_dir = os.path.join(SAVE_DIR, user_email)
 os.makedirs(user_save_dir, exist_ok=True)
 

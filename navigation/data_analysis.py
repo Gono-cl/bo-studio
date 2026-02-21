@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import pandas as pd
 from core.utils import db_handler
+from core.utils.app_paths import get_campaigns_dir
 
 from ui.sections.analysis_overview import render_analysis_overview
 from ui.sections.analysis_explain import render_analysis_explain
@@ -35,7 +36,7 @@ loaded_meta = {}
 
 if source == "Saved Campaign":
     user_email = st.session_state.get("user_email", "default_user")
-    save_dir = "/mnt/data/resumable_manual_runs" if os.getenv("RENDER") == "true" else os.path.join(os.getcwd(), "resumable_manual_runs")
+    save_dir = str(get_campaigns_dir())
     user_save_dir = os.path.join(save_dir, user_email)
     options = ["None"]
     metas = {}

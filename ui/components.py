@@ -13,8 +13,8 @@ import streamlit as st
 
 # ----------------------------- Basic widgets -----------------------------
 def user_info() -> None:
-    st.sidebar.markdown("### User Info")
-    st.sidebar.write(f"User: {st.session_state.get('user_name', 'Guest')}")
+    # Desktop/local mode: no user identity UI.
+    return
 
 
 def campaign_selector(campaigns: list[str] | tuple[str, ...], key: str = "campaign_selector") -> str:
@@ -27,7 +27,10 @@ def save_button(label: str = "Save Campaign", target=None) -> bool:
 
 
 def data_editor(data, key: str, editable: bool = True, **kwargs) -> pd.DataFrame:
-    return st.data_editor(pd.DataFrame(data), key=key, disabled=not editable, **kwargs)
+    disabled = kwargs.pop("disabled", None)
+    if disabled is None:
+        disabled = not editable
+    return st.data_editor(pd.DataFrame(data), key=key, disabled=disabled, **kwargs)
 
 
 def display_dataframe(data, key: str = "dataframe") -> None:
@@ -71,7 +74,7 @@ def resume_campaign_selector(
 _list_valid_campaigns = list_valid_campaigns
 
 
-def load_campaign_button(label: str = "Load Previous Manual Campaign", target=None) -> bool:
+def load_campaign_button(label: str = "Load Campaign", target=None) -> bool:
     """Sidebar button to load the selected campaign."""
     target = target or st.sidebar
     return target.button(label)

@@ -19,8 +19,9 @@ from core.utils.bo_manual import sanitize_name
 def render_title_and_reset(defaults: dict) -> None:
     st.title("Single Objective Optimization Campaign")
     if st.button("Reset Campaign"):
+        keep_keys = {"user_email", "main_nav_selection"}
         for key in list(st.session_state.keys()):
-            if key not in ("user_email",):
+            if key not in keep_keys:
                 del st.session_state[key]
         for k, v in defaults.items():
             st.session_state[k] = v
@@ -29,9 +30,11 @@ def render_title_and_reset(defaults: dict) -> None:
 
 def render_experiment_header(user_save_dir: str):
     """Renders experiment metadata inputs and returns tuple(name, notes, run_name, run_path)."""
-    experiment_name = st.text_input("Experiment Name", value=st.session_state.get("experiment_name", ""))
-    experiment_notes = st.text_area("Notes (optional)", value=st.session_state.get("experiment_notes", ""))
-    _ = st.date_input("Experiment date")
+    with st.container(border=True):
+        st.markdown("### Metadata")
+        experiment_name = st.text_input("Experiment Name", value=st.session_state.get("experiment_name", ""))
+        experiment_notes = st.text_area("Notes (optional)", value=st.session_state.get("experiment_notes", ""))
+        _ = st.date_input("Experiment date")
 
     run_name = sanitize_name(experiment_name)
     st.session_state["campaign_name"] = run_name
@@ -80,7 +83,7 @@ def render_save_campaign(run_path: str, target=None) -> None:
             "experiment_notes": st.session_state.get("experiment_notes", ""),
             "initialization_complete": st.session_state.get("initial_results_submitted", False),
             "response_direction": st.session_state.get("response_direction", "Maximize"),
-            "custom_objectives": st.session_state.get("custom_objectives", {}),
+            "custom_objectives": st.session_state.get("custom_objectives", []),
         }
         with open(os.path.join(run_path, "metadata.json"), "w") as f:
             json.dump(metadata, f, indent=4)

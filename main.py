@@ -26,10 +26,9 @@ st.markdown(
 db_handler.init_db()
 
 
-def ensure_local_user() -> None:
+def ensure_local_session() -> None:
+    # Keep a fixed local identity for storage paths and database entries.
     st.session_state.setdefault("user_email", "local_user@example.com")
-    st.session_state.setdefault("user_name", "LocalUser")
-    st.session_state.setdefault("token", "local_token")
 
 
 def render_page(page_path: str) -> None:
@@ -39,7 +38,7 @@ def render_page(page_path: str) -> None:
     spec.loader.exec_module(module)
 
 
-ensure_local_user()
+ensure_local_session()
 
 
 PAGES = {
@@ -52,10 +51,6 @@ PAGES = {
 }
 
 with st.sidebar:
-    st.write(f"User: {st.session_state.get('user_name', '')}")
-    st.write(f"Email: {st.session_state.get('user_email', '')}")
-    st.caption("Running in local mode (authentication disabled)")
-    st.caption("Build: manual-router-v3")
     st.image(str(resource_path("images/image.png")), width=300)
     st.title("Navigation")
     selection = st.radio("Go to", list(PAGES.keys()), key="main_nav_selection")

@@ -11,7 +11,12 @@ from ui.components import data_editor
 
 
 def render_variables_section() -> None:
-    st.subheader("Define and Edit Variables")
+    with st.container(border=True):
+        st.markdown("### Define Variables")
+        _render_variables_section_content()
+
+
+def _render_variables_section_content() -> None:
     st.session_state.var_type = st.selectbox("Variable Type", ["Continuous", "Categorical"], key="var_type_select")
 
     with st.form("manual_var_form"):
@@ -34,48 +39,100 @@ def render_variables_section() -> None:
             elif st.session_state.var_type == "Categorical" and categories:
                 values = [x.strip() for x in categories.split(",") if x.strip()]
                 st.session_state.manual_variables.append((var_name, values, None, unit, "categorical"))
+            st.session_state["refresh_edit_variables_editor"] = True
 
     if not st.session_state.manual_variables:
         return
 
     st.markdown("### Edit Variables")
-    variables_df = pd.DataFrame(
-        [
-            {
-                "Name": name,
-                "Type": vtype,
-                "Value 1": val1,
-                "Value 2": val2 if vtype == "continuous" else None,
-                "Unit": unit,
-            }
-            for name, val1, val2, unit, vtype in st.session_state.manual_variables
-        ]
-    )
-    edited_df = data_editor(variables_df, key="edit_variables_editor")
-    if st.button("Save Variable Changes"):
+    if st.session_state.pop("refresh_edit_variables_editor", False):
+        st.session_state.pop("edit_variables_cont_editor", None)
+        st.session_state.pop("edit_variables_cat_editor", None)
+
+    continuous_rows = []
+    categorical_rows = []
+    for name, val1, val2, unit, vtype in st.session_state.manual_variables:
+        if str(vtype).lower() == "continuous":
+            continuous_rows.append(
+                {
+                    "Name": name,
+                    "Lower Bound": val1,
+                    "Upper Bound": val2,
+                    "Unit": unit,
+                }
+            )
+        else:
+            categorical_rows.append(
+                {
+                    "Name": name,
+                    "Categories": ", ".join(map(str, val1)) if isinstance(val1, list) else str(val1),
+                    "Unit": unit,
+                }
+            )
+
+    with st.form("edit_variables_form"):
+        edited_cont_df = None
+        edited_cat_df = None
+        if continuous_rows:
+            st.markdown("**Continuous variables**")
+            edited_cont_df = data_editor(
+                pd.DataFrame(continuous_rows),
+                key="edit_variables_cont_editor",
+                hide_index=True,
+                num_rows="fixed",
+            )
+        if categorical_rows:
+            st.markdown("**Categorical variables**")
+            edited_cat_df = data_editor(
+                pd.DataFrame(categorical_rows),
+                key="edit_variables_cat_editor",
+                hide_index=True,
+                num_rows="fixed",
+            )
+        st.markdown("**Delete variable**")
+        delete_var_in_form = st.selectbox(
+            "Select a Variable to Delete",
+            options=["None"] + [v[0] for v in st.session_state.manual_variables],
+            key="delete_var_in_edit_form",
+        )
+        action_col1, action_col2 = st.columns(2)
+        with action_col1:
+            save_variable_changes = st.form_submit_button("Save Variable Changes")
+        with action_col2:
+            delete_variable_changes = st.form_submit_button("Delete Variable")
+
+    if delete_variable_changes:
+        if delete_var_in_form != "None":
+            st.session_state.manual_variables = [v for v in st.session_state.manual_variables if v[0] != delete_var_in_form]
+            if st.session_state.get("model_variables") is None:
+                st.session_state.model_variables = st.session_state.manual_variables
+            st.session_state["refresh_edit_variables_editor"] = True
+            st.success(f"Variable '{delete_var_in_form}' deleted successfully!")
+        else:
+            st.info("Select a variable to delete.")
+    elif save_variable_changes:
         updated_variables = []
-        for _, row in edited_df.iterrows():
-            if row["Type"] == "continuous" and pd.notnull(row["Value 1"]) and pd.notnull(row["Value 2"]) and row["Value 1"] < row["Value 2"]:
-                updated_variables.append((row["Name"], float(row["Value 1"]), float(row["Value 2"]), row["Unit"], "continuous"))
-            elif row["Type"] == "categorical":
-                v1 = row["Value 1"]
-                if isinstance(v1, list):
-                    values = v1
-                elif isinstance(v1, str):
-                    values = [x.strip() for x in v1.split(",") if x.strip()]
+        if edited_cont_df is not None:
+            for _, row in edited_cont_df.iterrows():
+                try:
+                    low = float(row["Lower Bound"])
+                    high = float(row["Upper Bound"])
+                except (TypeError, ValueError):
+                    continue
+                if low < high:
+                    updated_variables.append((str(row["Name"]), low, high, row["Unit"], "continuous"))
+        if edited_cat_df is not None:
+            for _, row in edited_cat_df.iterrows():
+                cats = row.get("Categories", "")
+                if isinstance(cats, list):
+                    values = [str(x).strip() for x in cats if str(x).strip()]
                 else:
-                    values = []
+                    values = [x.strip() for x in str(cats).split(",") if x.strip()]
                 if values:
-                    updated_variables.append((row["Name"], values, None, row["Unit"], "categorical"))
+                    updated_variables.append((str(row["Name"]), values, None, row["Unit"], "categorical"))
         st.session_state.manual_variables = updated_variables
         if st.session_state.get("model_variables") is None:
             st.session_state.model_variables = st.session_state.manual_variables
+        st.session_state["refresh_edit_variables_editor"] = True
         st.success("Variables updated successfully!")
-
-    delete_var = st.selectbox("Select a Variable to Delete", options=["None"] + [v[0] for v in st.session_state.manual_variables])
-    if delete_var != "None" and st.button("Delete Variable"):
-        st.session_state.manual_variables = [v for v in st.session_state.manual_variables if v[0] != delete_var]
-        if st.session_state.get("model_variables") is None:
-            st.session_state.model_variables = st.session_state.manual_variables
-        st.success(f"Variable '{delete_var}' deleted successfully!")
 

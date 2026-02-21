@@ -3,6 +3,7 @@ import importlib
 import socket
 import sys
 import webbrowser
+import json
 from pathlib import Path
 
 from streamlit import config as _config
@@ -29,6 +30,7 @@ DESIRED_PORT = 8501
 APP_PATH = Path(__file__).parent / "main.py"
 APP_STATE_DIR = Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "BOStudio"
 LAST_PORT_FILE = APP_STATE_DIR / "last_port.txt"
+LAST_SESSION_FILE = APP_STATE_DIR / "last_session.json"
 
 
 def _is_port_in_use(host: str, port: int) -> bool:
@@ -75,6 +77,57 @@ def _save_last_port(port: int) -> None:
         pass
 
 
+def _normalize_path_text(path_text: str | None) -> str:
+    if not path_text:
+        return ""
+    try:
+        return str(Path(path_text).resolve()).lower()
+    except Exception:
+        return str(path_text).strip().lower()
+
+
+def _load_last_session() -> dict:
+    # Preferred format.
+    try:
+        if LAST_SESSION_FILE.exists():
+            payload = json.loads(LAST_SESSION_FILE.read_text(encoding="utf-8"))
+            if isinstance(payload, dict):
+                port = int(payload.get("port", 0))
+                if 1 <= port <= 65535:
+                    return {
+                        "port": port,
+                        "mode": str(payload.get("mode", "")),
+                        "storage_root": str(payload.get("storage_root", "")),
+                    }
+    except Exception:
+        pass
+
+    # Backward-compat fallback (old last_port.txt only).
+    old_port = _load_last_port()
+    if old_port is not None:
+        return {"port": old_port, "mode": "", "storage_root": ""}
+    return {}
+
+
+def _save_last_session(port: int, mode: str, storage_root: str) -> None:
+    try:
+        APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
+        LAST_SESSION_FILE.write_text(
+            json.dumps(
+                {
+                    "port": int(port),
+                    "mode": str(mode),
+                    "storage_root": str(storage_root),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+    _save_last_port(port)
+
+
 def configure_streamlit(port: int) -> None:
     """Apply host/port overrides before the runtime initializes."""
     os.environ.setdefault("STREAMLIT_DEVELOPMENT_MODE", "false")
@@ -94,18 +147,31 @@ def configure_streamlit(port: int) -> None:
 
 def main() -> None:
     is_frozen = bool(getattr(sys, "frozen", False))
+    mode = "frozen" if is_frozen else "source"
+    storage_root = ""
+
+    # In portable frozen mode, persist data alongside the executable folder.
+    if is_frozen:
+        exe_dir = Path(sys.executable).resolve().parent
+        storage_root = str(exe_dir)
+        os.environ.setdefault("BOSTUDIO_STORAGE_ROOT", storage_root)
+    else:
+        storage_root = str(Path.cwd().resolve())
 
     # In packaged EXE mode, reopen existing BO Studio session if already running.
     # In source/dev mode, always start a fresh Streamlit server so code edits are
     # reflected immediately (avoids attaching to stale previous sessions).
     if is_frozen:
-        last_port = _load_last_port()
-        if last_port is not None and _is_port_in_use("127.0.0.1", last_port):
+        session = _load_last_session()
+        last_port = int(session.get("port", 0) or 0)
+        same_mode = str(session.get("mode", "")).lower() == "frozen"
+        same_root = _normalize_path_text(session.get("storage_root")) == _normalize_path_text(storage_root)
+        if last_port and same_mode and same_root and _is_port_in_use("127.0.0.1", last_port):
             _open_browser(last_port)
             return
 
     selected_port = _find_available_port(DESIRED_PORT)
-    _save_last_port(selected_port)
+    _save_last_session(selected_port, mode=mode, storage_root=storage_root)
     configure_streamlit(selected_port)
     # streamlit.web.bootstrap.run expects is_hello as a bool (2nd arg).
     bootstrap.run(str(APP_PATH), False, [], {})

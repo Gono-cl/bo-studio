@@ -40,6 +40,7 @@ def render_mo_resume(user_save_dir: str) -> None:
         st.session_state.mo_data = df_loaded.to_dict("records")
         st.session_state.manual_variables = metadata.get("variables", [])
         st.session_state.mo_objectives = metadata.get("mo_objectives", [])
+        st.session_state.mo_objectives_select = metadata.get("mo_objectives", [])
         st.session_state.mo_directions = metadata.get("mo_directions", {})
         st.session_state.mo_n_init = metadata.get("mo_n_init", 0)
         st.session_state.mo_total_iters = metadata.get("mo_total_iters", 0)

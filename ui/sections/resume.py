@@ -11,7 +11,7 @@ import streamlit as st
 import dill as pickle
 
 from ui.components import resume_campaign_selector, load_campaign_button
-from core.utils.bo_manual import rebuild_optimizer_from_df
+from core.utils.bo_manual import rebuild_optimizer_from_df, coerce_point_to_variables
 
 
 def render_resume_exact(user_save_dir: str, target=None, show_divider: bool = True) -> None:
@@ -44,9 +44,21 @@ def render_resume_exact(user_save_dir: str, target=None, show_divider: bool = Tr
     with open(os.path.join(run_path, "metadata.json"), "r") as f:
         metadata = json.load(f)
 
-    st.session_state.manual_data = df_loaded.to_dict("records")
     st.session_state.manual_variables = metadata.get("variables", [])
     st.session_state.model_variables = metadata.get("model_variables", st.session_state.manual_variables)
+    if not df_loaded.empty and st.session_state.manual_variables:
+        var_names = [name for name, *_ in st.session_state.manual_variables]
+        normalized_rows = []
+        for _, row in df_loaded.iterrows():
+            row_dict = row.to_dict()
+            raw_x = [row_dict.get(name) for name in var_names]
+            coerced_x = coerce_point_to_variables(raw_x, st.session_state.manual_variables)
+            if coerced_x is not None:
+                for name, val in zip(var_names, coerced_x):
+                    row_dict[name] = val
+            normalized_rows.append(row_dict)
+        df_loaded = pd.DataFrame(normalized_rows, columns=df_loaded.columns)
+    st.session_state.manual_data = df_loaded.to_dict("records")
     st.session_state.iteration = metadata.get("iteration", len(df_loaded))
     st.session_state.campaign_name = resume_file
     st.session_state.n_init = metadata.get("n_init", 1)
@@ -62,6 +74,14 @@ def render_resume_exact(user_save_dir: str, target=None, show_divider: bool = Tr
     st.session_state.initial_results_submitted = metadata.get("initialization_complete", False)
     st.session_state.experiment_name = metadata.get("experiment_name", "")
     st.session_state.experiment_notes = metadata.get("experiment_notes", "")
+    loaded_custom = metadata.get("custom_objectives", [])
+    if isinstance(loaded_custom, dict):
+        loaded_custom = list(loaded_custom.keys())
+    elif isinstance(loaded_custom, set):
+        loaded_custom = sorted(loaded_custom)
+    elif not isinstance(loaded_custom, list):
+        loaded_custom = []
+    st.session_state.custom_objectives = loaded_custom
 
     # Rebuild optimizer from data to ensure space is correct
     if st.session_state.manual_variables and len(st.session_state.manual_data) > 0:

@@ -10,9 +10,11 @@ from core.utils.bo_manual import sanitize_name
 
 def render_mo_experiment_header(user_save_dir: str):
     """Render MO experiment name/notes and return (name, notes, run_name, run_path)."""
-    experiment_name = st.text_input("Experiment Name", value=st.session_state.get("experiment_name", ""))
-    experiment_notes = st.text_area("Notes (optional)", value=st.session_state.get("experiment_notes", ""))
-    _ = st.date_input("Experiment date")
+    with st.container(border=True):
+        st.markdown("### Metadata")
+        experiment_name = st.text_input("Experiment Name", value=st.session_state.get("experiment_name", ""))
+        experiment_notes = st.text_area("Notes (optional)", value=st.session_state.get("experiment_notes", ""))
+        _ = st.date_input("Experiment date")
 
     run_name = sanitize_name(experiment_name)
     st.session_state["campaign_name"] = run_name

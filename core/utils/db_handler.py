@@ -4,13 +4,10 @@ import json
 import pandas as pd
 from datetime import datetime
 import os
+from core.utils.app_paths import get_db_path
 
-if os.getenv("RENDER") == "true":
-    DB_NAME = "/mnt/data/experiments.db"  # Render-specific path
-else:
-    # Use a local path
-    DB_NAME = os.path.join(os.getcwd(), "data", "experiments.db")
-    os.makedirs(os.path.dirname(DB_NAME), exist_ok=True)
+DB_NAME = str(get_db_path())
+os.makedirs(os.path.dirname(DB_NAME), exist_ok=True)
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)

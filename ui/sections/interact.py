@@ -52,31 +52,35 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
         Charts.show_parallel_coordinates(st.session_state.manual_data, st.session_state.response)
 
     if len(st.session_state.manual_data) > 0:
-        st.markdown("### Edit Previous Results")
-        if st.button("Enable Edit Mode"):
-            st.session_state.edit_mode = True
-        if st.session_state.edit_mode:
-            edited_df = data_editor(st.session_state.manual_data, key="edit_results_editor")
-            if st.button("Save Edits"):
-                st.session_state.manual_data = edited_df.to_dict("records") if hasattr(edited_df, "to_dict") else list(edited_df)
-                st.session_state.edit_mode = False
-                st.session_state.recalc_needed = True
-                st.success("Edits saved! The optimizer will be recalculated.")
-                st.rerun()
+        with st.container(border=True):
+            st.markdown("### Edit Previous Results")
+            st.caption("Use this only to fix recorded values. Saving edits triggers optimizer recalculation.")
+            if st.button("Enable Edit Mode"):
+                st.session_state.edit_mode = True
+            if st.session_state.edit_mode:
+                edited_df = data_editor(st.session_state.manual_data, key="edit_results_editor")
+                if st.button("Save Edits"):
+                    st.session_state.manual_data = edited_df.to_dict("records") if hasattr(edited_df, "to_dict") else list(edited_df)
+                    st.session_state.edit_mode = False
+                    st.session_state.recalc_needed = True
+                    st.success("Edits saved! The optimizer will be recalculated.")
+                    st.rerun()
 
     if len(st.session_state.manual_data) > 0:
-        st.markdown("### Return to a Previous Experiment")
-        max_idx = len(st.session_state.manual_data)
-        trunc_idx = st.number_input("Keep experiments up to (inclusive):", min_value=1, max_value=max_idx, value=max_idx, step=1)
-        if st.button("Return and Restart From Here"):
-            st.session_state.manual_data = st.session_state.manual_data[:trunc_idx]
-            st.session_state.iteration = trunc_idx
-            st.session_state.initial_results_submitted = True
-            st.session_state.next_suggestion_cached = None
-            st.session_state.suggestions = []
-            st.session_state.recalc_needed = True
-            st.success("Truncated and ready to continue.")
-            st.rerun()
+        with st.container(border=True):
+            st.markdown("### Return to a Previous Experiment")
+            st.caption("This keeps rows up to the selected experiment and deletes the rest for a clean restart.")
+            max_idx = len(st.session_state.manual_data)
+            trunc_idx = st.number_input("Keep experiments up to (inclusive):", min_value=1, max_value=max_idx, value=max_idx, step=1)
+            if st.button("Return and Restart From Here"):
+                st.session_state.manual_data = st.session_state.manual_data[:trunc_idx]
+                st.session_state.iteration = trunc_idx
+                st.session_state.initial_results_submitted = True
+                st.session_state.next_suggestion_cached = None
+                st.session_state.suggestions = []
+                st.session_state.recalc_needed = True
+                st.success("Truncated and ready to continue.")
+                st.rerun()
 
     if (
         st.session_state.manual_initialized
@@ -84,97 +88,103 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
         and st.session_state.iteration < st.session_state.total_iters
         and st.session_state.initial_results_submitted
     ):
-        if st.button("Get Next Suggestion"):
-            st.session_state.next_suggestion_cached = next_unique_suggestion(
-                st.session_state.manual_optimizer,
-                st.session_state.manual_variables,
-                st.session_state.manual_data,
-                max_tries=120,
-            )
+        with st.container(border=True):
+            st.caption("Request the next BO recommendation using the current campaign history and settings.")
+            if st.button("Get Next Suggestion"):
+                st.session_state.next_suggestion_cached = next_unique_suggestion(
+                    st.session_state.manual_optimizer,
+                    st.session_state.manual_variables,
+                    st.session_state.manual_data,
+                    max_tries=120,
+                )
 
     if st.session_state.get("next_suggestion_cached") is not None:
-        st.markdown("### Next Experiment Suggestion")
-        next_row = {name: val for (name, *_), val in zip(st.session_state.manual_variables, st.session_state.next_suggestion_cached)}
-        display_dataframe(pd.DataFrame([next_row]), key="next_row_df")
-        result = st.number_input(
-            f"Result for {st.session_state.response} (Experiment {st.session_state.iteration + 1})",
-            key=f"next_result_{st.session_state.iteration}",
-        )
-        if st.button("Submit Result"):
-            st.success("Result submitted. Press 'Get Next Suggestion' for the next point. Charts update automatically.")
-            if pd.notnull(result):
-                x = [next_row[name] for name, *_ in st.session_state.manual_variables]
-                y_val = float(result)
-                observed = -y_val if st.session_state.get("response_direction", "Maximize") == "Maximize" else y_val
-                st.session_state.manual_optimizer.observe(x, observed)
-                row_data = {**next_row}
-                row_data[st.session_state.response] = y_val
-                row_data["Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                st.session_state.manual_data.append(row_data)
-                st.session_state.iteration += 1
-                st.session_state.next_suggestion_cached = None
+        with st.container(border=True):
+            st.markdown("### Next Experiment Suggestion")
+            st.caption("Run this proposed experiment in the lab/simulator, then enter the measured objective value.")
+            next_row = {name: val for (name, *_), val in zip(st.session_state.manual_variables, st.session_state.next_suggestion_cached)}
+            display_dataframe(pd.DataFrame([next_row]), key="next_row_df")
+            result = st.number_input(
+                f"Result for {st.session_state.response} (Experiment {st.session_state.iteration + 1})",
+                key=f"next_result_{st.session_state.iteration}",
+            )
+            if st.button("Submit Result"):
+                st.success("Result submitted. Press 'Get Next Suggestion' for the next point. Charts update automatically.")
+                if pd.notnull(result):
+                    x = [next_row[name] for name, *_ in st.session_state.manual_variables]
+                    y_val = float(result)
+                    observed = -y_val if st.session_state.get("response_direction", "Maximize") == "Maximize" else y_val
+                    st.session_state.manual_optimizer.observe(x, observed)
+                    row_data = {**next_row}
+                    row_data[st.session_state.response] = y_val
+                    row_data["Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    st.session_state.manual_data.append(row_data)
+                    st.session_state.iteration += 1
+                    st.session_state.next_suggestion_cached = None
 
     if st.session_state.iteration >= st.session_state.total_iters and st.session_state.total_iters > 0:
-        st.markdown("### Optimization Completed")
-        st.success("All iterations are completed! You can export the data or review the results.")
-        df_results = pd.DataFrame(st.session_state.manual_data)
-        display_dataframe(df_results, key="results_df")
-        csv = df_results.to_csv(index=False).encode("utf-8")
-        st.download_button("Download Results as CSV", data=csv, file_name="manual_optimization_results.csv", mime="text/csv")
+        with st.container(border=True):
+            st.markdown("### Optimization Completed")
+            st.caption("Review final results, download CSV if needed, and save the campaign to the database.")
+            st.success("All iterations are completed! You can export the data or review the results.")
+            df_results = pd.DataFrame(st.session_state.manual_data)
+            display_dataframe(df_results, key="results_df")
+            csv = df_results.to_csv(index=False).encode("utf-8")
+            st.download_button("Download Results as CSV", data=csv, file_name="manual_optimization_results.csv", mime="text/csv")
 
-        if st.button("Save to Database"):
-            if st.session_state.response in df_results.columns and df_results[st.session_state.response].notna().any():
-                response_series = pd.to_numeric(df_results[st.session_state.response], errors="coerce")
-                if st.session_state.get("response_direction", "Maximize") == "Minimize":
-                    best_idx = response_series.idxmin()
+            if st.button("Save to Database"):
+                if st.session_state.response in df_results.columns and df_results[st.session_state.response].notna().any():
+                    response_series = pd.to_numeric(df_results[st.session_state.response], errors="coerce")
+                    if st.session_state.get("response_direction", "Maximize") == "Minimize":
+                        best_idx = response_series.idxmin()
+                    else:
+                        best_idx = response_series.idxmax()
+                    best_row = df_results.loc[best_idx].to_dict()
                 else:
-                    best_idx = response_series.idxmax()
-                best_row = df_results.loc[best_idx].to_dict()
-            else:
-                best_row = {}
-            optimization_settings = {
-                "initial_experiments": st.session_state.n_init,
-                "total_iterations": st.session_state.total_iters,
-                "objective": st.session_state.response,
-                "response_direction": st.session_state.get("response_direction", "Maximize"),
-                "acq_func": st.session_state.get("acq_func", "EI"),
-                "acq_xi": float(st.session_state.get("acq_xi", 0.01)),
-                "acq_kappa": float(st.session_state.get("acq_kappa", 1.96)),
-                "init_method": st.session_state.get("init_method", "random"),
-                "bo_seed": int(st.session_state.get("bo_seed", 42)),
-                "method": "Manual Bayesian Optimization",
-            }
-            db_handler.save_experiment(
-                user_email=st.session_state.get("user_email", "default_user"),
-                name=experiment_name,
-                notes=experiment_notes,
-                variables=st.session_state.manual_variables,
-                df_results=df_results,
-                best_result=best_row,
-                settings=optimization_settings,
-            )
+                    best_row = {}
+                optimization_settings = {
+                    "initial_experiments": st.session_state.n_init,
+                    "total_iterations": st.session_state.total_iters,
+                    "objective": st.session_state.response,
+                    "response_direction": st.session_state.get("response_direction", "Maximize"),
+                    "acq_func": st.session_state.get("acq_func", "EI"),
+                    "acq_xi": float(st.session_state.get("acq_xi", 0.01)),
+                    "acq_kappa": float(st.session_state.get("acq_kappa", 1.96)),
+                    "init_method": st.session_state.get("init_method", "random"),
+                    "bo_seed": int(st.session_state.get("bo_seed", 42)),
+                    "method": "Manual Bayesian Optimization",
+                }
+                db_handler.save_experiment(
+                    user_email=st.session_state.get("user_email", "default_user"),
+                    name=experiment_name,
+                    notes=experiment_notes,
+                    variables=st.session_state.manual_variables,
+                    df_results=df_results,
+                    best_result=best_row,
+                    settings=optimization_settings,
+                )
 
-            run_path = os.path.join(user_save_dir, run_name)
-            os.makedirs(run_path, exist_ok=True)
-            df_results.to_csv(os.path.join(run_path, "manual_data.csv"), index=False)
-            metadata = {
-                "variables": st.session_state.manual_variables,
-                "model_variables": st.session_state.get("model_variables", st.session_state.manual_variables),
-                "iteration": st.session_state.get("iteration", len(df_results)),
-                "n_init": st.session_state.n_init,
-                "total_iters": st.session_state.total_iters,
-                "response": st.session_state.response,
-                "acq_func": st.session_state.get("acq_func", "EI"),
-                "acq_xi": float(st.session_state.get("acq_xi", 0.01)),
-                "acq_kappa": float(st.session_state.get("acq_kappa", 1.96)),
-                "init_method": st.session_state.get("init_method", "random"),
-                "bo_seed": int(st.session_state.get("bo_seed", 42)),
-                "experiment_name": experiment_name,
-                "experiment_notes": experiment_notes,
-                "initialization_complete": st.session_state.get("initial_results_submitted", False),
-                "response_direction": st.session_state.get("response_direction", "Maximize"),
-                "custom_objectives": st.session_state.get("custom_objectives", {}),
-            }
-            with open(os.path.join(run_path, "metadata.json"), "w") as f:
-                json.dump(metadata, f, indent=4)
-            st.success("Experiment saved successfully! All campaign files have been generated.")
+                run_path = os.path.join(user_save_dir, run_name)
+                os.makedirs(run_path, exist_ok=True)
+                df_results.to_csv(os.path.join(run_path, "manual_data.csv"), index=False)
+                metadata = {
+                    "variables": st.session_state.manual_variables,
+                    "model_variables": st.session_state.get("model_variables", st.session_state.manual_variables),
+                    "iteration": st.session_state.get("iteration", len(df_results)),
+                    "n_init": st.session_state.n_init,
+                    "total_iters": st.session_state.total_iters,
+                    "response": st.session_state.response,
+                    "acq_func": st.session_state.get("acq_func", "EI"),
+                    "acq_xi": float(st.session_state.get("acq_xi", 0.01)),
+                    "acq_kappa": float(st.session_state.get("acq_kappa", 1.96)),
+                    "init_method": st.session_state.get("init_method", "random"),
+                    "bo_seed": int(st.session_state.get("bo_seed", 42)),
+                    "experiment_name": experiment_name,
+                    "experiment_notes": experiment_notes,
+                    "initialization_complete": st.session_state.get("initial_results_submitted", False),
+                    "response_direction": st.session_state.get("response_direction", "Maximize"),
+                    "custom_objectives": st.session_state.get("custom_objectives", []),
+                }
+                with open(os.path.join(run_path, "metadata.json"), "w") as f:
+                    json.dump(metadata, f, indent=4)
+                st.success("Experiment saved successfully! All campaign files have been generated.")

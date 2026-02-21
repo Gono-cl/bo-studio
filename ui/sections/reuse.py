@@ -1,5 +1,5 @@
 """
-Sidebar flow to reuse a previous campaign as seeds (union model space, then continue BO).
+Reuse a previous campaign as seeds (campaign loading in sidebar, row selection in main area).
 """
 
 from __future__ import annotations
@@ -21,9 +21,14 @@ def render_reuse_seeds(user_save_dir: str, target=None, show_divider: bool = Tru
     target.subheader("Reuse Previous SO Campaign as Seeds")
 
     _reuse_options = ["None"] + [d for d in os.listdir(user_save_dir) if os.path.isdir(os.path.join(user_save_dir, d))]
-    reuse_campaign = target.selectbox("Select a Previous Campaign to Reuse", options=_reuse_options)
+    reuse_campaign = target.selectbox(
+        "Select a Previous Campaign to Reuse",
+        options=_reuse_options,
+        key="so_reuse_campaign",
+    )
     if reuse_campaign == "None":
         return
+    target.caption("Campaign is selected here. Choose rows to import in the main page section below.")
 
     reuse_path = os.path.join(user_save_dir, reuse_campaign)
     try:
@@ -70,85 +75,95 @@ def render_reuse_seeds(user_save_dir: str, target=None, show_divider: bool = Tru
         df_for_editor.insert(0, "Use", True)
         st.session_state.prev_df_editor_cache = df_for_editor
         st.session_state.prev_df_source_campaign = reuse_campaign
+        st.session_state.pop("so_reuse_editor", None)
 
-    target.markdown("### Previous Experiments (edit + select)")
-    default_cols = ["Use"] + required_cols + [resp]
-    extra_cols = [c for c in st.session_state.prev_df_editor_cache.columns if c not in default_cols]
-    show_cols = target.multiselect(
-        "Columns to display",
-        options=list(st.session_state.prev_df_editor_cache.columns),
-        default=default_cols + ([c for c in extra_cols if c.lower() in ["timestamp"]]),
-        key="reuse_cols_multiselect",
-    )
-    if not show_cols:
-        show_cols = list(st.session_state.prev_df_editor_cache.columns)
+    with st.container(border=True):
+        st.markdown(f"### Previous Experiments from '{reuse_campaign}'")
+        st.caption("Select which past rows to use as seed experiments, then import them into the current campaign.")
 
-    edited_prev_df = data_editor(
-        st.session_state.prev_df_editor_cache[show_cols],
-        key=f"reuse_editor_{reuse_campaign}",
-        editable=True,
-        use_container_width=True,
-        column_config={
-            "Use": st.column_config.CheckboxColumn("Use", help="Tick rows you want to include", default=True)
-        },
-    )
-    st.session_state.prev_df_editor_cache.loc[:, show_cols] = edited_prev_df
-
-    c1, c2, c3 = target.columns([1, 1, 2])
-    with c1:
-        if target.button("Select all"):
-            st.session_state.prev_df_editor_cache["Use"] = True
-            st.rerun()
-    with c2:
-        if target.button("Clear all"):
-            st.session_state.prev_df_editor_cache["Use"] = False
-            st.rerun()
-    with c3:
-        skip_random = target.checkbox(
-            "Skip additional random initial points (start BO suggestions immediately)",
-            value=True,
-            key="reuse_skip_random",
+        default_cols = ["Use"] + required_cols + [resp]
+        extra_cols = [c for c in st.session_state.prev_df_editor_cache.columns if c not in default_cols]
+        show_cols = st.multiselect(
+            "Columns to display",
+            options=list(st.session_state.prev_df_editor_cache.columns),
+            default=default_cols + ([c for c in extra_cols if c.lower() in ["timestamp"]]),
+            key="so_reuse_cols_multiselect",
         )
+        if not show_cols:
+            show_cols = list(st.session_state.prev_df_editor_cache.columns)
 
-    if target.button("Use selected experiments"):
-        selected_df = st.session_state.prev_df_editor_cache.copy()
-        selected_df[resp] = pd.to_numeric(selected_df[resp], errors="coerce")
-        selected_df = selected_df[selected_df["Use"] & selected_df[resp].notna()]
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if st.button("Select all", key="so_reuse_select_all"):
+                st.session_state.prev_df_editor_cache["Use"] = True
+                st.rerun()
+        with c2:
+            if st.button("Clear all", key="so_reuse_clear_all"):
+                st.session_state.prev_df_editor_cache["Use"] = False
+                st.rerun()
 
-        keep_cols = required_cols + [resp]
-        extra_keep = [c for c in ["Timestamp"] if c in selected_df.columns]
-        selected_df = selected_df[keep_cols + extra_keep].copy()
+        with st.form(f"so_reuse_form_{reuse_campaign}", clear_on_submit=False):
+            edited_prev_df = data_editor(
+                st.session_state.prev_df_editor_cache[show_cols],
+                key="so_reuse_editor",
+                editable=True,
+                use_container_width=True,
+                column_config={
+                    "Use": st.column_config.CheckboxColumn("Use", help="Tick rows you want to include", default=True)
+                },
+            )
+            skip_random = st.checkbox(
+                "Skip additional random initial points (start BO suggestions immediately)",
+                value=True,
+                key="reuse_skip_random",
+            )
+            use_selected = st.form_submit_button("Use selected experiments")
 
-        if selected_df.empty:
-            st.error("Select at least one valid row (with numeric response).")
-            return
+        if use_selected:
+            cache_df = st.session_state.prev_df_editor_cache.copy()
+            for col in show_cols:
+                if col in cache_df.columns and col in edited_prev_df.columns:
+                    cache_df[col] = edited_prev_df[col].values
+            st.session_state.prev_df_editor_cache = cache_df
 
-        model_variables = unionize_bounds(st.session_state.manual_variables, selected_df)
-        seed_count = len(selected_df)
-        remaining_init = 0 if skip_random else max(0, int(st.session_state.n_init) - seed_count)
+            selected_df = cache_df.copy()
+            selected_df[resp] = pd.to_numeric(selected_df[resp], errors="coerce")
+            selected_df = selected_df[selected_df["Use"] & selected_df[resp].notna()]
 
-        optimizer = rebuild_optimizer_from_df(
-            model_variables,
-            selected_df,
-            resp,
-            n_initial_points_remaining=remaining_init,
-            acq_func=st.session_state.get("acq_func", "EI"),
-            direction=st.session_state.get("response_direction", "Maximize"),
-            acq_xi=float(st.session_state.get("acq_xi", 0.01)),
-            acq_kappa=float(st.session_state.get("acq_kappa", 1.96)),
-            random_state=int(st.session_state.get("bo_seed", 42)),
-        )
+            keep_cols = required_cols + [resp]
+            extra_keep = [c for c in ["Timestamp"] if c in selected_df.columns]
+            selected_df = selected_df[keep_cols + extra_keep].copy()
 
-        st.session_state.model_variables = model_variables
-        st.session_state.manual_optimizer = optimizer
-        st.session_state.manual_initialized = True
-        st.session_state.manual_data = selected_df.to_dict("records")
-        st.session_state.iteration = seed_count
-        st.session_state.initial_results_submitted = True
-        st.session_state.submitted_initial = False
-        st.session_state.suggestions = []
-        st.session_state.next_suggestion_cached = None
+            if selected_df.empty:
+                st.error("Select at least one valid row (with numeric response).")
+                return
 
-        msg = f"Reused {seed_count} experiment(s) from '{reuse_campaign}'. "
-        msg += "Starting BO now." if remaining_init == 0 else f"{remaining_init} initial random(s) remain."
-        st.success(msg)
+            model_variables = unionize_bounds(st.session_state.manual_variables, selected_df)
+            seed_count = len(selected_df)
+            remaining_init = 0 if skip_random else max(0, int(st.session_state.n_init) - seed_count)
+
+            optimizer = rebuild_optimizer_from_df(
+                model_variables,
+                selected_df,
+                resp,
+                n_initial_points_remaining=remaining_init,
+                acq_func=st.session_state.get("acq_func", "EI"),
+                direction=st.session_state.get("response_direction", "Maximize"),
+                acq_xi=float(st.session_state.get("acq_xi", 0.01)),
+                acq_kappa=float(st.session_state.get("acq_kappa", 1.96)),
+                random_state=int(st.session_state.get("bo_seed", 42)),
+            )
+
+            st.session_state.model_variables = model_variables
+            st.session_state.manual_optimizer = optimizer
+            st.session_state.manual_initialized = True
+            st.session_state.manual_data = selected_df.to_dict("records")
+            st.session_state.iteration = seed_count
+            st.session_state.initial_results_submitted = True
+            st.session_state.submitted_initial = False
+            st.session_state.suggestions = []
+            st.session_state.next_suggestion_cached = None
+
+            msg = f"Reused {seed_count} experiment(s) from '{reuse_campaign}'. "
+            msg += "Starting BO now." if remaining_init == 0 else f"{remaining_init} initial random(s) remain."
+            st.success(msg)
