@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from skopt.acquisition import gaussian_ei, gaussian_lcb, gaussian_pi
 from skopt.space import Real
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import ConstantKernel, Matern, WhiteKernel
 
 from core.sim.chem_functions import chem_eval_row
 from core.utils.bo_manual import safe_build_optimizer
@@ -19,16 +21,18 @@ from core.utils.pareto import pareto_front_indices
 
 
 MODULE_LABELS = [
-    "1) Learn BO Intuition",
-    "2) Understand BO Mechanics",
-    "3) Chemist Workflow",
-    "4) Multiobjective Decisions",
+    "1) The Optimization Problem in Chemistry",
+    "2) Learn BO Intuition",
+    "3) Understand BO Mechanics",
+    "4) Chemist Workflow",
+    "5) Multiobjective Decisions",
 ]
 MODULE_IDS = {
-    "1) Learn BO Intuition": "learn",
-    "2) Understand BO Mechanics": "mechanics",
-    "3) Chemist Workflow": "workflow",
-    "4) Multiobjective Decisions": "mo",
+    "1) The Optimization Problem in Chemistry": "intro",
+    "2) Learn BO Intuition": "learn",
+    "3) Understand BO Mechanics": "mechanics",
+    "4) Chemist Workflow": "workflow",
+    "5) Multiobjective Decisions": "mo",
 }
 
 
@@ -43,8 +47,59 @@ INFO_CARD_STYLE_BLUE = (
 INFO_MISSION_STYLE = (
     "margin-top:10px; padding:10px 12px; background:#eef4ff; border:1px solid #cddcff; border-radius:8px;"
 )
+INTRO_CARD_MAIN = (
+    "color:#111827; background:linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%); "
+    "border:1px solid #fdba74; border-left:6px solid #ea580c; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
+INTRO_CARD_OFAT = (
+    "color:#111827; background:linear-gradient(180deg,#eef2ff 0%,#e0e7ff 100%); "
+    "border:1px solid #a5b4fc; border-left:6px solid #4f46e5; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
+INTRO_CARD_DOE = (
+    "color:#111827; background:linear-gradient(180deg,#fdf4ff 0%,#f5d0fe 100%); "
+    "border:1px solid #d8b4fe; border-left:6px solid #a21caf; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
+INTRO_CARD_BO = (
+    "color:#111827; background:linear-gradient(180deg,#ecfeff 0%,#cffafe 100%); "
+    "border:1px solid #67e8f9; border-left:6px solid #0891b2; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
+INTRO_CARD_ADV = (
+    "color:#111827; background:linear-gradient(180deg,#ecfdf5 0%,#d1fae5 100%); "
+    "border:1px solid #86efac; border-left:6px solid #15803d; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
+LEARN_CARD_GOALS = (
+    "color:#111827; background:linear-gradient(180deg,#eaf4ff 0%,#dbeafe 100%); "
+    "border:1px solid #93c5fd; border-left:6px solid #2563eb; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
+LEARN_CARD_SURFACE = (
+    "color:#111827; background:linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%); "
+    "border:1px solid #fdba74; border-left:6px solid #ea580c; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
+LEARN_CARD_READ = (
+    "color:#111827; background:linear-gradient(180deg,#f5f3ff 0%,#ede9fe 100%); "
+    "border:1px solid #c4b5fd; border-left:6px solid #7c3aed; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
+LEARN_CARD_LEGEND = (
+    "color:#111827; background:linear-gradient(180deg,#ecfeff 0%,#cffafe 100%); "
+    "border:1px solid #67e8f9; border-left:6px solid #0e7490; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
+LEARN_CARD_STEP = (
+    "color:#111827; background:linear-gradient(180deg,#ecfdf5 0%,#dcfce7 100%); "
+    "border:1px solid #86efac; border-left:6px solid #15803d; border-radius:12px; "
+    "padding:14px 16px; margin:8px 0 16px 0; line-height:1.72;"
+)
 
 MODULE_THEME = {
+    "intro": {"bg": "#eef2ff", "border": "#c7d2fe", "accent": "#4f46e5", "short": "Optimization Problem"},
     "learn": {"bg": "#eaf4ff", "border": "#bfd8f6", "accent": "#1f77b4", "short": "BO Intuition"},
     "mechanics": {"bg": "#ecfdf5", "border": "#b7ebd0", "accent": "#0f9d58", "short": "BO Mechanics"},
     "workflow": {"bg": "#fff7ed", "border": "#fed7aa", "accent": "#c2410c", "short": "Chemist Workflow"},
@@ -98,7 +153,7 @@ def _render_classroom_guide(module_label: str, teach_mode: str) -> None:
         title="Guided Classroom Navigation",
         paragraphs=[
             "Use the sidebar Learning path panel to move through the modules in order.",
-            "Recommended sequence: Intuition -> Mechanics -> Workflow -> Multiobjective.",
+            "Recommended sequence: BO Loop Primer -> Intuition -> Mechanics -> Workflow -> Multiobjective.",
         ],
         bullets=[
             "Beginner mode: concept-first explanations with lighter math.",
@@ -327,23 +382,112 @@ def _largest_gap_midpoint(existing_t: np.ndarray) -> float:
     return float((anchors[idx] + anchors[idx + 1]) / 2.0)
 
 
-def _suggest_unique_1d_temperature(df_obs: pd.DataFrame, acq_func: str) -> float:
-    gp_opt = safe_build_optimizer(
-        [Real(20.0, 120.0, name="Temperature")],
-        n_initial_points_remaining=0,
-        acq_func=acq_func,
-    )
-    for _, row in df_obs.iterrows():
-        gp_opt.observe([float(row["Temperature"])], -float(row["MeasuredYield"]))
+def _extract_model_noise_variance(model) -> float:
+    """Best-effort extraction of WhiteKernel noise variance from a fitted GP model."""
+    # skopt wrappers sometimes expose estimated noise directly.
+    for attr in ("noise_", "noise"):
+        try:
+            v = float(getattr(model, attr))
+            if np.isfinite(v) and v >= 0.0:
+                return v
+        except Exception:
+            pass
 
-    existing = df_obs["Temperature"].to_numpy(dtype=float)
-    for _ in range(10):
-        t_next = float(gp_opt.suggest()[0])
-        if existing.size == 0:
-            return t_next
-        if float(np.min(np.abs(existing - t_next))) > 1e-6:
-            return t_next
-    return _largest_gap_midpoint(existing)
+    def _scan_kernel(k) -> float | None:
+        if k is None:
+            return None
+        try:
+            if hasattr(k, "noise_level"):
+                v = float(getattr(k, "noise_level"))
+                if np.isfinite(v) and v >= 0.0:
+                    return v
+        except Exception:
+            pass
+        for child in (getattr(k, "k1", None), getattr(k, "k2", None)):
+            v = _scan_kernel(child)
+            if v is not None:
+                return v
+        return None
+
+    try:
+        kval = _scan_kernel(getattr(model, "kernel_", None))
+        if kval is not None:
+            return float(kval)
+    except Exception:
+        pass
+    return 0.0
+
+
+def _valid_1d_candidate_mask(
+    t_grid: np.ndarray,
+    observed_t: np.ndarray,
+    min_distance: float = 0.25,
+) -> np.ndarray:
+    """Mask out points that are too close to already observed temperatures."""
+    if observed_t.size == 0:
+        return np.ones_like(t_grid, dtype=bool)
+    nearest = np.min(np.abs(t_grid.reshape(-1, 1) - observed_t.reshape(1, -1)), axis=1)
+    return nearest > float(min_distance)
+
+
+def _fit_stable_1d_model(df_obs: pd.DataFrame) -> tuple[GaussianProcessRegressor, np.ndarray, np.ndarray]:
+    """
+    Fit a stable GP for classroom intuition plots/suggestions.
+
+    We fix an extremely small noise level to avoid high-noise local optima that can
+    make uncertainty remain unrealistically wide at observed points in low-data cases.
+    """
+    x_train = df_obs["Temperature"].to_numpy(dtype=float).reshape(-1, 1)
+    y_train = -df_obs["MeasuredYield"].to_numpy(dtype=float)  # skopt AFs are minimization-oriented
+    kernel = (
+        ConstantKernel(1.0, (1e-3, 1e3))
+        * Matern(length_scale=12.0, length_scale_bounds=(1e-2, 1e3), nu=2.5)
+        + WhiteKernel(noise_level=1e-8, noise_level_bounds="fixed")
+    )
+    model = GaussianProcessRegressor(
+        kernel=kernel,
+        normalize_y=True,
+        alpha=1e-10,
+        n_restarts_optimizer=4,
+        random_state=42,
+    )
+    model.fit(x_train, y_train)
+    return model, x_train, y_train
+
+
+def _suggest_unique_1d_temperature(
+    df_obs: pd.DataFrame,
+    acq_func: str,
+    gp_xi: float = 0.01,
+    gp_kappa: float = 1.96,
+    gp_resolution: int = 220,
+) -> float:
+    try:
+        model, _, y_train = _fit_stable_1d_model(df_obs)
+    except Exception:
+        return _largest_gap_midpoint(df_obs["Temperature"].to_numpy(dtype=float))
+
+    t_grid = np.linspace(20.0, 120.0, int(max(80, gp_resolution)))
+    xt = t_grid.reshape(-1, 1)
+    y_opt = float(np.min(np.asarray(y_train, dtype=float)))
+
+    acq = str(acq_func).upper()
+    if acq == "PI":
+        af_values = gaussian_pi(xt, model, y_opt=y_opt, xi=float(gp_xi))
+    elif acq == "LCB":
+        af_values = -gaussian_lcb(xt, model, kappa=float(gp_kappa))
+    else:
+        af_values = gaussian_ei(xt, model, y_opt=y_opt, xi=float(gp_xi))
+
+    af_values = np.asarray(af_values, dtype=float).reshape(-1)
+    observed_t = df_obs["Temperature"].to_numpy(dtype=float)
+    valid_mask = _valid_1d_candidate_mask(t_grid, observed_t, min_distance=0.25)
+
+    if np.any(valid_mask):
+        valid_idx = np.where(valid_mask)[0]
+        best_local = int(valid_idx[int(np.argmax(af_values[valid_mask]))])
+        return float(t_grid[best_local])
+    return _largest_gap_midpoint(observed_t)
 
 
 def _advance_1d_campaign(campaign: dict[str, object], n_steps: int) -> dict[str, object]:
@@ -353,13 +497,22 @@ def _advance_1d_campaign(campaign: dict[str, object], n_steps: int) -> dict[str,
     noise_sigma = float(updated["noise_sigma"])
     seed = int(updated["seed"])
     acq_func = str(updated.get("af_choice", "EI")).upper()
+    gp_xi = float(updated.get("af_xi", 0.01))
+    gp_kappa = float(updated.get("af_kappa", 1.96))
+    gp_resolution = int(updated.get("gp_resolution", 220))
     if acq_func not in {"EI", "PI", "LCB"}:
         acq_func = "EI"
 
     for _ in range(max(1, int(n_steps))):
         if len(df_obs) < 3:
             break
-        t_next = _suggest_unique_1d_temperature(df_obs, acq_func=acq_func)
+        t_next = _suggest_unique_1d_temperature(
+            df_obs,
+            acq_func=acq_func,
+            gp_xi=gp_xi,
+            gp_kappa=gp_kappa,
+            gp_resolution=gp_resolution,
+        )
         y_true = float(chem_eval_row([float(t_next), fixed_catalyst], mode="basic"))
 
         step_idx = int(updated.get("step_count", 0))
@@ -396,37 +549,34 @@ def _fit_1d_gp_result(campaign: dict[str, object]) -> dict[str, object]:
         return {
             "error": "Need at least 3 unique observations to fit a stable 1D GP. Try increasing points or changing seed."
         }
+    try:
+        model, x_train, y_train = _fit_stable_1d_model(df_obs)
+    except Exception as ex:
+        return {"error": f"Could not fit the 1D GP model. Technical detail: {ex}"}
 
-    gp_opt = safe_build_optimizer(
-        [Real(20.0, 120.0, name="Temperature")],
-        n_initial_points_remaining=0,
-        acq_func="EI",
-    )
-    for _, row in df_obs.iterrows():
-        gp_opt.observe([float(row["Temperature"])], -float(row["MeasuredYield"]))
-
-    sk = gp_opt.skopt_optimizer
-    if not sk.models:
-        return {"error": "Not enough observations to fit a GP model in this configuration."}
-
-    model = sk.models[-1]
-    t_grid = np.linspace(20.0, 120.0, int(gp_resolution))
-    x_grid = [[float(t)] for t in t_grid]
-    xt = sk.space.transform(x_grid)
+    base_grid = np.linspace(20.0, 120.0, int(gp_resolution))
+    obs_t = df_obs["Temperature"].to_numpy(dtype=float)
+    # Include observed temperatures explicitly so uncertainty minima are visible at measured points.
+    t_grid = np.sort(np.unique(np.concatenate([base_grid, obs_t])))
+    xt = t_grid.reshape(-1, 1)
     mu, std = model.predict(xt, return_std=True)
     mu = np.asarray(mu, dtype=float).reshape(-1)
     std = np.asarray(std, dtype=float).reshape(-1)
     if mu.shape[0] != t_grid.shape[0] or std.shape[0] != t_grid.shape[0]:
         return {"error": "GP output shape mismatch. Try a different configuration."}
 
+    # Use epistemic uncertainty for visualization by removing the fitted noise floor.
+    noise_var = _extract_model_noise_variance(model)
+    std_ep = np.sqrt(np.clip(std**2 - float(noise_var), 0.0, None))
+
     mean_y = -mu
-    lo_y = mean_y - 1.96 * std
-    hi_y = mean_y + 1.96 * std
+    lo_y = mean_y - 1.96 * std_ep
+    hi_y = mean_y + 1.96 * std_ep
     true_grid = np.array(
         [float(chem_eval_row([float(t), float(fixed_catalyst)], mode="basic")) for t in t_grid],
         dtype=float,
     )
-    y_opt = float(np.min(np.asarray(sk.yi, dtype=float))) if getattr(sk, "yi", None) is not None else None
+    y_opt = float(np.min(np.asarray(y_train, dtype=float)))
 
     if af_choice == "PI":
         af_values = gaussian_pi(xt, model, y_opt=y_opt, xi=gp_xi)
@@ -437,14 +587,20 @@ def _fit_1d_gp_result(campaign: dict[str, object]) -> dict[str, object]:
         af_choice = "EI"
         af_values = gaussian_ei(xt, model, y_opt=y_opt, xi=gp_xi)
     af_values = np.asarray(af_values, dtype=float).reshape(-1)
-    af_argmax = int(np.argmax(af_values))
+    valid_mask = _valid_1d_candidate_mask(t_grid, obs_t, min_distance=0.25)
+    if np.any(valid_mask):
+        valid_idx = np.where(valid_mask)[0]
+        af_argmax = int(valid_idx[int(np.argmax(af_values[valid_mask]))])
+    else:
+        af_argmax = int(np.argmax(af_values))
+    af_values_display = af_values.copy()
+    af_values_display[~valid_mask] = np.nan
 
-    obs_t = df_obs["Temperature"].to_numpy(dtype=float)
     nearest_dist = np.min(np.abs(t_grid.reshape(-1, 1) - obs_t.reshape(1, -1)), axis=1)
     near_mask = nearest_dist <= 5.0
     far_mask = nearest_dist >= 15.0
-    near_std = float(np.mean(std[near_mask])) if np.any(near_mask) else float("nan")
-    far_std = float(np.mean(std[far_mask])) if np.any(far_mask) else float("nan")
+    near_std = float(np.mean(std_ep[near_mask])) if np.any(near_mask) else float("nan")
+    far_std = float(np.mean(std_ep[far_mask])) if np.any(far_mask) else float("nan")
 
     return {
         "df_obs": df_obs,
@@ -459,6 +615,7 @@ def _fit_1d_gp_result(campaign: dict[str, object]) -> dict[str, object]:
         "fixed_catalyst": float(fixed_catalyst),
         "af_choice": af_choice,
         "af_values": af_values,
+        "af_values_display": af_values_display,
         "af_argmax": af_argmax,
         "af_peak_temperature": float(t_grid[af_argmax]),
         "af_peak_score": float(af_values[af_argmax]),
@@ -720,29 +877,157 @@ Why this works in chemistry:
             st.write("Each new lab run updates both predicted performance and uncertainty, which changes the ranking of next candidates.")
 
 
+def _render_bo_loop_scheme() -> None:
+    st.markdown(
+        """
+<div style="display:flex; justify-content:center; margin:6px 0 10px 0;">
+<svg viewBox="0 0 920 420" width="100%" style="max-width:860px; background:#f8fafc; border:1px solid #dbe6f1; border-radius:12px;">
+  <defs>
+    <marker id="arrowHead" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <polygon points="0 0, 10 4, 0 8" fill="#cbd5e1"></polygon>
+    </marker>
+  </defs>
+
+  <!-- Loop arrows -->
+  <path d="M 305 95 Q 460 30 615 95" stroke="#cbd5e1" stroke-width="10" fill="none" marker-end="url(#arrowHead)"></path>
+  <path d="M 675 145 Q 745 210 675 280" stroke="#cbd5e1" stroke-width="10" fill="none" marker-end="url(#arrowHead)"></path>
+  <path d="M 615 328 Q 460 390 305 328" stroke="#cbd5e1" stroke-width="10" fill="none" marker-end="url(#arrowHead)"></path>
+  <path d="M 245 280 Q 175 210 245 145" stroke="#cbd5e1" stroke-width="10" fill="none" marker-end="url(#arrowHead)"></path>
+
+  <!-- Top box -->
+  <rect x="365" y="38" rx="34" ry="34" width="190" height="70" fill="#f58b6b"></rect>
+  <text x="460" y="83" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">Make</text>
+
+  <!-- Right box -->
+  <rect x="670" y="165" rx="30" ry="30" width="190" height="90" fill="#b68ae8"></rect>
+  <text x="765" y="220" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">Analyze</text>
+
+  <!-- Bottom box -->
+  <rect x="365" y="302" rx="34" ry="34" width="190" height="74" fill="#69c5e7"></rect>
+  <text x="460" y="349" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">Model</text>
+
+  <!-- Left box -->
+  <rect x="58" y="158" rx="30" ry="30" width="245" height="110" fill="#f59a2f"></rect>
+  <text x="180" y="208" text-anchor="middle" font-size="20" font-weight="700" fill="#111111">Propose a new</text>
+  <text x="180" y="242" text-anchor="middle" font-size="20" font-weight="700" fill="#111111">experiment</text>
+
+  <!-- Center block -->
+  <rect x="366" y="156" rx="24" ry="24" width="188" height="110" fill="#7ee7ea" stroke="#0f172a" stroke-width="3"></rect>
+  <text x="460" y="224" text-anchor="middle" font-size="20" font-weight="700" fill="#111111">Active Learning</text>
+</svg>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def _module_intro(teach_mode: str) -> None:
+    st.subheader("1) The Optimization Problem in Chemistry")
+    _render_info_card(
+        title="What is the optimization problem in chemistry?",
+        paragraphs=[
+            "Most reaction systems depend on several variables at the same time, not one-by-one. Typical examples are temperature, catalyst loading, pressure, residence time, equivalents, solvent, and reagent ratio.",
+            "The goal is usually to maximize an objective function (for example yield) while using as few experiments as possible.",
+        ],
+        bullets=[
+            "Search spaces are multivariable and can include continuous + categorical parameters.",
+            "Variable interactions are common, so local trends can be misleading.",
+            "Each experiment has cost, time, and material impact.",
+        ],
+        note="So the key question is not only 'what gives the best yield?' but also 'how can we find it efficiently?'",
+        card_style=INTRO_CARD_MAIN,
+    )
+
+    _render_info_card(
+        title="Limitation of OFAT (One-Factor-At-a-Time)",
+        paragraphs=[
+            "OFAT is intuitive and easy to run, but it changes one variable while keeping others fixed.",
+            "In chemistry this can miss strong interactions and can lock decisions around suboptimal regions.",
+        ],
+        bullets=[
+            "Good for quick screening or basic troubleshooting.",
+            "Weak for global optimization in multivariable spaces.",
+        ],
+        note="OFAT can identify trends, but often not the true best combination of conditions.",
+        card_style=INTRO_CARD_OFAT,
+    )
+
+    _render_info_card(
+        title="Limitation of classical DoE in expensive campaigns",
+        paragraphs=[
+            "DoE is statistically rigorous and very useful, but required runs can grow quickly with dimensionality and constraints.",
+            "When each experiment is slow/expensive, fixed designs may be less practical than adaptive sequential decisions.",
+        ],
+        bullets=[
+            "Strength: structured coverage and interaction estimation.",
+            "Challenge: budget pressure in high-dimensional or iterative workflows.",
+        ],
+        note="Many labs combine DoE principles with adaptive BO to reduce run count while keeping decision quality.",
+        card_style=INTRO_CARD_DOE,
+    )
+
+    st.markdown("#### Active Learning Loop in BO")
+    _render_bo_loop_scheme()
+    _render_info_card(
+        title="What Bayesian Optimization does (simple words)",
+        paragraphs=[
+            "Bayesian Optimization is a strategy to optimize expensive experiments with as few trials as possible.",
+            "At each step, it combines current data with a probabilistic model to estimate both expected performance and uncertainty across the search space.",
+        ],
+        bullets=[
+            "Use available data to estimate where the objective is likely high.",
+            "Quantify uncertainty in regions that are still poorly explored.",
+            "Select the next experiment by balancing expected gain and information value.",
+            "Update decisions after every new measured result.",
+        ],
+        note="BO is data-driven and sequential: each new experiment is chosen using what has already been learned.",
+        card_style=INTRO_CARD_BO,
+    )
+
+    _render_info_card(
+        title="Why Bayesian Optimization is an active learning algorithm",
+        paragraphs=[
+            "Active learning means the algorithm does not passively consume random data; it actively chooses which data point to acquire next.",
+            "In BO, the next experiment is selected because it is expected to be the most useful for improving optimization decisions.",
+        ],
+        bullets=[
+            "It asks: which experiment should I run next to learn the most and improve performance fastest?",
+            "The decision changes after each new observation.",
+            "This adaptive loop is what makes BO especially effective for expensive chemical campaigns.",
+        ],
+        note="In short: BO learns from data and also decides what data to collect next.",
+        card_style=INTRO_CARD_ADV,
+    )
+
+    if teach_mode == "Advanced":
+        _render_info_card(
+            title="Advanced note (why this matters mathematically)",
+            paragraphs=[
+                "BO can be framed as sequential decision-making under expensive, noisy black-box evaluations.",
+                "Performance depends on both components: surrogate model assumptions and acquisition policy behavior.",
+            ],
+            note="The next sections connect this high-level loop to GP posterior updates and AF scoring.",
+            card_style=INTRO_CARD_ADV,
+        )
+
+
 def _module_learn(teach_mode: str) -> None:
-    st.subheader("1) Learn BO Intuition")
+    st.subheader("2) Learn BO Intuition")
     _render_global_theory(teach_mode)
-    if teach_mode == "Beginner":
-        _render_info_card(
-            title="BO in chemistry: find strong conditions with fewer experiments",
-            bullets=[
-                "Start with a small initial set of experiments.",
-                "Build a model of expected objective function (yield) and uncertainty.",
-                "Use BO suggestions to balance learning and optimization.",
-            ],
-            note="This is useful when each experiment has real lab cost and turnaround time.",
-        )
-    else:
-        _render_info_card(
-            title="Bayesian Optimization combines",
-            bullets=[
-                "A surrogate model (typically a Gaussian Process).",
-                "An acquisition function (EI / PI / LCB).",
-                "Sequential updates after each measured experiment.",
-            ],
-            note="In lab settings this is useful because each experiment has real cost and turnaround time.",
-        )
+    _render_info_card(
+        title="Learning goals for this section",
+        bullets=[
+            "Understand how the Gaussian Process represents expected objective function (yield) and uncertainty.",
+            "See how the Acquisition Function converts model outputs into the next experiment suggestion.",
+            "Build intuition for why BO recommendations change after every new measured point.",
+        ],
+        note=(
+            "Beginner mode keeps this conceptual; Advanced mode adds formal equations for the same ideas."
+            if teach_mode == "Beginner"
+            else "You are in Advanced mode: same intuition, with deeper mathematical interpretation."
+        ),
+        card_style=LEARN_CARD_GOALS,
+    )
 
     _render_info_card(
         title="Synthetic chemistry objective function (yield) surface (2D starting point)",
@@ -751,6 +1036,16 @@ def _module_learn(teach_mode: str) -> None:
             "Here we map Temperature and Catalyst loading against predicted objective function (yield) to show peaks, valleys, and narrow high-performing regions.",
         ],
         note="This simple map helps explain why BO is useful: it guides experiments toward promising zones while learning uncertainty.",
+        card_style=LEARN_CARD_SURFACE,
+    )
+    _render_info_card(
+        title="How to read this surface plot",
+        bullets=[
+            "Bright regions correspond to higher predicted objective-function (yield) values.",
+            "Wide low-value areas show why random exploration can waste experiments.",
+            "Small high-performing zones explain why model-guided search is useful.",
+        ],
+        card_style=LEARN_CARD_READ,
     )
 
     t_vals, c_vals, z = _surface_grid()
@@ -760,7 +1055,7 @@ def _module_learn(teach_mode: str) -> None:
     best_y = float(z[best_idx])
 
     st.plotly_chart(_surface_figure("Synthetic Chemistry Objective Function (Yield) Surface"), use_container_width=True)
-    st.info(
+    st.caption(
         f"Approximate optimum in this teaching model: Temperature={best_t:.1f} C, "
         f"Catalyst={best_c:.3f}, objective function (yield)~{best_y:.2f}."
     )
@@ -884,7 +1179,15 @@ def _module_learn(teach_mode: str) -> None:
     for k, v in widget_defaults.items():
         st.session_state.setdefault(k, v)
 
-    st.caption("Adjust parameters, initialize the campaign, then step BO suggestions to keep updating GP + AF.")
+    _render_info_card(
+        title="Plot legend and controls",
+        bullets=[
+            "GP plot: blue line = GP mean, blue band = uncertainty, black points = measured experiments.",
+            "AF plot: red line = acquisition score, black diamond = current best next-run suggestion.",
+            "Controls let you test how initialization, AF choice, and exploration strength affect BO behavior.",
+        ],
+        card_style=LEARN_CARD_LEGEND,
+    )
     with st.form("learn_gp_form"):
         gp_col1, gp_col2, gp_col3, gp_col4 = st.columns(4)
         with gp_col1:
@@ -1056,6 +1359,7 @@ def _module_learn(teach_mode: str) -> None:
         noise_used = gp_result["noise_sigma"]
         af_choice = gp_result.get("af_choice", "EI")
         af_values = np.asarray(gp_result.get("af_values", np.zeros_like(t_grid)), dtype=float)
+        af_values_display = np.asarray(gp_result.get("af_values_display", af_values), dtype=float)
         af_argmax = int(gp_result.get("af_argmax", int(np.argmax(af_values)) if af_values.size else 0))
         af_peak_t = float(gp_result.get("af_peak_temperature", t_grid[af_argmax] if af_values.size else t_grid[0]))
         af_peak_score = float(gp_result.get("af_peak_score", af_values[af_argmax] if af_values.size else 0.0))
@@ -1120,8 +1424,9 @@ def _module_learn(teach_mode: str) -> None:
         fig_af.add_trace(
             go.Scatter(
                 x=t_grid,
-                y=af_values,
+                y=af_values_display,
                 mode="lines",
+                connectgaps=True,
                 line=dict(color="#d62728", width=3),
                 name=f"{af_choice} score",
             )
@@ -1142,22 +1447,31 @@ def _module_learn(teach_mode: str) -> None:
             yaxis_title="Acquisition score",
             height=320,
             margin=dict(l=20, r=20, t=45, b=20),
+            yaxis=dict(
+                exponentformat="e",
+                showexponent="all",
+                tickformat=".2e",
+            ),
         )
         st.plotly_chart(fig_af, use_container_width=True)
 
+        best_obs_idx = int(np.argmax(df_obs["MeasuredYield"].to_numpy())) if len(df_obs) else 0
+        best_obs_t = float(df_obs.iloc[best_obs_idx]["Temperature"]) if len(df_obs) else float("nan")
+        best_obs_y = float(df_obs.iloc[best_obs_idx]["MeasuredYield"]) if len(df_obs) else float("nan")
         explanation_bullets = [
-            f"Current acquisition strategy: {af_choice}. The next suggested run is near Temperature={af_peak_t:.2f} C.",
-            "Wider blue uncertainty regions in the GP plot indicate where the model has less information.",
-            "After each new experiment, these plots update: uncertainty usually shrinks near sampled points and the AF peak can move.",
+            f"Current acquisition strategy: {af_choice}. Suggested next run is near Temperature={af_peak_t:.2f} C.",
+            f"Current uncertainty snapshot: near sampled temperatures ~{near_std:.2f}, far from sampled temperatures ~{far_std:.2f}.",
+            f"Best measured objective so far: ~{best_obs_y:.2f} at Temperature={best_obs_t:.2f} C.",
         ]
 
         _render_info_card(
-            title="How to read these GP + AF plots",
+            title="What changed after each BO step",
             paragraphs=[
-                "Top plot (Gaussian Process): the blue line is the model's expected objective function (yield), the blue band is uncertainty, and black points are experiments you already measured.",
-                "Bottom plot (Acquisition Function): BO converts the GP into a decision score. Higher score means a stronger candidate for the next experiment.",
+                "Each new experiment updates both plots. The model confidence usually increases near sampled points, and the AF peak can move to a different temperature as the campaign learns.",
+                "Use this snapshot to connect your parameter choices (init method, AF, xi/kappa) with BO behavior.",
             ],
             bullets=explanation_bullets,
+            card_style=LEARN_CARD_STEP,
         )
 
     deep_mode_note = (
@@ -1167,9 +1481,9 @@ def _module_learn(teach_mode: str) -> None:
     )
     st.markdown(
         (
-            "<div style='background:#eaf4ff; border:1px solid #bfd8f6; border-radius:10px; "
+            "<div style='background:linear-gradient(180deg,#f5f3ff 0%,#ede9fe 100%); border:1px solid #c4b5fd; border-left:6px solid #7c3aed; border-radius:12px; "
             "padding:14px 16px; margin:14px 0 8px 0; color:#000000; line-height:1.7;'>"
-            "<div style='font-weight:700; margin-bottom:6px;'>Section Wrap-up: what you learned</div>"
+            "<div style='font-weight:700; margin-bottom:6px;'>Take-home messages from this section</div>"
             "<ul style='margin-top:0; margin-bottom:8px; padding-left:20px;'>"
             "<li>How a Gaussian Process models expected objective function (yield) and uncertainty from measured experiments.</li>"
             "<li>How acquisition functions use that model to propose the next experiment.</li>"
@@ -1259,7 +1573,7 @@ def _module_learn(teach_mode: str) -> None:
 
 
 def _module_mechanics(teach_mode: str) -> None:
-    st.subheader("2) Understand BO Mechanics")
+    st.subheader("3) Understand BO Mechanics")
     _render_info_card(
         title="Mechanics focus: initialization quality + acquisition behavior",
         paragraphs=["Compare initialization design and acquisition behavior on the same chemistry landscape."],
@@ -1686,7 +2000,7 @@ def _workflow_productivity(
 
 
 def _module_workflow(teach_mode: str) -> None:
-    st.subheader("3) Chemist Workflow")
+    st.subheader("4) Chemist Workflow")
     with st.expander("Theory: why real lab campaigns look messy", expanded=False):
         st.markdown(
             """
@@ -2043,7 +2357,7 @@ def _compute_mo_dataset(n_points: int, seed: int) -> pd.DataFrame:
 
 
 def _module_mo(teach_mode: str) -> None:
-    st.subheader("4) Multiobjective Decisions")
+    st.subheader("5) Multiobjective Decisions")
     _render_info_card(
         title="Multiobjective decision goal",
         paragraphs=[
@@ -2369,7 +2683,9 @@ module_label = st.sidebar.radio("Learning path", MODULE_LABELS, key="classroom_m
 _render_classroom_guide(module_label, teach_mode)
 
 module_id = MODULE_IDS[module_label]
-if module_id == "learn":
+if module_id == "intro":
+    _module_intro(teach_mode)
+elif module_id == "learn":
     _module_learn(teach_mode)
 elif module_id == "mechanics":
     _module_mechanics(teach_mode)

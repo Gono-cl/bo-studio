@@ -68,11 +68,10 @@ def render_setup_and_initials() -> None:
                 "# Initial Experiments",
                 min_value=1,
                 max_value=50,
-                value=st.session_state.n_init,
                 key="n_init",
                 help="Number of initial design points collected before BO suggestions dominate.",
             )
-            st.number_input("Total Iterations", min_value=1, max_value=100, value=st.session_state.total_iters, key="total_iters")
+            st.number_input("Total Iterations", min_value=1, max_value=100, key="total_iters")
 
         n_vars = max(1, len(st.session_state.get("manual_variables", [])))
         mixed = any((len(v) >= 5 and str(v[4]).lower() == "categorical") for v in st.session_state.get("manual_variables", []))
@@ -110,7 +109,6 @@ def render_setup_and_initials() -> None:
                 "Optimizer Seed",
                 min_value=0,
                 max_value=9999,
-                value=int(st.session_state.get("bo_seed", 42)),
                 key="bo_seed",
                 help="Controls reproducibility of initialization design and BO suggestion sequence.",
             )
@@ -121,7 +119,6 @@ def render_setup_and_initials() -> None:
                 "Exploration xi (EI/PI)",
                 min_value=0.0,
                 max_value=0.5,
-                value=float(st.session_state.get("acq_xi", 0.01)),
                 step=0.01,
                 key="acq_xi",
                 help="Higher xi increases exploration pressure for EI/PI.",
@@ -131,7 +128,6 @@ def render_setup_and_initials() -> None:
                 "Exploration kappa (LCB)",
                 min_value=0.1,
                 max_value=10.0,
-                value=float(st.session_state.get("acq_kappa", 1.96)),
                 step=0.1,
                 key="acq_kappa",
                 help="Higher kappa increases exploration pressure for LCB.",

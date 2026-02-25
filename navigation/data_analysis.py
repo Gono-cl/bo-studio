@@ -7,16 +7,20 @@ from core.utils.app_paths import get_campaigns_dir
 from ui.sections.analysis_overview import render_analysis_overview
 from ui.sections.analysis_explain import render_analysis_explain
 from ui.sections.analysis_mo import render_analysis_mo
+from ui.sections.analysis_cards import render_analysis_card
 
 
 st.title("Data Analysis")
-st.success(
-    """
-    Explore, explain, and compare results:
-    - Overview: summary stats, best runs, trends, and pairwise plots.
-    - Explain: fit a lightweight surrogate to show importance and partial dependence.
-    - Multiobjective: Pareto diagnostics, knee point, and hypervolume (2D).
-    """
+
+render_analysis_card(
+    "How to use this page",
+    [
+        "1) Choose the data source.",
+        "2) Review Overview for data quality and objective behavior.",
+        "3) Check Model Fit before interpreting feature effects.",
+        "4) For multiobjective campaigns, inspect Pareto diagnostics.",
+    ],
+    tone="green",
 )
 
 
@@ -93,8 +97,10 @@ if loaded_df is not None:
         df = loaded_df
         response = st.session_state.get("response", None)
         direction = st.session_state.get("response_direction", "Maximize")
-        render_analysis_overview(df, response=response, direction=direction)
-        render_analysis_explain(df, target=response)
+        with st.container(border=True):
+            render_analysis_overview(df, response=response, direction=direction)
+        with st.container(border=True):
+            render_analysis_explain(df, target=response)
     elif loaded_mode == "mo":
         df = loaded_df
         mo_objs = st.session_state.get("mo_objectives", [])
@@ -102,13 +108,15 @@ if loaded_df is not None:
         sel = st.multiselect("Objectives for analysis", mo_objs, default=mo_objs[:2], key="analysis_mo_select")
         if len(sel) < 2:
             st.warning("Select at least two objectives for Pareto analysis.")
-        render_analysis_overview(
-            df,
-            response=sel[0] if sel else None,
-            direction=mo_dirs.get(sel[0], "Maximize") if sel else "Maximize",
-            extra_objectives=sel,
-        )
-        render_analysis_mo(df, objectives=sel, directions={o: mo_dirs.get(o, "Maximize") for o in sel})
+        with st.container(border=True):
+            render_analysis_overview(
+                df,
+                response=sel[0] if sel else None,
+                direction=mo_dirs.get(sel[0], "Maximize") if sel else "Maximize",
+                extra_objectives=sel,
+            )
+        with st.container(border=True):
+            render_analysis_mo(df, objectives=sel, directions={o: mo_dirs.get(o, "Maximize") for o in sel})
 else:
     mode = st.radio("Select dataset", ["Single Objective", "Multiobjective"], index=0 if len(so_data) else 1 if len(mo_data) else 0)
     if mode == "Single Objective":
@@ -118,8 +126,10 @@ else:
             st.stop()
         response = st.session_state.get("response", None)
         direction = st.session_state.get("response_direction", "Maximize")
-        render_analysis_overview(df, response=response, direction=direction)
-        render_analysis_explain(df, target=response)
+        with st.container(border=True):
+            render_analysis_overview(df, response=response, direction=direction)
+        with st.container(border=True):
+            render_analysis_explain(df, target=response)
     else:
         df = pd.DataFrame(mo_data)
         if df.empty:
@@ -133,10 +143,12 @@ else:
         sel = st.multiselect("Objectives for analysis", mo_objs, default=mo_objs[:2], key="analysis_mo_select")
         if len(sel) < 2:
             st.warning("Select at least two objectives for Pareto analysis.")
-        render_analysis_overview(
-            df,
-            response=sel[0] if sel else None,
-            direction=mo_dirs.get(sel[0], "Maximize") if sel else "Maximize",
-            extra_objectives=sel,
-        )
-        render_analysis_mo(df, objectives=sel, directions={o: mo_dirs.get(o, "Maximize") for o in sel})
+        with st.container(border=True):
+            render_analysis_overview(
+                df,
+                response=sel[0] if sel else None,
+                direction=mo_dirs.get(sel[0], "Maximize") if sel else "Maximize",
+                extra_objectives=sel,
+            )
+        with st.container(border=True):
+            render_analysis_mo(df, objectives=sel, directions={o: mo_dirs.get(o, "Maximize") for o in sel})

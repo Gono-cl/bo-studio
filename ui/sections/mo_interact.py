@@ -322,17 +322,13 @@ def render_mo_interact_and_pareto(user_save_dir: str):
     if st.session_state.get("manual_variables") and st.session_state.get("mo_objectives"):
         with st.container(border=True):
             st.markdown("### Suggest Next MO Experiments")
-            col1, col2 = st.columns(2)
-            with col1:
-                method = st.selectbox("Scalarization", ["Weighted Sum", "Tchebycheff"])
-                method_key = "tchebycheff" if method.lower().startswith("tch") else "weighted_sum"
-            with col2:
-                seed = st.number_input("Seed", min_value=0, max_value=9999, value=42)
+            method_key = "weighted_sum"
 
             # Build or render one pending suggestion persistently in session to survive reruns while editing
             if st.button("Get Next MO Suggestion"):
                 m = len(st.session_state.mo_objectives)
-                w = sample_dirichlet_weights(m, 1, seed=int(seed))[0]
+                seed = int(st.session_state.get("bo_seed", 42)) + int(len(st.session_state.get("mo_data", [])))
+                w = sample_dirichlet_weights(m, 1, seed=seed)[0]
                 opt = _build_scalarized_optimizer(w, method=method_key)
                 x = opt.suggest()
                 cols = [name for name, *_ in st.session_state.manual_variables]

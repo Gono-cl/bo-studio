@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import pandas as pd
-import streamlit as st
-import plotly.express as px
-import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import seaborn as sns
+import streamlit as st
+from ui.sections.analysis_cards import render_analysis_card
 
 
 def _best_value(series: pd.Series, direction: str) -> float:
@@ -14,43 +15,88 @@ def _best_value(series: pd.Series, direction: str) -> float:
     return float(series.max())
 
 
-def render_analysis_overview(df: pd.DataFrame, response: str | None, direction: str = "Maximize", extra_objectives: list[str] | None = None) -> None:
+def _format_time_span(df: pd.DataFrame) -> str:
+    if "Timestamp" not in df.columns:
+        return "N/A"
+    ts = pd.to_datetime(df["Timestamp"], errors="coerce").dropna()
+    if ts.empty:
+        return "N/A"
+    return f"{ts.min().strftime('%Y-%m-%d %H:%M:%S')} to {ts.max().strftime('%Y-%m-%d %H:%M:%S')}"
+
+
+def render_analysis_overview(
+    df: pd.DataFrame,
+    response: str | None,
+    direction: str = "Maximize",
+    extra_objectives: list[str] | None = None,
+) -> None:
     st.subheader("Overview")
 
     # Summary
-    st.markdown("#### Dataset Summary")
-    st.write({
-        "rows": len(df),
-        "columns": list(df.columns),
-        "time_span": f"{df.get('Timestamp', pd.Series()).min()} → {df.get('Timestamp', pd.Series()).max()}" if 'Timestamp' in df.columns else "N/A",
-    })
+    render_analysis_card(
+        "What this section shows",
+        [
+            "Quick campaign context: number of experiments, available columns, variables, and time coverage.",
+        ],
+        tone="blue",
+    )
+    with st.container(border=True):
+        st.markdown("#### Dataset Summary")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Experiments", len(df))
+        c2.metric("Columns", len(df.columns))
+        c3.metric("Variables", len(st.session_state.get("manual_variables", [])))
+        st.caption(f"Time span: {_format_time_span(df)}")
+        st.caption("Columns: " + ", ".join(str(c) for c in df.columns))
 
-    # Best runs table
+    # Full campaign table in natural order
+    if not df.empty:
+        render_analysis_card(
+            "How to read Experiment Data",
+            [
+                "Rows are shown in chronological campaign order (first to last). Use this table to inspect exact settings and measured outcomes for each experiment.",
+            ],
+            tone="green",
+        )
+        st.markdown("#### Experiment Data")
+        df_view = df.copy().reset_index(drop=True)
+        df_view["Experiment"] = range(1, len(df_view) + 1)
+        ordered_cols = ["Experiment"] + [c for c in df_view.columns if c != "Experiment"]
+        df_view = df_view[ordered_cols]
+        st.dataframe(df_view, use_container_width=True, hide_index=True)
+
+    # Convergence plot (objective over experiments in natural order)
     if response and response in df.columns:
-        st.markdown("#### Best Runs")
-        best_dir = False if direction == "Maximize" else True
-        df_sorted = df.copy()
-        df_sorted[response] = pd.to_numeric(df_sorted[response], errors="coerce")
-        df_sorted = df_sorted.dropna(subset=[response])
-        df_best = df_sorted.sort_values(by=response, ascending=best_dir).head(10)
-        st.dataframe(df_best, use_container_width=True)
-
-        # Trend of best‑so‑far
-        st.markdown("#### Best‑so‑far Trend")
-        vals = df_sorted[response].tolist()
-        best_so_far = []
-        cur = None
-        for v in vals:
-            if cur is None:
-                cur = v
-            else:
-                cur = max(cur, v) if direction == "Maximize" else min(cur, v)
-            best_so_far.append(cur)
-        tdf = pd.DataFrame({"iteration": range(1, len(best_so_far) + 1), "best": best_so_far})
-        fig = px.line(tdf, x="iteration", y="best", markers=True)
-        st.plotly_chart(fig, use_container_width=True)
+        df_conv = df[[response]].copy().reset_index(drop=True)
+        df_conv[response] = pd.to_numeric(df_conv[response], errors="coerce")
+        df_conv = df_conv.dropna(subset=[response]).copy()
+        if not df_conv.empty:
+            render_analysis_card(
+                "How to read Objective Progress",
+                [
+                    "Tracks the measured objective over experiment number. Look for trends, plateaus, and jumps after strategy or parameter changes.",
+                ],
+                tone="orange",
+            )
+            df_conv["Experiment"] = range(1, len(df_conv) + 1)
+            df_conv = df_conv[["Experiment", response]]
+            st.markdown("#### Objective Progress")
+            fig_conv = px.line(df_conv, x="Experiment", y=response, markers=True)
+            fig_conv.update_layout(
+                xaxis_title="Experiment",
+                yaxis_title=response,
+            )
+            st.plotly_chart(fig_conv, use_container_width=True)
 
     # Pairwise scatter/regression/correlation grid
+    render_analysis_card(
+        "How to read Pairwise Relationships",
+        [
+            "Diagonal panels show value distributions, lower panels show scatter + trend line, and upper panels show correlation strength.",
+            "Use this view to spot interactions and collinearity.",
+        ],
+        tone="purple",
+    )
     st.markdown("#### Pairwise Relationships")
     # choose up to 6 columns: variables + response(s)
     varnames = [n for n, *_ in st.session_state.get("manual_variables", [])]
@@ -76,15 +122,21 @@ def render_analysis_overview(df: pd.DataFrame, response: str | None, direction: 
                 data[c] = pd.to_numeric(data[c], errors="coerce")
             data = data.dropna()
             if data.shape[0] > 1:
-                g = sns.PairGrid(data, diag_sharey=False)
+                g = sns.PairGrid(data, diag_sharey=False, height=1.7, aspect=1.0)
                 g.map_lower(sns.regplot, scatter_kws={"s": 15, "alpha": 0.6}, line_kws={"color": "black"})
                 g.map_diag(sns.histplot, bins=20, color="#6c757d")
 
                 def _corrcoef(x, y, **kws):
                     ax = plt.gca()
                     r = np.corrcoef(x, y)[0, 1]
-                    ax.annotate(f"{r:.3f}", xy=(0.5, 0.5), xycoords=ax.transAxes,
-                                ha="center", va="center", fontsize=11)
+                    ax.annotate(
+                        f"{r:.3f}",
+                        xy=(0.5, 0.5),
+                        xycoords=ax.transAxes,
+                        ha="center",
+                        va="center",
+                        fontsize=11,
+                    )
                     # add thin trend line for context
                     try:
                         sns.regplot(x=x, y=y, scatter=False, ax=ax, color="black", truncate=True)
@@ -96,7 +148,7 @@ def render_analysis_overview(df: pd.DataFrame, response: str | None, direction: 
                     if ax is not None:
                         ax.tick_params(labelsize=8)
                 plt.tight_layout()
-                st.pyplot(g.fig, clear_figure=True, use_container_width=True)
+                st.pyplot(g.fig, clear_figure=True, use_container_width=False)
             else:
                 st.info("Not enough numeric data for pairwise relationships.")
         except Exception:
