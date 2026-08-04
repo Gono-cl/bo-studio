@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import pandas as pd
 from core.utils import db_handler
+from core.utils.analysis_utils import infer_db_analysis_context, infer_objective_columns
 from core.utils.app_paths import get_campaigns_dir
 
 from ui.sections.analysis_overview import render_analysis_overview
@@ -30,13 +31,65 @@ def _get_current_data():
     return so, mo
 
 
+def _render_so_analysis(
+    df: pd.DataFrame,
+    variables: list,
+    response: str | None,
+    direction: str,
+) -> None:
+    with st.container(border=True):
+        render_analysis_overview(df, response=response, direction=direction, variables=variables)
+    with st.container(border=True):
+        render_analysis_explain(df, target=response, variables=variables)
+
+
+def _render_mo_analysis(
+    df: pd.DataFrame,
+    variables: list,
+    objectives: list[str],
+    directions: dict[str, str],
+    selector_key: str,
+) -> None:
+    available_objectives = [obj for obj in objectives if obj in df.columns]
+    if len(available_objectives) < 2:
+        inferred = infer_objective_columns(df, variables)
+        available_objectives = [obj for obj in inferred if obj in df.columns]
+
+    if not available_objectives:
+        st.info("No objective columns could be identified for multiobjective analysis.")
+        return
+
+    sel = st.multiselect(
+        "Objectives for analysis",
+        available_objectives,
+        default=available_objectives[:2],
+        key=selector_key,
+    )
+    if len(sel) < 2:
+        st.warning("Select at least two objectives for Pareto analysis.")
+    with st.container(border=True):
+        render_analysis_overview(
+            df,
+            response=sel[0] if sel else None,
+            direction=directions.get(sel[0], "Maximize") if sel else "Maximize",
+            extra_objectives=sel,
+            variables=variables,
+        )
+    with st.container(border=True):
+        render_analysis_mo(df, objectives=sel, directions={o: directions.get(o, "Maximize") for o in sel})
+
+
 so_data, mo_data = _get_current_data()
 
 source = st.radio("Data source", ["Current Session", "Saved Campaign", "Database"], index=0)
 
 loaded_df = None
 loaded_mode = None  # 'so' or 'mo'
-loaded_meta = {}
+loaded_variables = st.session_state.get("manual_variables", [])
+loaded_response = st.session_state.get("response")
+loaded_direction = st.session_state.get("response_direction", "Maximize")
+loaded_mo_objectives = st.session_state.get("mo_objectives", [])
+loaded_mo_directions = st.session_state.get("mo_directions", {})
 
 if source == "Saved Campaign":
     user_email = st.session_state.get("user_email", "default_user")
@@ -60,17 +113,15 @@ if source == "Saved Campaign":
         with open(meta_p, "r") as f:
             loaded_meta = json.load(f)
         loaded_df = pd.read_csv(data_p)
-        st.session_state.manual_variables = loaded_meta.get("variables", [])
+        loaded_variables = loaded_meta.get("variables", [])
         if loaded_meta.get("mode") == "multiobjective":
             loaded_mode = "mo"
-            st.session_state.mo_objectives = loaded_meta.get("mo_objectives", [])
-            st.session_state.mo_directions = loaded_meta.get("mo_directions", {})
+            loaded_mo_objectives = loaded_meta.get("mo_objectives", [])
+            loaded_mo_directions = loaded_meta.get("mo_directions", {})
         else:
             loaded_mode = "so"
-            st.session_state.response = loaded_meta.get("response", st.session_state.get("response"))
-            st.session_state.response_direction = loaded_meta.get(
-                "response_direction", st.session_state.get("response_direction", "Maximize")
-            )
+            loaded_response = loaded_meta.get("response", loaded_response)
+            loaded_direction = loaded_meta.get("response_direction", loaded_direction)
 
 elif source == "Database":
     user_email = st.session_state.get("user_email", "default_user")
@@ -82,41 +133,35 @@ elif source == "Database":
         label = st.selectbox("Select experiment", list(options.keys()))
         exp = db_handler.load_experiment(options[label])
         if exp:
-            loaded_df = exp["df_results"]
-            st.session_state.manual_variables = exp["variables"]
-            settings = exp.get("settings", {}) or {}
-            st.session_state.response = settings.get("objective", st.session_state.get("response"))
-            st.session_state.response_direction = settings.get(
-                "response_direction",
-                st.session_state.get("response_direction", "Maximize"),
+            context = infer_db_analysis_context(
+                exp,
+                fallback_response=st.session_state.get("response"),
+                fallback_direction=st.session_state.get("response_direction", "Maximize"),
             )
-            loaded_mode = "so"
+            loaded_df = context["df"]
+            loaded_mode = context["mode"]
+            loaded_variables = context.get("variables", [])
+            loaded_response = context.get("response")
+            loaded_direction = context.get("response_direction", "Maximize")
+            loaded_mo_objectives = context.get("mo_objectives", [])
+            loaded_mo_directions = context.get("mo_directions", {})
 
 if loaded_df is not None:
     if loaded_mode == "so":
-        df = loaded_df
-        response = st.session_state.get("response", None)
-        direction = st.session_state.get("response_direction", "Maximize")
-        with st.container(border=True):
-            render_analysis_overview(df, response=response, direction=direction)
-        with st.container(border=True):
-            render_analysis_explain(df, target=response)
+        _render_so_analysis(
+            loaded_df,
+            variables=loaded_variables,
+            response=loaded_response,
+            direction=loaded_direction,
+        )
     elif loaded_mode == "mo":
-        df = loaded_df
-        mo_objs = st.session_state.get("mo_objectives", [])
-        mo_dirs = st.session_state.get("mo_directions", {})
-        sel = st.multiselect("Objectives for analysis", mo_objs, default=mo_objs[:2], key="analysis_mo_select")
-        if len(sel) < 2:
-            st.warning("Select at least two objectives for Pareto analysis.")
-        with st.container(border=True):
-            render_analysis_overview(
-                df,
-                response=sel[0] if sel else None,
-                direction=mo_dirs.get(sel[0], "Maximize") if sel else "Maximize",
-                extra_objectives=sel,
-            )
-        with st.container(border=True):
-            render_analysis_mo(df, objectives=sel, directions={o: mo_dirs.get(o, "Maximize") for o in sel})
+        _render_mo_analysis(
+            loaded_df,
+            variables=loaded_variables,
+            objectives=loaded_mo_objectives,
+            directions=loaded_mo_directions,
+            selector_key="analysis_mo_select_loaded",
+        )
 else:
     mode = st.radio("Select dataset", ["Single Objective", "Multiobjective"], index=0 if len(so_data) else 1 if len(mo_data) else 0)
     if mode == "Single Objective":
@@ -124,31 +169,21 @@ else:
         if df.empty:
             st.info("No single-objective data available in this session. Run, load a campaign, or choose 'Database'.")
             st.stop()
-        response = st.session_state.get("response", None)
-        direction = st.session_state.get("response_direction", "Maximize")
-        with st.container(border=True):
-            render_analysis_overview(df, response=response, direction=direction)
-        with st.container(border=True):
-            render_analysis_explain(df, target=response)
+        _render_so_analysis(
+            df,
+            variables=st.session_state.get("manual_variables", []),
+            response=st.session_state.get("response", None),
+            direction=st.session_state.get("response_direction", "Maximize"),
+        )
     else:
         df = pd.DataFrame(mo_data)
         if df.empty:
             st.info("No multiobjective data available in this session. Run or load a campaign first.")
             st.stop()
-        mo_objs = st.session_state.get("mo_objectives", [])
-        mo_dirs = st.session_state.get("mo_directions", {})
-        if not mo_objs:
-            varnames = [n for n, *_ in st.session_state.get("manual_variables", [])]
-            mo_objs = [c for c in df.columns if c not in varnames][:2]
-        sel = st.multiselect("Objectives for analysis", mo_objs, default=mo_objs[:2], key="analysis_mo_select")
-        if len(sel) < 2:
-            st.warning("Select at least two objectives for Pareto analysis.")
-        with st.container(border=True):
-            render_analysis_overview(
-                df,
-                response=sel[0] if sel else None,
-                direction=mo_dirs.get(sel[0], "Maximize") if sel else "Maximize",
-                extra_objectives=sel,
-            )
-        with st.container(border=True):
-            render_analysis_mo(df, objectives=sel, directions={o: mo_dirs.get(o, "Maximize") for o in sel})
+        _render_mo_analysis(
+            df,
+            variables=st.session_state.get("manual_variables", []),
+            objectives=st.session_state.get("mo_objectives", []),
+            directions=st.session_state.get("mo_directions", {}),
+            selector_key="analysis_mo_select_session",
+        )

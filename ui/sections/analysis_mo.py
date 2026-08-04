@@ -6,6 +6,7 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 
+from core.utils.analysis_utils import ANALYSIS_ORDER_COLUMN, prepare_multiobjective_frame
 from core.utils.pareto import pareto_front_indices
 from core.utils.knee import knee_index_2d
 from core.utils.hypervolume import hypervolume_2d
@@ -27,11 +28,35 @@ def render_analysis_mo(df: pd.DataFrame, objectives: list[str], directions: dict
         tone="purple",
     )
 
-    objs = objectives[:3]
+    df_plot, objs = prepare_multiobjective_frame(df, objectives)
+    if df_plot.empty or len(objs) < 2:
+        st.info("No complete numeric objective rows are available for multiobjective analysis.")
+        return
+
     signs = np.array([1.0 if directions.get(o, "Maximize") == "Maximize" else -1.0 for o in objs], dtype=float)
-    pts = df[objs].to_numpy(dtype=float) * signs
+    pts = df_plot[objs].to_numpy(dtype=float) * signs
     idx_pf = pareto_front_indices(pts)
     st.markdown(f"Pareto front size: {len(idx_pf)}")
+
+    pareto_mask = np.zeros(len(df_plot), dtype=bool)
+    if len(idx_pf) > 0:
+        pareto_mask[np.asarray(idx_pf, dtype=int)] = True
+    df_plot = df_plot.copy()
+    df_plot["Pareto"] = np.where(pareto_mask, "Pareto", "Dominated")
+    df_pf = df_plot.iloc[idx_pf].copy() if len(idx_pf) > 0 else df_plot.iloc[0:0].copy()
+
+    if len(objs) > 3:
+        st.info(
+            "Pareto geometry plots are limited to 2 or 3 objectives. "
+            "The Pareto front below was computed using all selected objectives."
+        )
+        show_cols = [ANALYSIS_ORDER_COLUMN] + objs
+        st.dataframe(
+            df_pf[show_cols].rename(columns={ANALYSIS_ORDER_COLUMN: "Experiment"}),
+            use_container_width=True,
+            hide_index=True,
+        )
+        return
 
     if len(objs) == 2:
         render_analysis_card(
@@ -42,9 +67,23 @@ def render_analysis_mo(df: pd.DataFrame, objectives: list[str], directions: dict
             ],
             tone="blue",
         )
-        fig = px.scatter(df, x=objs[0], y=objs[1], color=df.index.isin(idx_pf), labels={"color": "Pareto"})
-        df_pf = df.iloc[idx_pf].sort_values(by=objs[0])
-        fig.add_trace(go.Scatter(x=df_pf[objs[0]], y=df_pf[objs[1]], mode='lines+markers', line=dict(color='red', width=3), name='Pareto front'))
+        fig = px.scatter(
+            df_plot,
+            x=objs[0],
+            y=objs[1],
+            color="Pareto",
+            color_discrete_map={"Pareto": "#dc2626", "Dominated": "#94a3b8"},
+        )
+        df_pf_line = df_pf.sort_values(by=objs[0])
+        fig.add_trace(
+            go.Scatter(
+                x=df_pf_line[objs[0]],
+                y=df_pf_line[objs[1]],
+                mode="lines+markers",
+                line=dict(color="red", width=3),
+                name="Pareto front",
+            )
+        )
         st.plotly_chart(fig, use_container_width=True)
 
         # Knee and HV
@@ -53,9 +92,12 @@ def render_analysis_mo(df: pd.DataFrame, objectives: list[str], directions: dict
             ki = knee_index_2d(P)
             if ki is not None:
                 knee_pt = df_pf.iloc[ki]
-                st.markdown(f"Knee point index (approx): {ki}")
+                st.markdown(
+                    f"Approximate knee point: Experiment {int(knee_pt[ANALYSIS_ORDER_COLUMN])} "
+                    f"({objs[0]}={knee_pt[objs[0]]:.4g}, {objs[1]}={knee_pt[objs[1]]:.4g})"
+                )
             # simple HV w.r.t. min over data (in transformed space)
-            ref = tuple((df[objs].to_numpy(dtype=float) * signs[:2]).min(axis=0))
+            ref = tuple((df_plot[objs].to_numpy(dtype=float) * signs[:2]).min(axis=0))
             hv = hypervolume_2d(P, ref)
             st.markdown(f"Approx. 2D Hypervolume: {hv:.4g}")
     elif len(objs) == 3:
@@ -67,10 +109,24 @@ def render_analysis_mo(df: pd.DataFrame, objectives: list[str], directions: dict
             ],
             tone="blue",
         )
-        fig = px.scatter_3d(df, x=objs[0], y=objs[1], z=objs[2], color=df.index.isin(idx_pf))
-        df_pf = df.iloc[idx_pf].sort_values(by=objs[0])
-        fig.add_trace(go.Scatter3d(x=df_pf[objs[0]], y=df_pf[objs[1]], z=df_pf[objs[2]], mode='lines+markers', line=dict(color='red', width=6), name='Pareto front'))
+        fig = px.scatter_3d(
+            df_plot,
+            x=objs[0],
+            y=objs[1],
+            z=objs[2],
+            color="Pareto",
+            color_discrete_map={"Pareto": "#dc2626", "Dominated": "#94a3b8"},
+        )
+        df_pf_line = df_pf.sort_values(by=objs[0])
+        fig.add_trace(
+            go.Scatter3d(
+                x=df_pf_line[objs[0]],
+                y=df_pf_line[objs[1]],
+                z=df_pf_line[objs[2]],
+                mode="lines+markers",
+                line=dict(color="red", width=6),
+                name="Pareto front",
+            )
+        )
         st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("For >3 objectives, use the parallel coordinates on the main pages.")
 

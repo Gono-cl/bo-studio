@@ -6,13 +6,8 @@ import pandas as pd
 import plotly.express as px
 import seaborn as sns
 import streamlit as st
+from core.utils.analysis_utils import ANALYSIS_ORDER_COLUMN, prepare_objective_progress_frame, variable_names
 from ui.sections.analysis_cards import render_analysis_card
-
-
-def _best_value(series: pd.Series, direction: str) -> float:
-    if direction == "Minimize":
-        return float(series.min())
-    return float(series.max())
 
 
 def _format_time_span(df: pd.DataFrame) -> str:
@@ -29,8 +24,11 @@ def render_analysis_overview(
     response: str | None,
     direction: str = "Maximize",
     extra_objectives: list[str] | None = None,
+    variables: list | None = None,
 ) -> None:
     st.subheader("Overview")
+    analysis_variables = variables or st.session_state.get("manual_variables", [])
+    analysis_varnames = variable_names(analysis_variables)
 
     # Summary
     render_analysis_card(
@@ -45,7 +43,7 @@ def render_analysis_overview(
         c1, c2, c3 = st.columns(3)
         c1.metric("Experiments", len(df))
         c2.metric("Columns", len(df.columns))
-        c3.metric("Variables", len(st.session_state.get("manual_variables", [])))
+        c3.metric("Variables", len(analysis_variables))
         st.caption(f"Time span: {_format_time_span(df)}")
         st.caption("Columns: " + ", ".join(str(c) for c in df.columns))
 
@@ -67,9 +65,7 @@ def render_analysis_overview(
 
     # Convergence plot (objective over experiments in natural order)
     if response and response in df.columns:
-        df_conv = df[[response]].copy().reset_index(drop=True)
-        df_conv[response] = pd.to_numeric(df_conv[response], errors="coerce")
-        df_conv = df_conv.dropna(subset=[response]).copy()
+        df_conv = prepare_objective_progress_frame(df, response)
         if not df_conv.empty:
             render_analysis_card(
                 "How to read Objective Progress",
@@ -78,10 +74,8 @@ def render_analysis_overview(
                 ],
                 tone="orange",
             )
-            df_conv["Experiment"] = range(1, len(df_conv) + 1)
-            df_conv = df_conv[["Experiment", response]]
             st.markdown("#### Objective Progress")
-            fig_conv = px.line(df_conv, x="Experiment", y=response, markers=True)
+            fig_conv = px.line(df_conv, x=ANALYSIS_ORDER_COLUMN, y=response, markers=True)
             fig_conv.update_layout(
                 xaxis_title="Experiment",
                 yaxis_title=response,
@@ -99,8 +93,7 @@ def render_analysis_overview(
     )
     st.markdown("#### Pairwise Relationships")
     # choose up to 6 columns: variables + response(s)
-    varnames = [n for n, *_ in st.session_state.get("manual_variables", [])]
-    cols = varnames[:4]
+    cols = analysis_varnames[:4]
     if response and response not in cols:
         cols.append(response)
     if extra_objectives:
@@ -110,17 +103,25 @@ def render_analysis_overview(
             if len(cols) >= 6:
                 break
     cols = [c for c in cols if c in df.columns]
-    if len(cols) >= 2:
+    numeric_cols: list[str] = []
+    skipped_cols: list[str] = []
+    for col in cols:
+        numeric = pd.to_numeric(df[col], errors="coerce")
+        if numeric.notna().sum() >= 2:
+            numeric_cols.append(col)
+        else:
+            skipped_cols.append(col)
+
+    if skipped_cols:
+        st.caption("Omitted non-numeric columns from pairwise view: " + ", ".join(skipped_cols))
+
+    if len(numeric_cols) >= 2:
         try:
             # Seaborn PairGrid with:
             # - lower: scatter + regression line
             # - diag: histogram
             # - upper: correlation coefficient
-            data = df[cols].copy()
-            # ensure numeric for plotting (coerce where possible)
-            for c in data.columns:
-                data[c] = pd.to_numeric(data[c], errors="coerce")
-            data = data.dropna()
+            data = pd.DataFrame({col: pd.to_numeric(df[col], errors="coerce") for col in numeric_cols}).dropna()
             if data.shape[0] > 1:
                 g = sns.PairGrid(data, diag_sharey=False, height=1.7, aspect=1.0)
                 g.map_lower(sns.regplot, scatter_kws={"s": 15, "alpha": 0.6}, line_kws={"color": "black"})
@@ -154,7 +155,9 @@ def render_analysis_overview(
         except Exception:
             # Fallback to Plotly scatter matrix if seaborn unavailable
             try:
-                fig2 = px.scatter_matrix(df[cols])
+                fig2 = px.scatter_matrix(pd.DataFrame({col: pd.to_numeric(df[col], errors="coerce") for col in numeric_cols}))
                 st.plotly_chart(fig2, use_container_width=True)
             except Exception:
                 pass
+    else:
+        st.info("Not enough numeric variables/objectives for pairwise relationships.")

@@ -9,12 +9,16 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
+from core.utils.analysis_utils import variable_names
 from ui.sections.analysis_cards import render_analysis_card
 
 
-def _prepare_xy(df: pd.DataFrame, target: str) -> tuple[np.ndarray, np.ndarray, list[str]]:
-    varnames = [n for n, *_ in st.session_state.get("manual_variables", [])]
-    cols = [c for c in varnames if c in df.columns]
+def _prepare_xy(
+    df: pd.DataFrame,
+    target: str,
+    variables: list | None = None,
+) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    cols = [c for c in variable_names(variables) if c in df.columns]
     if not cols:
         return np.empty((0, 0)), np.array([]), []
 
@@ -25,8 +29,8 @@ def _prepare_xy(df: pd.DataFrame, target: str) -> tuple[np.ndarray, np.ndarray, 
         if numeric.notna().sum() >= max(1, int(0.7 * len(numeric))):
             X_df[c] = numeric
         else:
-            X_df[c] = X_df[c].astype(str).fillna("missing")
-            X_df[c] = pd.factorize(X_df[c])[0].astype(float)
+            X_df[c] = X_df[c].where(X_df[c].notna(), "missing").astype(str)
+            X_df[c] = pd.factorize(X_df[c], sort=True)[0].astype(float)
 
     y = pd.to_numeric(df[target], errors="coerce")
 
@@ -131,13 +135,13 @@ def _render_model_fit_check(X: np.ndarray, y: np.ndarray, target: str, n_estimat
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_analysis_explain(df: pd.DataFrame, target: str | None) -> None:
+def render_analysis_explain(df: pd.DataFrame, target: str | None, variables: list | None = None) -> None:
     st.subheader("Model Fit and Explainability")
     if not target or target not in df.columns:
         st.info("Select or run an objective to analyze.")
         return
 
-    X, y, cols = _prepare_xy(df, target)
+    X, y, cols = _prepare_xy(df, target, variables=variables)
     if X.size == 0 or y.size == 0 or len(cols) == 0:
         st.info("Not enough data to fit an analysis surrogate.")
         return
