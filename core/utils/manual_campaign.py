@@ -23,6 +23,24 @@ def campaign_has_started(
     )
 
 
+def multiobjective_campaign_has_started(
+    *,
+    mo_initialized: bool = False,
+    mo_data: list[dict[str, Any]] | None = None,
+    mo_suggestions: list[list[Any]] | None = None,
+    mo_iteration: int = 0,
+    mo_pending_df: list[dict[str, Any]] | None = None,
+) -> bool:
+    """Return True once an MO campaign has started and campaign-defining settings should lock."""
+    return bool(
+        mo_initialized
+        or bool(mo_data)
+        or bool(mo_suggestions)
+        or int(mo_iteration) > 0
+        or bool(mo_pending_df)
+    )
+
+
 def parse_required_result_text(raw_value: Any, field_label: str = "Result") -> float:
     """Parse a required numeric input, accepting either dot or comma decimals."""
     text = "" if raw_value is None else str(raw_value).strip()

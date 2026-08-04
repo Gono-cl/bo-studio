@@ -4,6 +4,7 @@ import pandas as pd
 
 from core.utils.manual_campaign import (
     campaign_has_started,
+    multiobjective_campaign_has_started,
     parse_required_result_text,
     validate_initial_results,
 )
@@ -40,6 +41,28 @@ class ManualCampaignStateTests(unittest.TestCase):
                 suggestions=[],
                 iteration=0,
                 next_suggestion_cached=None,
+            )
+        )
+
+    def test_mo_campaign_has_started_when_pending_suggestion_exists(self) -> None:
+        self.assertTrue(
+            multiobjective_campaign_has_started(
+                mo_initialized=False,
+                mo_data=[],
+                mo_suggestions=[],
+                mo_iteration=0,
+                mo_pending_df=[{"Experiment": 3, "Yield": None, "Conversion": None}],
+            )
+        )
+
+    def test_mo_campaign_has_not_started_for_fresh_state(self) -> None:
+        self.assertFalse(
+            multiobjective_campaign_has_started(
+                mo_initialized=False,
+                mo_data=[],
+                mo_suggestions=[],
+                mo_iteration=0,
+                mo_pending_df=[],
             )
         )
 

@@ -12,7 +12,7 @@ from sklearn.preprocessing import LabelEncoder
 from ui.components import data_editor
 from core.utils.pareto import pareto_front_indices
 from core.utils.scalarization import sample_dirichlet_weights, weighted_sum, tchebycheff
-from core.utils.bo_manual import safe_build_optimizer, coerce_point_to_variables
+from core.utils.bo_manual import safe_build_optimizer, coerce_point_to_variables, next_unique_suggestion
 
 
 def _build_scalarized_optimizer(weights: np.ndarray, method: str = "weighted_sum"):
@@ -37,6 +37,13 @@ def _build_scalarized_optimizer(weights: np.ndarray, method: str = "weighted_sum
     objs = st.session_state.get("mo_objectives", [])
     if data and objs:
         df = pd.DataFrame(data)
+        if not set(objs).issubset(df.columns):
+            return opt
+        for obj in objs:
+            df[obj] = pd.to_numeric(df[obj], errors="coerce")
+        df = df.dropna(subset=objs).copy()
+        if df.empty:
+            return opt
         # Apply direction flips before scalarization
         dir_map = st.session_state.get("mo_directions", {})
         signs = np.array([1.0 if dir_map.get(o, "Maximize") == "Maximize" else -1.0 for o in objs], dtype=float)
@@ -274,6 +281,8 @@ def render_mo_interact_and_pareto(user_save_dir: str):
     # Show MO charts and controls once there is data.
     data = st.session_state.get("mo_data", [])
     objs = st.session_state.get("mo_objectives", [])
+    current_iter = len(data)
+    total_iters = int(st.session_state.get("mo_total_iters", 0) or 0)
     if data and objs:
         df = pd.DataFrame(data)
         _show_mo_progress_chart(df, objs)
@@ -323,6 +332,17 @@ def render_mo_interact_and_pareto(user_save_dir: str):
         with st.container(border=True):
             st.markdown("### Suggest Next MO Experiments")
             method_key = "weighted_sum"
+            if len(st.session_state.get("mo_objectives", [])) < 2:
+                st.info("Select at least two objectives to continue the MO campaign.")
+                return
+            if total_iters > 0 and current_iter >= total_iters:
+                st.session_state.mo_pending_df = []
+                st.success(
+                    f"MO campaign reached its configured budget of {total_iters} experiment(s). "
+                    "Increase total iterations or reset the campaign to continue."
+                )
+                return
+            st.caption(f"Remaining MO budget: {max(0, total_iters - current_iter)} experiment(s).")
 
             # Build or render one pending suggestion persistently in session to survive reruns while editing
             if st.button("Get Next MO Suggestion"):
@@ -330,7 +350,12 @@ def render_mo_interact_and_pareto(user_save_dir: str):
                 seed = int(st.session_state.get("bo_seed", 42)) + int(len(st.session_state.get("mo_data", [])))
                 w = sample_dirichlet_weights(m, 1, seed=seed)[0]
                 opt = _build_scalarized_optimizer(w, method=method_key)
-                x = opt.suggest()
+                x = next_unique_suggestion(
+                    opt,
+                    st.session_state.manual_variables,
+                    st.session_state.get("mo_data", []),
+                    max_tries=120,
+                )
                 cols = [name for name, *_ in st.session_state.manual_variables]
                 df_sug = pd.DataFrame([dict(zip(cols, x))])
                 df_sug.insert(0, "Experiment", len(st.session_state.get("mo_data", [])) + 1)

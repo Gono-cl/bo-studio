@@ -56,5 +56,7 @@ def render_mo_resume(user_save_dir: str) -> None:
         st.session_state.mo_initialized = True
         st.session_state.mo_suggestions = []
         st.session_state.mo_iteration = len(st.session_state.mo_data)
+        st.session_state.mo_pending_df = []
+        st.session_state.edit_mode_mo = False
         st.success(f"Loaded MO campaign: {resume_file}")
 

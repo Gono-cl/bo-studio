@@ -19,6 +19,8 @@ def _ensure_defaults():
         "mo_custom_objectives": [],
         "mo_n_init": 6,
         "mo_total_iters": 20,
+        "mo_iteration": 0,
+        "mo_pending_df": [],
         "mo_init_method": "lhs",
         "acq_func": "EI",
         "acq_xi": 0.01,

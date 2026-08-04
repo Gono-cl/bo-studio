@@ -5,22 +5,43 @@ from ui.sections.variables import render_variables_section
 from ui.components import data_editor
 from core.utils.init_designs import generate_initial_points
 from core.utils.n_init_guidance import recommend_n_init_range, format_n_init_range
+from core.utils.manual_campaign import multiobjective_campaign_has_started
 from ui.charts import Charts
 
 
 def render_mo_setup_and_initials() -> None:
     # Variables reuse the same section UI
-    render_variables_section()
+    render_variables_section(mode="mo")
+
+    settings_locked = multiobjective_campaign_has_started(
+        mo_initialized=bool(st.session_state.get("mo_initialized")),
+        mo_data=st.session_state.get("mo_data", []),
+        mo_suggestions=st.session_state.get("mo_suggestions", []),
+        mo_iteration=int(st.session_state.get("mo_iteration", 0)),
+        mo_pending_df=st.session_state.get("mo_pending_df", []),
+    )
 
     with st.container(border=True):
         st.markdown("### Experiment Setup")
+        if settings_locked:
+            st.info(
+                "MO campaign-defining settings are locked after initialization. "
+                "Reset the campaign to change variables, objectives, BO policy, or seed. "
+                "You may still change total iterations."
+            )
         # Build available objectives: defaults + any numeric columns present in mo_data
         defaults = ["Yield", "Conversion", "Transformation", "Productivity", "Byproduct", "Cost", "Time", "E-factor", "Space-Time Yield", "Selectivity", "Purity", "Mass Yield", "Atom Economy", "Carbon Efficiency", "Energy Efficiency", "Process Mass Intensity"]
         extra = []
         if st.session_state.get("mo_data"):
             try:
                 df_existing = pd.DataFrame(st.session_state.mo_data)
-                extra = [c for c in df_existing.columns if c not in [n for n, *_ in st.session_state.manual_variables]]
+                variable_names = [n for n, *_ in st.session_state.manual_variables]
+                extra = [
+                    c
+                    for c in df_existing.columns
+                    if c not in variable_names
+                    and pd.to_numeric(df_existing[c], errors="coerce").notna().any()
+                ]
             except Exception:
                 extra = []
         custom_names = st.session_state.get("mo_custom_objectives", [])
@@ -51,6 +72,7 @@ def render_mo_setup_and_initials() -> None:
             "Select Objectives",
             available_objs,
             key="mo_objectives_select",
+            disabled=settings_locked,
         )
         if selected:
             st.session_state.mo_objectives = selected
@@ -59,10 +81,10 @@ def render_mo_setup_and_initials() -> None:
         st.caption("If an objective is not in the list, create your own objective below.")
         col_obj1, col_obj2 = st.columns([3, 1])
         with col_obj1:
-            new_obj = st.text_input("New objective name", key="mo_custom_obj_name")
+            new_obj = st.text_input("New objective name", key="mo_custom_obj_name", disabled=settings_locked)
         with col_obj2:
             st.markdown("&nbsp;", unsafe_allow_html=True)
-            add_obj = st.button("Add Objective", key="mo_add_custom_obj")
+            add_obj = st.button("Add Objective", key="mo_add_custom_obj", disabled=settings_locked)
         if add_obj:
             obj_name = (new_obj or "").strip()
             if not obj_name:
@@ -87,12 +109,18 @@ def render_mo_setup_and_initials() -> None:
                 value=st.session_state.get("mo_n_init", 6),
                 key="mo_n_init",
                 help="Number of initial design points before scalarization-based BO suggestions.",
+                disabled=settings_locked,
             )
         with col2:
             init_options = ["Random", "LHS", "Halton", "Maximin LHS"]
             init_keys = ["random", "lhs", "halton", "maximin_lhs"]
             default_init = st.session_state.get("mo_init_method", "lhs")
-            init_choice = st.selectbox("Initialization Method", init_options, index=init_keys.index(default_init) if default_init in init_keys else 1)
+            init_choice = st.selectbox(
+                "Initialization Method",
+                init_options,
+                index=init_keys.index(default_init) if default_init in init_keys else 1,
+                disabled=settings_locked,
+            )
             st.session_state.mo_init_method = init_keys[init_options.index(init_choice)]
         with col3:
             st.number_input("Total Iterations", min_value=1, max_value=200, value=st.session_state.get("mo_total_iters", 20), key="mo_total_iters")
@@ -106,6 +134,7 @@ def render_mo_setup_and_initials() -> None:
                 acq_options,
                 index=acq_options.index(default_acq) if default_acq in acq_options else 0,
                 key="mo_acq_func_select",
+                disabled=settings_locked,
             )
         with col5:
             st.number_input(
@@ -115,6 +144,7 @@ def render_mo_setup_and_initials() -> None:
                 value=int(st.session_state.get("bo_seed", 42)),
                 key="bo_seed",
                 help="Controls reproducibility of initialization design and BO suggestion sequence.",
+                disabled=settings_locked,
             )
         with col6:
             st.number_input(
@@ -125,6 +155,7 @@ def render_mo_setup_and_initials() -> None:
                 step=0.01,
                 key="acq_xi",
                 help="Higher xi increases exploration pressure for EI/PI.",
+                disabled=settings_locked,
             )
         st.number_input(
             "Exploration kappa (LCB)",
@@ -134,6 +165,7 @@ def render_mo_setup_and_initials() -> None:
             step=0.1,
             key="acq_kappa",
             help="Higher kappa increases exploration pressure for LCB.",
+            disabled=settings_locked,
         )
 
         n_vars = max(1, len(st.session_state.get("manual_variables", [])))
@@ -164,13 +196,16 @@ def render_mo_setup_and_initials() -> None:
                     ["Maximize", "Minimize"],
                     index=["Maximize", "Minimize"].index(curr) if curr in ["Maximize", "Minimize"] else 0,
                     key=f"mo_dir_{obj}",
+                    disabled=settings_locked,
                 )
                 new_dirs[obj] = choice
             st.session_state.mo_directions = new_dirs
 
-        if st.button("Suggest Initial Experiments (MO)"):
+        if st.button("Suggest Initial Experiments (MO)", disabled=settings_locked):
             if not st.session_state.manual_variables:
                 st.warning("Please define at least one variable first.")
+            elif len(st.session_state.get("mo_objectives", [])) < 2:
+                st.warning("Select at least two objectives before starting a multiobjective campaign.")
             else:
                 st.session_state.mo_suggestions = generate_initial_points(
                     st.session_state.manual_variables,

@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from core.utils.bo_manual import unionize_bounds
+from core.utils.manual_campaign import multiobjective_campaign_has_started
 from ui.components import data_editor
 
 
@@ -19,6 +20,17 @@ def render_mo_reuse_seeds(user_save_dir: str) -> None:
     """
     st.sidebar.markdown("---")
     st.sidebar.subheader("Reuse Previous MO Campaign as Seeds")
+
+    reuse_locked = multiobjective_campaign_has_started(
+        mo_initialized=bool(st.session_state.get("mo_initialized")),
+        mo_data=st.session_state.get("mo_data", []),
+        mo_suggestions=st.session_state.get("mo_suggestions", []),
+        mo_iteration=int(st.session_state.get("mo_iteration", 0)),
+        mo_pending_df=st.session_state.get("mo_pending_df", []),
+    )
+    if reuse_locked:
+        st.sidebar.caption("MO reuse is disabled after a campaign starts. Reset the campaign to import seeds from another run.")
+        return
 
     # Collect only campaigns marked as multiobjective
     options = ["None"]
@@ -145,5 +157,6 @@ def render_mo_reuse_seeds(user_save_dir: str) -> None:
         st.session_state.mo_iteration = len(st.session_state.mo_data)
         st.session_state.mo_initialized = True
         st.session_state.mo_suggestions = []
+        st.session_state.mo_pending_df = []
         st.success(f"Imported {len(selected_df)} experiment(s) from '{reuse_campaign}'. You can continue from here.")
 

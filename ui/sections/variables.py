@@ -8,23 +8,32 @@ import pandas as pd
 import streamlit as st
 
 from ui.components import data_editor
-from core.utils.manual_campaign import campaign_has_started
+from core.utils.manual_campaign import campaign_has_started, multiobjective_campaign_has_started
 
 
-def render_variables_section() -> None:
+def render_variables_section(mode: str = "so") -> None:
     with st.container(border=True):
         st.markdown("### Define Variables")
-        _render_variables_section_content()
+        _render_variables_section_content(mode=mode)
 
 
-def _render_variables_section_content() -> None:
-    variables_locked = campaign_has_started(
-        manual_initialized=bool(st.session_state.get("manual_initialized")),
-        manual_data=st.session_state.get("manual_data", []),
-        suggestions=st.session_state.get("suggestions", []),
-        iteration=int(st.session_state.get("iteration", 0)),
-        next_suggestion_cached=st.session_state.get("next_suggestion_cached"),
-    )
+def _render_variables_section_content(mode: str = "so") -> None:
+    if str(mode).lower() == "mo":
+        variables_locked = multiobjective_campaign_has_started(
+            mo_initialized=bool(st.session_state.get("mo_initialized")),
+            mo_data=st.session_state.get("mo_data", []),
+            mo_suggestions=st.session_state.get("mo_suggestions", []),
+            mo_iteration=int(st.session_state.get("mo_iteration", 0)),
+            mo_pending_df=st.session_state.get("mo_pending_df", []),
+        )
+    else:
+        variables_locked = campaign_has_started(
+            manual_initialized=bool(st.session_state.get("manual_initialized")),
+            manual_data=st.session_state.get("manual_data", []),
+            suggestions=st.session_state.get("suggestions", []),
+            iteration=int(st.session_state.get("iteration", 0)),
+            next_suggestion_cached=st.session_state.get("next_suggestion_cached"),
+        )
 
     if variables_locked:
         st.info("Variables are locked after the campaign starts. Reset the campaign to change the search space.")
