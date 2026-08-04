@@ -9,10 +9,10 @@ import streamlit as st
 from skopt.acquisition import gaussian_ei, gaussian_lcb, gaussian_pi
 from skopt.space import Real
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import ConstantKernel, Matern, WhiteKernel
 
 from core.sim.chem_functions import chem_eval_row
 from core.utils.bo_manual import safe_build_optimizer
+from core.utils.classroom_gp import fit_known_noise_gp_1d, predict_rescaled_gp
 from core.utils.hypervolume import hypervolume_2d
 from core.utils.init_designs import generate_initial_points
 from core.utils.knee import knee_index_2d
@@ -382,42 +382,6 @@ def _largest_gap_midpoint(existing_t: np.ndarray) -> float:
     return float((anchors[idx] + anchors[idx + 1]) / 2.0)
 
 
-def _extract_model_noise_variance(model) -> float:
-    """Best-effort extraction of WhiteKernel noise variance from a fitted GP model."""
-    # skopt wrappers sometimes expose estimated noise directly.
-    for attr in ("noise_", "noise"):
-        try:
-            v = float(getattr(model, attr))
-            if np.isfinite(v) and v >= 0.0:
-                return v
-        except Exception:
-            pass
-
-    def _scan_kernel(k) -> float | None:
-        if k is None:
-            return None
-        try:
-            if hasattr(k, "noise_level"):
-                v = float(getattr(k, "noise_level"))
-                if np.isfinite(v) and v >= 0.0:
-                    return v
-        except Exception:
-            pass
-        for child in (getattr(k, "k1", None), getattr(k, "k2", None)):
-            v = _scan_kernel(child)
-            if v is not None:
-                return v
-        return None
-
-    try:
-        kval = _scan_kernel(getattr(model, "kernel_", None))
-        if kval is not None:
-            return float(kval)
-    except Exception:
-        pass
-    return 0.0
-
-
 def _valid_1d_candidate_mask(
     t_grid: np.ndarray,
     observed_t: np.ndarray,
@@ -430,46 +394,44 @@ def _valid_1d_candidate_mask(
     return nearest > float(min_distance)
 
 
-def _fit_stable_1d_model(df_obs: pd.DataFrame) -> tuple[GaussianProcessRegressor, np.ndarray, np.ndarray]:
+def _fit_stable_1d_model(
+    df_obs: pd.DataFrame,
+    noise_sigma: float = 0.0,
+) -> tuple[GaussianProcessRegressor, np.ndarray, np.ndarray, float, float]:
     """
     Fit a stable GP for classroom intuition plots/suggestions.
 
-    We fix an extremely small noise level to avoid high-noise local optima that can
-    make uncertainty remain unrealistically wide at observed points in low-data cases.
+    The classroom treats the user-provided measurement sigma as a known observation
+    noise level instead of estimating it from sparse data. This keeps the behavior
+    stable while still letting the noise control affect the posterior and AF plots.
     """
     x_train = df_obs["Temperature"].to_numpy(dtype=float).reshape(-1, 1)
     y_train = -df_obs["MeasuredYield"].to_numpy(dtype=float)  # skopt AFs are minimization-oriented
-    kernel = (
-        ConstantKernel(1.0, (1e-3, 1e3))
-        * Matern(length_scale=12.0, length_scale_bounds=(1e-2, 1e3), nu=2.5)
-        + WhiteKernel(noise_level=1e-8, noise_level_bounds="fixed")
-    )
-    model = GaussianProcessRegressor(
-        kernel=kernel,
-        normalize_y=True,
-        alpha=1e-10,
-        n_restarts_optimizer=4,
+    model, y_mean, y_scale = fit_known_noise_gp_1d(
+        x_train=x_train,
+        y_train=y_train,
+        noise_sigma=float(noise_sigma),
         random_state=42,
     )
-    model.fit(x_train, y_train)
-    return model, x_train, y_train
+    return model, x_train, y_train, y_mean, y_scale
 
 
 def _suggest_unique_1d_temperature(
     df_obs: pd.DataFrame,
     acq_func: str,
+    noise_sigma: float = 0.0,
     gp_xi: float = 0.01,
     gp_kappa: float = 1.96,
     gp_resolution: int = 220,
 ) -> float:
     try:
-        model, _, y_train = _fit_stable_1d_model(df_obs)
+        model, _, y_train, y_mean, y_scale = _fit_stable_1d_model(df_obs, noise_sigma=noise_sigma)
     except Exception:
         return _largest_gap_midpoint(df_obs["Temperature"].to_numpy(dtype=float))
 
     t_grid = np.linspace(20.0, 120.0, int(max(80, gp_resolution)))
     xt = t_grid.reshape(-1, 1)
-    y_opt = float(np.min(np.asarray(y_train, dtype=float)))
+    y_opt = float((np.min(np.asarray(y_train, dtype=float)) - y_mean) / y_scale)
 
     acq = str(acq_func).upper()
     if acq == "PI":
@@ -509,6 +471,7 @@ def _advance_1d_campaign(campaign: dict[str, object], n_steps: int) -> dict[str,
         t_next = _suggest_unique_1d_temperature(
             df_obs,
             acq_func=acq_func,
+            noise_sigma=noise_sigma,
             gp_xi=gp_xi,
             gp_kappa=gp_kappa,
             gp_resolution=gp_resolution,
@@ -550,7 +513,10 @@ def _fit_1d_gp_result(campaign: dict[str, object]) -> dict[str, object]:
             "error": "Need at least 3 unique observations to fit a stable 1D GP. Try increasing points or changing seed."
         }
     try:
-        model, x_train, y_train = _fit_stable_1d_model(df_obs)
+        model, x_train, y_train, y_mean, y_scale = _fit_stable_1d_model(
+            df_obs,
+            noise_sigma=noise_sigma,
+        )
     except Exception as ex:
         return {"error": f"Could not fit the 1D GP model. Technical detail: {ex}"}
 
@@ -559,24 +525,18 @@ def _fit_1d_gp_result(campaign: dict[str, object]) -> dict[str, object]:
     # Include observed temperatures explicitly so uncertainty minima are visible at measured points.
     t_grid = np.sort(np.unique(np.concatenate([base_grid, obs_t])))
     xt = t_grid.reshape(-1, 1)
-    mu, std = model.predict(xt, return_std=True)
-    mu = np.asarray(mu, dtype=float).reshape(-1)
-    std = np.asarray(std, dtype=float).reshape(-1)
+    mu, std = predict_rescaled_gp(model, xt, y_mean=y_mean, y_scale=y_scale)
     if mu.shape[0] != t_grid.shape[0] or std.shape[0] != t_grid.shape[0]:
         return {"error": "GP output shape mismatch. Try a different configuration."}
 
-    # Use epistemic uncertainty for visualization by removing the fitted noise floor.
-    noise_var = _extract_model_noise_variance(model)
-    std_ep = np.sqrt(np.clip(std**2 - float(noise_var), 0.0, None))
-
     mean_y = -mu
-    lo_y = mean_y - 1.96 * std_ep
-    hi_y = mean_y + 1.96 * std_ep
+    lo_y = mean_y - 1.96 * std
+    hi_y = mean_y + 1.96 * std
     true_grid = np.array(
         [float(chem_eval_row([float(t), float(fixed_catalyst)], mode="basic")) for t in t_grid],
         dtype=float,
     )
-    y_opt = float(np.min(np.asarray(y_train, dtype=float)))
+    y_opt = float((np.min(np.asarray(y_train, dtype=float)) - y_mean) / y_scale)
 
     if af_choice == "PI":
         af_values = gaussian_pi(xt, model, y_opt=y_opt, xi=gp_xi)
@@ -599,8 +559,8 @@ def _fit_1d_gp_result(campaign: dict[str, object]) -> dict[str, object]:
     nearest_dist = np.min(np.abs(t_grid.reshape(-1, 1) - obs_t.reshape(1, -1)), axis=1)
     near_mask = nearest_dist <= 5.0
     far_mask = nearest_dist >= 15.0
-    near_std = float(np.mean(std_ep[near_mask])) if np.any(near_mask) else float("nan")
-    far_std = float(np.mean(std_ep[far_mask])) if np.any(far_mask) else float("nan")
+    near_std = float(np.mean(std[near_mask])) if np.any(near_mask) else float("nan")
+    far_std = float(np.mean(std[far_mask])) if np.any(far_mask) else float("nan")
 
     return {
         "df_obs": df_obs,
@@ -1219,7 +1179,10 @@ def _module_learn(teach_mode: str) -> None:
                 max_value=8.0,
                 step=0.1,
                 key="learn_gp_noise_input",
-                help="Standard deviation of simulated measurement noise added to observed objective function (yield).",
+                help=(
+                    "Standard deviation of simulated measurement noise added to observed objective "
+                    "function (yield). The classroom GP uses this same value as a fixed observation-noise assumption."
+                ),
             )
         with gp_col3:
             gp_seed = st.number_input(
@@ -1261,6 +1224,11 @@ def _module_learn(teach_mode: str) -> None:
                 help="Exploration weight for LCB. Higher kappa increases exploration.",
             )
         submitted = st.form_submit_button("Initialize/Re-run 1D GP Campaign")
+
+    st.caption(
+        "Noise note: this classroom view uses the chosen sigma as a fixed known measurement-noise level "
+        "instead of estimating noise from a small dataset."
+    )
 
     if submitted:
         try:
@@ -2363,8 +2331,12 @@ def _module_mo(teach_mode: str) -> None:
         paragraphs=[
             "Use the same 4D flow-reaction setup as in Chemist Workflow.",
             "Explore the tradeoff between objective function (yield) and productivity.",
+            "This classroom module uses a yield-driven BO campaign to generate candidate conditions, then analyzes the resulting tradeoffs with Pareto tools.",
         ],
-        note="There is no single universal best point; you choose a compromise based on project priorities.",
+        note=(
+            "Focus of this section: decision-making on a tradeoff front. It is not a dedicated multiobjective "
+            "acquisition algorithm."
+        ),
     )
     with st.expander("Theory: why there is no single best point in MO", expanded=False):
         st.markdown(
@@ -2372,6 +2344,7 @@ def _module_mo(teach_mode: str) -> None:
 A point is Pareto-optimal if no other point is better in all objectives simultaneously.
 
 So multiobjective optimization returns a **front of tradeoffs**, not one universal optimum.
+- In this classroom page, the simulated campaign is generated by yield-driven BO and then interpreted with Pareto analysis.
 - Hypervolume: how much objective space is dominated by the front (larger is better).
 - Knee point: region where small gain in one objective causes large loss in another.
 - Weighted scoring is a decision policy, not a universal truth.
@@ -2402,7 +2375,7 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
                 "Chemistry interpretation: changing weights changes business/science priorities, so recommendation is policy-dependent."
             )
 
-    m1, m2, m3 = st.columns(3)
+    m1, m2, m3, m4 = st.columns(4)
     with m1:
         mo_total_iters = st.number_input(
             "Total iterations",
@@ -2426,7 +2399,7 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             key="mo_init_method",
         )
         mo_acq = st.selectbox(
-            "Acquisition",
+            "Acquisition (yield-driven BO)",
             ["EI", "PI", "LCB"],
             index=0,
             key="mo_acq",
@@ -2448,8 +2421,16 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             step=0.01,
             key="mo_fail",
         )
+    with m4:
+        mo_seed = st.number_input(
+            "Seed",
+            min_value=0,
+            max_value=9999,
+            value=int(st.session_state.get("mo_seed", st.session_state.get("mo_seed_internal", 99))),
+            key="mo_seed",
+        )
+        st.caption("Reproducibility control for the simulated campaign.")
 
-    mo_seed = int(st.session_state.get("mo_seed_internal", 99))
     rec_low, rec_high, rec_text = recommend_n_init_range(
         4,
         total_budget=int(mo_total_iters),
@@ -2465,8 +2446,13 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             "for this 4-variable multiobjective setup under the selected budget/noise settings."
         )
 
-    if st.button("Run simulated MO campaign", key="mo_generate"):
-        rng = np.random.default_rng(mo_seed)
+    st.caption(
+        "Simulation note: BO suggestions in this classroom module are optimized on yield only; "
+        "Pareto, hypervolume, and knee-point tools are then applied to the resulting yield/productivity tradeoffs."
+    )
+
+    if st.button("Run simulated campaign for Pareto analysis", key="mo_generate"):
+        rng = np.random.default_rng(int(mo_seed))
         space = [
             ("Temperature", 20.0, 120.0, "C", "continuous"),
             ("Catalyst", 0.0, 1.0, "fraction", "continuous"),
@@ -2484,7 +2470,7 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             space,
             int(mo_n_init),
             method=str(mo_init_label).lower().replace(" ", "_"),
-            seed=mo_seed,
+            seed=int(mo_seed),
         )
 
         rows: list[dict] = []
