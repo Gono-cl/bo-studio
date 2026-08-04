@@ -10,14 +10,29 @@ from skopt.space import Real, Categorical
 
 from ui.components import data_editor
 from core.utils.bo_manual import safe_build_optimizer, force_model_based
+from core.utils.manual_campaign import campaign_has_started, validate_initial_results
 from core.utils.init_designs import generate_initial_points
 from core.utils.n_init_guidance import recommend_n_init_range, format_n_init_range
 from ui.charts import Charts
 
 
 def render_setup_and_initials() -> None:
+    settings_locked = campaign_has_started(
+        manual_initialized=bool(st.session_state.get("manual_initialized")),
+        manual_data=st.session_state.get("manual_data", []),
+        suggestions=st.session_state.get("suggestions", []),
+        iteration=int(st.session_state.get("iteration", 0)),
+        next_suggestion_cached=st.session_state.get("next_suggestion_cached"),
+    )
+
     with st.container(border=True):
         st.markdown("### Experiment Setup")
+        if settings_locked:
+            st.info(
+                "Campaign-defining settings are locked after initialization. "
+                "Reset the campaign to change variables, objective, BO policy, or seed. "
+                "You may still change total iterations."
+            )
         col5, col6 = st.columns(2)
         with col5:
             # Build dynamic list of available responses: defaults + any existing numeric columns in data
@@ -26,7 +41,13 @@ def render_setup_and_initials() -> None:
             if st.session_state.get("manual_data"):
                 try:
                     df_tmp = pd.DataFrame(st.session_state.manual_data)
-                    existing_cols = [c for c in df_tmp.columns if c not in [name for name, *_ in st.session_state.manual_variables]]
+                    variable_names = [name for name, *_ in st.session_state.manual_variables]
+                    existing_cols = [
+                        c
+                        for c in df_tmp.columns
+                        if c not in variable_names
+                        and pd.to_numeric(df_tmp[c], errors="coerce").notna().any()
+                    ]
                 except Exception:
                     existing_cols = []
             # Include any previously defined custom objectives
@@ -43,15 +64,24 @@ def render_setup_and_initials() -> None:
             default_resp = st.session_state.get("response", "Yield")
             if default_resp not in options:
                 options.insert(0, default_resp)
-            response = st.selectbox("Response to Optimize", options, index=options.index(default_resp))
+            response = st.selectbox(
+                "Response to Optimize",
+                options,
+                index=options.index(default_resp),
+                disabled=settings_locked,
+            )
             st.session_state.response = response
             st.caption("If the objective is not in the list, create your own objective below.")
             col_obj1, col_obj2 = st.columns([3, 1])
             with col_obj1:
-                new_obj = st.text_input("New objective name", key="so_custom_obj_name")
+                new_obj = st.text_input(
+                    "New objective name",
+                    key="so_custom_obj_name",
+                    disabled=settings_locked,
+                )
             with col_obj2:
                 st.markdown("&nbsp;", unsafe_allow_html=True)
-                add_obj = st.button("Add Objective", key="so_add_custom_obj")
+                add_obj = st.button("Add Objective", key="so_add_custom_obj", disabled=settings_locked)
             if add_obj:
                 obj_name = (new_obj or "").strip()
                 if not obj_name:
@@ -70,6 +100,7 @@ def render_setup_and_initials() -> None:
                 max_value=50,
                 key="n_init",
                 help="Number of initial design points collected before BO suggestions dominate.",
+                disabled=settings_locked,
             )
             st.number_input("Total Iterations", min_value=1, max_value=100, key="total_iters")
 
@@ -98,12 +129,22 @@ def render_setup_and_initials() -> None:
                 init_index = init_keys.index(default_init)
             except ValueError:
                 init_index = 0
-            init_choice = st.selectbox("Initialization Method", init_options, index=init_index)
+            init_choice = st.selectbox(
+                "Initialization Method",
+                init_options,
+                index=init_index,
+                disabled=settings_locked,
+            )
             st.session_state.init_method = init_keys[init_options.index(init_choice)]
         with col8:
             acq_options = ["EI", "PI", "LCB"]
             default_acq = st.session_state.get("acq_func", "EI")
-            st.session_state.acq_func = st.selectbox("Acquisition Function", acq_options, index=acq_options.index(default_acq))
+            st.session_state.acq_func = st.selectbox(
+                "Acquisition Function",
+                acq_options,
+                index=acq_options.index(default_acq),
+                disabled=settings_locked,
+            )
         with col9:
             st.number_input(
                 "Optimizer Seed",
@@ -111,6 +152,7 @@ def render_setup_and_initials() -> None:
                 max_value=9999,
                 key="bo_seed",
                 help="Controls reproducibility of initialization design and BO suggestion sequence.",
+                disabled=settings_locked,
             )
 
         col10, col11 = st.columns(2)
@@ -122,6 +164,7 @@ def render_setup_and_initials() -> None:
                 step=0.01,
                 key="acq_xi",
                 help="Higher xi increases exploration pressure for EI/PI.",
+                disabled=settings_locked,
             )
         with col11:
             st.number_input(
@@ -131,6 +174,7 @@ def render_setup_and_initials() -> None:
                 step=0.1,
                 key="acq_kappa",
                 help="Higher kappa increases exploration pressure for LCB.",
+                disabled=settings_locked,
             )
 
         # Direction of optimization (single objective)
@@ -138,9 +182,10 @@ def render_setup_and_initials() -> None:
             "Direction",
             ["Maximize", "Minimize"],
             index=["Maximize", "Minimize"].index(st.session_state.get("response_direction", "Maximize")),
+            disabled=settings_locked,
         )
 
-        if st.button("Suggest Initial Experiments"):
+        if st.button("Suggest Initial Experiments", disabled=settings_locked):
             if st.session_state.manual_initialized and st.session_state.manual_data:
                 st.info("Already initialized (possibly via reuse). Use Get Next Suggestion to continue.")
             elif not st.session_state.manual_variables:
@@ -203,39 +248,28 @@ def render_setup_and_initials() -> None:
 
         if st.button("Submit Initial Results"):
             if edited_df_init is not None:
-                st.session_state.edited_initial_df = edited_df_init.copy()
-                st.session_state.submitted_initial = True
+                try:
+                    validated_rows = validate_initial_results(
+                        edited_df_init.copy(),
+                        st.session_state.manual_variables,
+                        st.session_state.response,
+                    )
+                except ValueError as ex:
+                    st.error(str(ex))
+                else:
+                    resp = st.session_state.response
+                    for x, y_val, row_data in validated_rows:
+                        observed = -y_val if st.session_state.get("response_direction", "Maximize") == "Maximize" else y_val
+                        st.session_state.manual_optimizer.observe(x, observed)
+                        row_data["Timestamp"] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+                        st.session_state.manual_data.append(row_data)
+
+                    st.session_state.iteration += len(validated_rows)
+                    st.session_state.suggestions = []
+                    st.session_state.initial_results_submitted = True
+                    st.session_state.submitted_initial = False
+                    st.session_state.edited_initial_df = None
+                    force_model_based(st.session_state.manual_optimizer)
+                    st.success("Initial results submitted successfully.")
             else:
                 st.error("Please fill in the table before submitting.")
-
-    if st.session_state.get("submitted_initial") and st.session_state.get("edited_initial_df") is not None:
-        valid_rows = 0
-        resp = st.session_state.response
-        for _, row in st.session_state.edited_initial_df.iterrows():
-            value = row.get(resp)
-            if value is None or str(value).strip() == "":
-                continue
-            try:
-                y_val = float(value)
-                x = [row[name] for name, *_ in st.session_state.manual_variables]
-                # Convert to minimization for skopt: if maximizing, pass -y; if minimizing, pass +y
-                observed = -y_val if st.session_state.get("response_direction", "Maximize") == "Maximize" else y_val
-                st.session_state.manual_optimizer.observe(x, observed)
-                row_data = row.to_dict()
-                row_data[resp] = y_val
-                row_data["Timestamp"] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-                st.session_state.manual_data.append(row_data)
-                valid_rows += 1
-            except ValueError:
-                st.error(f"Invalid number format: {value}")
-                st.stop()
-
-        if valid_rows < len(st.session_state.edited_initial_df):
-            st.warning(f"Only {valid_rows} of {len(st.session_state.edited_initial_df)} experiments had valid results.")
-            st.stop()
-
-        st.session_state.iteration += valid_rows
-        st.session_state.suggestions = []
-        st.session_state.initial_results_submitted = True
-        st.session_state.submitted_initial = False
-        force_model_based(st.session_state.manual_optimizer)

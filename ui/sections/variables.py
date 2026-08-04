@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from ui.components import data_editor
+from core.utils.manual_campaign import campaign_has_started
 
 
 def render_variables_section() -> None:
@@ -17,22 +18,38 @@ def render_variables_section() -> None:
 
 
 def _render_variables_section_content() -> None:
-    st.session_state.var_type = st.selectbox("Variable Type", ["Continuous", "Categorical"], key="var_type_select")
+    variables_locked = campaign_has_started(
+        manual_initialized=bool(st.session_state.get("manual_initialized")),
+        manual_data=st.session_state.get("manual_data", []),
+        suggestions=st.session_state.get("suggestions", []),
+        iteration=int(st.session_state.get("iteration", 0)),
+        next_suggestion_cached=st.session_state.get("next_suggestion_cached"),
+    )
+
+    if variables_locked:
+        st.info("Variables are locked after the campaign starts. Reset the campaign to change the search space.")
+
+    st.session_state.var_type = st.selectbox(
+        "Variable Type",
+        ["Continuous", "Categorical"],
+        key="var_type_select",
+        disabled=variables_locked,
+    )
 
     with st.form("manual_var_form"):
         col1, col2, col3 = st.columns([2, 2, 1])
         with col1:
-            var_name = st.text_input("Variable Name")
+            var_name = st.text_input("Variable Name", disabled=variables_locked)
         with col2:
             if st.session_state.var_type == "Continuous":
-                lower = st.number_input("Lower Bound", value=0.0, format="%.4f")
-                upper = st.number_input("Upper Bound", value=1.0, format="%.4f")
+                lower = st.number_input("Lower Bound", value=0.0, format="%.4f", disabled=variables_locked)
+                upper = st.number_input("Upper Bound", value=1.0, format="%.4f", disabled=variables_locked)
             else:
-                categories = st.text_input("Categories (comma-separated)", value="Type")
+                categories = st.text_input("Categories (comma-separated)", value="Type", disabled=variables_locked)
         with col3:
-            unit = st.text_input("Unit")
+            unit = st.text_input("Unit", disabled=variables_locked)
 
-        add_var = st.form_submit_button("Add Variable")
+        add_var = st.form_submit_button("Add Variable", disabled=variables_locked)
         if add_var and var_name:
             if st.session_state.var_type == "Continuous" and lower < upper:
                 st.session_state.manual_variables.append((var_name, lower, upper, unit, "continuous"))
@@ -78,6 +95,7 @@ def _render_variables_section_content() -> None:
             edited_cont_df = data_editor(
                 pd.DataFrame(continuous_rows),
                 key="edit_variables_cont_editor",
+                editable=not variables_locked,
                 hide_index=True,
                 num_rows="fixed",
             )
@@ -86,6 +104,7 @@ def _render_variables_section_content() -> None:
             edited_cat_df = data_editor(
                 pd.DataFrame(categorical_rows),
                 key="edit_variables_cat_editor",
+                editable=not variables_locked,
                 hide_index=True,
                 num_rows="fixed",
             )
@@ -94,12 +113,13 @@ def _render_variables_section_content() -> None:
             "Select a Variable to Delete",
             options=["None"] + [v[0] for v in st.session_state.manual_variables],
             key="delete_var_in_edit_form",
+            disabled=variables_locked,
         )
         action_col1, action_col2 = st.columns(2)
         with action_col1:
-            save_variable_changes = st.form_submit_button("Save Variable Changes")
+            save_variable_changes = st.form_submit_button("Save Variable Changes", disabled=variables_locked)
         with action_col2:
-            delete_variable_changes = st.form_submit_button("Delete Variable")
+            delete_variable_changes = st.form_submit_button("Delete Variable", disabled=variables_locked)
 
     if delete_variable_changes:
         if delete_var_in_form != "None":

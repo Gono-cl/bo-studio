@@ -14,6 +14,7 @@ import streamlit as st
 from ui.components import data_editor, display_dataframe
 from ui.charts import Charts
 from core.utils.bo_manual import next_unique_suggestion, rebuild_optimizer_from_df
+from core.utils.manual_campaign import parse_required_result_text
 from core.utils import db_handler
 
 
@@ -104,15 +105,21 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
             st.caption("Run this proposed experiment in the lab/simulator, then enter the measured objective value.")
             next_row = {name: val for (name, *_), val in zip(st.session_state.manual_variables, st.session_state.next_suggestion_cached)}
             display_dataframe(pd.DataFrame([next_row]), key="next_row_df")
-            result = st.number_input(
+            result_text = st.text_input(
                 f"Result for {st.session_state.response} (Experiment {st.session_state.iteration + 1})",
                 key=f"next_result_{st.session_state.iteration}",
+                placeholder="Enter the measured value",
             )
             if st.button("Submit Result"):
-                st.success("Result submitted. Press 'Get Next Suggestion' for the next point. Charts update automatically.")
-                if pd.notnull(result):
+                try:
+                    y_val = parse_required_result_text(
+                        result_text,
+                        field_label=f"{st.session_state.response} for experiment {st.session_state.iteration + 1}",
+                    )
+                except ValueError as ex:
+                    st.error(str(ex))
+                else:
                     x = [next_row[name] for name, *_ in st.session_state.manual_variables]
-                    y_val = float(result)
                     observed = -y_val if st.session_state.get("response_direction", "Maximize") == "Maximize" else y_val
                     st.session_state.manual_optimizer.observe(x, observed)
                     row_data = {**next_row}
@@ -121,6 +128,7 @@ def render_interact_and_complete(user_save_dir: str, experiment_name: str, exper
                     st.session_state.manual_data.append(row_data)
                     st.session_state.iteration += 1
                     st.session_state.next_suggestion_cached = None
+                    st.success("Result submitted. Press 'Get Next Suggestion' for the next point. Charts update automatically.")
 
     if st.session_state.iteration >= st.session_state.total_iters and st.session_state.total_iters > 0:
         with st.container(border=True):

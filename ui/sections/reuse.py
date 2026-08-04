@@ -12,6 +12,7 @@ import streamlit as st
 
 from ui.components import data_editor
 from core.utils.bo_manual import unionize_bounds, rebuild_optimizer_from_df
+from core.utils.manual_campaign import campaign_has_started
 
 
 def render_reuse_seeds(user_save_dir: str, target=None, show_divider: bool = True) -> None:
@@ -19,6 +20,17 @@ def render_reuse_seeds(user_save_dir: str, target=None, show_divider: bool = Tru
     if show_divider:
         target.markdown("---")
     target.subheader("Reuse Previous SO Campaign as Seeds")
+
+    reuse_locked = campaign_has_started(
+        manual_initialized=bool(st.session_state.get("manual_initialized")),
+        manual_data=st.session_state.get("manual_data", []),
+        suggestions=st.session_state.get("suggestions", []),
+        iteration=int(st.session_state.get("iteration", 0)),
+        next_suggestion_cached=st.session_state.get("next_suggestion_cached"),
+    )
+    if reuse_locked:
+        target.caption("Reuse is disabled after a campaign starts. Reset the campaign to import seeds from another run.")
+        return
 
     _reuse_options = ["None"] + [d for d in os.listdir(user_save_dir) if os.path.isdir(os.path.join(user_save_dir, d))]
     reuse_campaign = target.selectbox(
