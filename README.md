@@ -90,10 +90,6 @@ The full step-by-step walkthrough is documented in `docs/EXAMPLE_WORKFLOW.md`.
 
 For most end users, the recommended route is to download a prebuilt Windows release instead of building the app locally.
 
-Download:
-
-- Cloud release folder: `<add-public-download-link-here>`
-
 After downloading, run:
 
 `dist\BenchBO\BenchBO.exe`
