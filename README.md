@@ -1,5 +1,7 @@
 # BenchBO
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21808694.svg)](https://doi.org/10.5281/zenodo.21808694)
+
 ![BenchBO logo](images/benchbo_logo_lockup_tight.png)
 
 *A chemistry-first platform for Bayesian Optimization*
@@ -167,7 +169,12 @@ See `PACKAGING.md` for packaging details.
 
 ## Citation
 
-If you use BenchBO in teaching, research, or experimental workflow development, cite the software release described in `CITATION.cff`.
+If you use BenchBO in teaching, research, or experimental workflow development, cite the archived software release described in `CITATION.cff`.
+
+Current Zenodo identifiers:
+
+- Version DOI for `v0.1.0`: [10.5281/zenodo.21808695](https://doi.org/10.5281/zenodo.21808695)
+- Concept DOI for all BenchBO versions: [10.5281/zenodo.21808694](https://doi.org/10.5281/zenodo.21808694)
 
 For release archiving and DOI preparation, see `docs/PUBLICATION_CHECKLIST.md`.
 
