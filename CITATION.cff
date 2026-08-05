@@ -3,7 +3,7 @@ message: "If you use BenchBO, please cite this software."
 title: "BenchBO"
 type: software
 version: "0.1.0"
-date-released: 2026-02-20
+date-released: 2026-08-05
 authors:
-  - name: "BenchBO Contributors"
+  - name: "Gonzalo Araya Vargas"
 abstract: "A local-first application for Bayesian Optimization workflows in chemistry and experimental research."
