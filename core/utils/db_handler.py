@@ -1,6 +1,6 @@
-# db_handler.py
 import sqlite3
 import json
+from io import StringIO
 import pandas as pd
 from datetime import datetime
 import os
@@ -8,6 +8,25 @@ from core.utils.app_paths import get_db_path
 
 DB_NAME = str(get_db_path())
 os.makedirs(os.path.dirname(DB_NAME), exist_ok=True)
+
+
+def _safe_json_load(text, default):
+    if not text:
+        return default
+    try:
+        return json.loads(text)
+    except Exception:
+        return default
+
+
+def _safe_read_results_json(text):
+    if not text:
+        return pd.DataFrame()
+    try:
+        return pd.read_json(StringIO(text), orient="records")
+    except ValueError:
+        return pd.DataFrame()
+
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
@@ -27,6 +46,7 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+
 
 def save_experiment(user_email, name, notes, variables, df_results, best_result, settings):
     conn = sqlite3.connect(DB_NAME)
@@ -58,6 +78,7 @@ def save_experiment(user_email, name, notes, variables, df_results, best_result,
     conn.commit()
     conn.close()
 
+
 def list_experiments(user_email):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -65,6 +86,7 @@ def list_experiments(user_email):
     rows = cursor.fetchall()
     conn.close()
     return rows
+
 
 def load_experiment(exp_id):
     conn = sqlite3.connect(DB_NAME)
@@ -79,25 +101,18 @@ def load_experiment(exp_id):
 
     if row:
         name, timestamp, notes, var_json, res_json, best_json, settings_json = row
-        # Load best_result as dict or list
-        if best_json:
-            try:
-                best_result = json.loads(best_json)
-            except Exception:
-                best_result = None
-        else:
-            best_result = None
         return {
             "name": name,
             "timestamp": timestamp,
             "notes": notes,
-            "variables": json.loads(var_json),
-            "df_results": pd.read_json(res_json, orient="records"),
-            "best_result": best_result,
-            "settings": json.loads(settings_json) if settings_json else None
+            "variables": _safe_json_load(var_json, []),
+            "df_results": _safe_read_results_json(res_json),
+            "best_result": _safe_json_load(best_json, None),
+            "settings": _safe_json_load(settings_json, {}),
         }
     else:
         return None
+
 
 def delete_experiments(exp_ids):
     conn = sqlite3.connect(DB_NAME)

@@ -10,6 +10,7 @@ from skopt.space import Real, Categorical
 from sklearn.preprocessing import LabelEncoder
 
 from ui.components import data_editor
+from core.utils import db_handler
 from core.utils.pareto import pareto_front_indices
 from core.utils.scalarization import sample_dirichlet_weights, weighted_sum, tchebycheff
 from core.utils.bo_manual import safe_build_optimizer, coerce_point_to_variables, next_unique_suggestion
@@ -61,6 +62,79 @@ def _build_scalarized_optimizer(weights: np.ndarray, method: str = "weighted_sum
                 s = weighted_sum(y_vec, weights)
             opt.observe(x, float(-s))  # maximize scalarization
     return opt
+
+
+def _compute_pareto_front_records(
+    df: pd.DataFrame,
+    objectives: list[str],
+    directions: dict[str, str],
+) -> list[dict]:
+    valid_objs = [obj for obj in objectives if obj in df.columns]
+    if len(valid_objs) < 2:
+        return []
+
+    df_pf = df.copy()
+    for obj in valid_objs:
+        df_pf[obj] = pd.to_numeric(df_pf[obj], errors="coerce")
+    df_pf = df_pf.dropna(subset=valid_objs).copy()
+    if df_pf.empty:
+        return []
+
+    signs = np.array(
+        [1.0 if directions.get(obj, "Maximize") == "Maximize" else -1.0 for obj in valid_objs],
+        dtype=float,
+    )
+    idx_pf = pareto_front_indices(df_pf[valid_objs].to_numpy(dtype=float) * signs)
+    return df_pf.iloc[idx_pf].to_dict("records")
+
+
+def _render_mo_completion(df: pd.DataFrame) -> None:
+    total_iters = int(st.session_state.get("mo_total_iters", 0) or 0)
+    current_iter = len(st.session_state.get("mo_data", []))
+    if total_iters <= 0 or current_iter < total_iters:
+        return
+
+    with st.container(border=True):
+        st.markdown("### Multiobjective Optimization Completed")
+        st.caption("Review final results, download CSV if needed, and save the campaign to the database.")
+        st.success("All configured MO iterations are completed.")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "Download MO Results as CSV",
+            data=csv,
+            file_name="multiobjective_optimization_results.csv",
+            mime="text/csv",
+        )
+
+        if st.button("Save to Database (MO)", key="mo_save_to_database"):
+            directions = st.session_state.get("mo_directions", {})
+            objectives = st.session_state.get("mo_objectives", [])
+            pareto_front = _compute_pareto_front_records(df, objectives, directions)
+            optimization_settings = {
+                "mode": "multiobjective",
+                "initial_experiments": int(st.session_state.get("mo_n_init", 0)),
+                "total_iterations": int(st.session_state.get("mo_total_iters", 0)),
+                "objectives": list(objectives),
+                "objective_directions": dict(directions),
+                "acq_func": st.session_state.get("acq_func", "EI"),
+                "acq_xi": float(st.session_state.get("acq_xi", 0.01)),
+                "acq_kappa": float(st.session_state.get("acq_kappa", 1.96)),
+                "init_method": st.session_state.get("mo_init_method", "lhs"),
+                "bo_seed": int(st.session_state.get("bo_seed", 42)),
+                "method": "Manual Multiobjective Bayesian Optimization",
+            }
+            db_handler.save_experiment(
+                user_email=st.session_state.get("user_email", "default_user"),
+                name=st.session_state.get("experiment_name", ""),
+                notes=st.session_state.get("experiment_notes", ""),
+                variables=st.session_state.get("manual_variables", []),
+                df_results=df,
+                best_result=pareto_front,
+                settings=optimization_settings,
+            )
+            st.success("MO experiment saved to database.")
 
 
 def _show_mo_progress_chart(df: pd.DataFrame, objectives: list[str]) -> None:
@@ -335,71 +409,76 @@ def render_mo_interact_and_pareto(user_save_dir: str):
             if len(st.session_state.get("mo_objectives", [])) < 2:
                 st.info("Select at least two objectives to continue the MO campaign.")
                 return
-            if total_iters > 0 and current_iter >= total_iters:
+            budget_reached = total_iters > 0 and current_iter >= total_iters
+            if budget_reached:
                 st.session_state.mo_pending_df = []
                 st.success(
                     f"MO campaign reached its configured budget of {total_iters} experiment(s). "
                     "Increase total iterations or reset the campaign to continue."
                 )
-                return
-            st.caption(f"Remaining MO budget: {max(0, total_iters - current_iter)} experiment(s).")
+            else:
+                st.caption(f"Remaining MO budget: {max(0, total_iters - current_iter)} experiment(s).")
 
-            # Build or render one pending suggestion persistently in session to survive reruns while editing
-            if st.button("Get Next MO Suggestion"):
-                m = len(st.session_state.mo_objectives)
-                seed = int(st.session_state.get("bo_seed", 42)) + int(len(st.session_state.get("mo_data", [])))
-                w = sample_dirichlet_weights(m, 1, seed=seed)[0]
-                opt = _build_scalarized_optimizer(w, method=method_key)
-                x = next_unique_suggestion(
-                    opt,
-                    st.session_state.manual_variables,
-                    st.session_state.get("mo_data", []),
-                    max_tries=120,
-                )
-                cols = [name for name, *_ in st.session_state.manual_variables]
-                df_sug = pd.DataFrame([dict(zip(cols, x))])
-                df_sug.insert(0, "Experiment", len(st.session_state.get("mo_data", [])) + 1)
-                df_res = df_sug.copy()
-                for obj in st.session_state.mo_objectives:
-                    df_res[obj] = None
-                st.session_state.mo_pending_df = df_res.to_dict("records")
-                st.session_state.pop("mo_single_result_editor", None)
-
-            # Render pending editor if exists
-            pending = st.session_state.get("mo_pending_df")
-            if pending:
-                df_pending = pd.DataFrame(pending)
-                st.markdown("#### Next Proposed Experiment")
-                variable_cols = [name for name, *_ in st.session_state.manual_variables if name in df_pending.columns]
-                disabled_cols = variable_cols + ["Experiment"]
-                with st.form("mo_single_result_form", clear_on_submit=False):
-                    edited = data_editor(
-                        df_pending,
-                        key="mo_single_result_editor",
-                        hide_index=True,
-                        num_rows="fixed",
-                        disabled=disabled_cols,
+            if not budget_reached:
+                # Build or render one pending suggestion persistently in session to survive reruns while editing
+                if st.button("Get Next MO Suggestion"):
+                    m = len(st.session_state.mo_objectives)
+                    seed = int(st.session_state.get("bo_seed", 42)) + int(len(st.session_state.get("mo_data", [])))
+                    w = sample_dirichlet_weights(m, 1, seed=seed)[0]
+                    opt = _build_scalarized_optimizer(w, method=method_key)
+                    x = next_unique_suggestion(
+                        opt,
+                        st.session_state.manual_variables,
+                        st.session_state.get("mo_data", []),
+                        max_tries=120,
                     )
-                    submit_mo_result = st.form_submit_button("Submit MO Result")
-
-                if submit_mo_result:
-                    df2 = edited.copy()
+                    cols = [name for name, *_ in st.session_state.manual_variables]
+                    df_sug = pd.DataFrame([dict(zip(cols, x))])
+                    df_sug.insert(0, "Experiment", len(st.session_state.get("mo_data", [])) + 1)
+                    df_res = df_sug.copy()
                     for obj in st.session_state.mo_objectives:
-                        series = df2[obj]
-                        if getattr(series, "dtype", None) == object:
-                            series = series.astype(str).str.replace(",", ".", regex=False)
-                        df2[obj] = pd.to_numeric(series, errors="coerce")
+                        df_res[obj] = None
+                    st.session_state.mo_pending_df = df_res.to_dict("records")
+                    st.session_state.pop("mo_single_result_editor", None)
 
-                    missing_objs = [obj for obj in st.session_state.mo_objectives if df2[obj].isna().any()]
-                    if missing_objs:
-                        st.error(
-                            "Please fill all objective values with numbers. "
-                            f"Missing/invalid: {', '.join(missing_objs)}."
+                # Render pending editor if exists
+                pending = st.session_state.get("mo_pending_df")
+                if pending:
+                    df_pending = pd.DataFrame(pending)
+                    st.markdown("#### Next Proposed Experiment")
+                    variable_cols = [name for name, *_ in st.session_state.manual_variables if name in df_pending.columns]
+                    disabled_cols = variable_cols + ["Experiment"]
+                    with st.form("mo_single_result_form", clear_on_submit=False):
+                        edited = data_editor(
+                            df_pending,
+                            key="mo_single_result_editor",
+                            hide_index=True,
+                            num_rows="fixed",
+                            disabled=disabled_cols,
                         )
-                    else:
-                        if "Experiment" in df2.columns:
-                            df2 = df2.drop(columns=["Experiment"])
-                        st.session_state.mo_data.extend(df2.to_dict("records"))
-                        st.session_state.mo_pending_df = []
-                        st.session_state.mo_iteration = len(st.session_state.mo_data)
-                        st.success("MO result submitted. Press 'Get Next MO Suggestion' for the next point.")
+                        submit_mo_result = st.form_submit_button("Submit MO Result")
+
+                    if submit_mo_result:
+                        df2 = edited.copy()
+                        for obj in st.session_state.mo_objectives:
+                            series = df2[obj]
+                            if getattr(series, "dtype", None) == object:
+                                series = series.astype(str).str.replace(",", ".", regex=False)
+                            df2[obj] = pd.to_numeric(series, errors="coerce")
+
+                        missing_objs = [obj for obj in st.session_state.mo_objectives if df2[obj].isna().any()]
+                        if missing_objs:
+                            st.error(
+                                "Please fill all objective values with numbers. "
+                                f"Missing/invalid: {', '.join(missing_objs)}."
+                            )
+                        else:
+                            if "Experiment" in df2.columns:
+                                df2 = df2.drop(columns=["Experiment"])
+                            st.session_state.mo_data.extend(df2.to_dict("records"))
+                            st.session_state.mo_pending_df = []
+                            st.session_state.mo_iteration = len(st.session_state.mo_data)
+                            st.success("MO result submitted. Press 'Get Next MO Suggestion' for the next point.")
+
+    if st.session_state.get("mo_data"):
+        _render_mo_completion(pd.DataFrame(st.session_state.get("mo_data", [])))
