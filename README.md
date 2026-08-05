@@ -1,6 +1,6 @@
 # BenchBO
 
-[![DOI](https://zenodo.org/badge/1023034369.svg)](https://doi.org/10.5281/zenodo.21808694)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21808695-0A7EC2?style=flat&logo=doi&logoColor=white)](https://doi.org/10.5281/zenodo.21808695)
 
 ![BenchBO logo](images/benchbo_logo_lockup_tight.png)
 
