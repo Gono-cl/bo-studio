@@ -1,9 +1,9 @@
 cff-version: 1.2.0
-message: "If you use BO Studio, please cite this software."
-title: "BO Studio"
+message: "If you use BenchBO, please cite this software."
+title: "BenchBO"
 type: software
 version: "0.1.0"
 date-released: 2026-02-20
 authors:
-  - name: "BO Studio Contributors"
+  - name: "BenchBO Contributors"
 abstract: "A local-first application for Bayesian Optimization workflows in chemistry and experimental research."

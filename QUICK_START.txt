@@ -1,0 +1,64 @@
+BenchBO - Quick Start
+=====================
+
+What this is
+------------
+BenchBO is a local application for Bayesian Optimization in chemistry-focused
+experimental workflows.
+
+No Python installation is required when you use the packaged Windows app.
+
+How to run
+----------
+1) Keep these together in the same folder:
+   - BenchBO.exe
+   - _internal (folder)
+2) Double-click BenchBO.exe.
+
+Recommended first run
+---------------------
+If you are new to BenchBO, start with the built-in classroom:
+
+1) Open "Bayesian Optimization Classroom" from the left navigation.
+2) Go to "4) Chemist Workflow".
+3) Leave the default settings unchanged.
+4) Click "Run simulated campaign".
+5) Then go to "5) Multiobjective Decisions".
+6) Keep the default fixed 0.50 / 0.50 weights.
+7) Click "Run simulated scalarized MO classroom campaign".
+
+This gives a complete first demonstration without needing external data or lab hardware.
+
+Main sections
+-------------
+- Home: overview of the software.
+- Single Objective Optimization: run one-objective BO campaigns.
+- Multi Objective Optimization: explore tradeoffs and Pareto behavior.
+- Data Analysis: compare and inspect campaign results.
+- Bayesian Optimization Classroom: guided BO learning path.
+- Experiment Database: browse and reuse stored experiments.
+
+Where your data is saved
+------------------------
+BenchBO saves data next to the executable folder:
+- resumable_manual_runs\   (saved campaigns)
+- data\experiments.db      (database)
+
+This means you can move or rename the whole app folder and keep your local data.
+
+Important
+---------
+- Do not move BenchBO.exe out of this folder alone.
+- Do not delete the _internal folder.
+- Share the whole folder (or a zip of it), not only BenchBO.exe.
+- If Windows SmartScreen warns, click "More info" and then "Run anyway" if the source is trusted.
+
+Troubleshooting
+---------------
+If something looks stale or inconsistent:
+1) Close all running BenchBO windows/processes.
+2) Relaunch BenchBO.exe.
+3) Retry the same sequence.
+
+If you are using the source version instead of the packaged app, launch with:
+python run_bo_studio.py

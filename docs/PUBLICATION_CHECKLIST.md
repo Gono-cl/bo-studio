@@ -1,45 +1,61 @@
-# Publication Checklist
+# JOSS Submission Checklist
 
-checklist before submitting BO Studio to a software journal .
+Checklist for submitting `BenchBO` to the Journal of Open Source Software (JOSS).
 
-## Repository and licensing
+This list is aligned with the current JOSS author and review guidance checked on August 4, 2026.
 
-- [ ] Public repository with stable default branch.
-- [ ] Open-source license file present (for example MIT, BSD-3-Clause, Apache-2.0).
-- [ ] Clear contribution guidelines and issue templates (optional but recommended).
+## Pre-review gates
 
-## Documentation quality
+- [ ] Repository has been public for more than 6 months before submission.
+- [ ] Public development history shows iterative work over time, not a short code dump.
+- [ ] The software is already used in research workflows, with evidence you can point to.
+- [ ] The repository is public, cloneable without registration, and has a public issue tracker.
+- [ ] The software is open source under an OSI-approved license.
 
-- [ ] `README.md` explains purpose, installation, and core workflows.
-- [ ] User documentation is complete (`docs/USER_GUIDE.md`).
-- [ ] Packaging instructions are reproducible (`PACKAGING.md`).
-- [ ] All key pages/features in the app are documented.
+## Open-source practice signals
 
-## Reproducibility and quality
+- [x] `LICENSE` is present.
+- [ ] `CONTRIBUTING.md` is present and reflects how outside users can contribute.
+- [ ] Tagged release exists for the submission version.
+- [ ] Changelog or release notes exist for the submission version.
+- [ ] Automated tests cover critical logic paths.
+- [ ] CI runs tests automatically on push and pull request.
 
-- [ ] Dependency versions are pinned where needed for reproducibility.
-- [ ] Basic automated tests exist for critical logic paths.
-- [ ] CI pipeline runs tests and basic checks on push/PR.
-- [ ] Example data or reproducible example workflow is included.
+## Documentation and reproducibility
 
-## Release preparation
+- [x] `README.md` explains purpose, installation, and main workflows.
+- [x] User-facing documentation exists (`docs/USER_GUIDE.md`).
+- [x] Packaging/build documentation exists (`PACKAGING.md`).
+- [ ] A fresh clone can be installed by following the documented steps exactly.
+- [ ] A reviewer can run the software locally without hidden credentials or manual patching.
+- [x] Example workflows are documented clearly enough for a reviewer to reproduce key outputs.
 
-- [ ] Create a tagged release in GitHub (or equivalent).
-- [ ] Update `CITATION.cff` with final author metadata and version.
-- [ ] Add release notes summarizing features and fixes.
-- [ ] Archive release and generate DOI (for example via Zenodo).
+## JOSS paper package
 
-## Journal submission package
+- [ ] Add `paper.md` and `paper.bib` to the repository.
+- [ ] `paper.md` includes: Summary, Statement of need, State of the field, Software design, Research impact statement, AI usage disclosure, Acknowledgements, and References.
+- [ ] The paper is about the software, not about new scientific results produced with it.
+- [ ] Related tools are compared fairly and specifically.
+- [ ] Research impact claims are backed by real usage, not future plans.
+- [ ] AI usage disclosure is complete and accurate for code, docs, and paper writing.
 
-- [ ] Statement of need is explicit and evidence-based.
-- [ ] Comparison with related tools is included.
-- [ ] Usage examples reflect realistic workflows.
-- [ ] References are complete and formatted.
-- [ ] Submission paper metadata matches repository metadata.
+## Metadata and release alignment
 
-## Final validation
+- [ ] `CITATION.cff` author list matches the JOSS paper author list.
+- [ ] `CITATION.cff` version matches the tagged release.
+- [ ] Release date metadata is correct.
+- [ ] Archive the release and mint a DOI (for example via Zenodo) before final publication.
 
-- [ ] Fresh clone install works using documented steps.
-- [ ] Windows executable build succeeds from scripts.
-- [ ] Core app flows run without manual patching.
-- [ ] A reviewer can follow docs and reproduce key outputs.
+## Final validation before submission
+
+- [ ] Run the local test suite successfully from a clean checkout.
+- [ ] Confirm the Windows executable build still succeeds from source.
+- [ ] Confirm the main Streamlit app flows work end-to-end on a clean machine.
+- [ ] Confirm any claims in the paper are directly supported by repo contents or cited references.
+
+## BenchBO specific notes
+
+- The repository currently still needs a JOSS paper package (`paper.md`, `paper.bib`).
+- Reviewer walkthrough is documented in `docs/EXAMPLE_WORKFLOW.md`.
+- Evidence of research use should be prepared before submission.
+- Tests and CI should exist before submission; reviewers now treat these as core good-practice signals.

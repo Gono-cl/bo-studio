@@ -74,6 +74,18 @@ Notes:
 - `python run_bo_studio.py` is the recommended launcher for normal local use.
 - When launched from a terminal, that terminal remains occupied while the Streamlit server is running.
 
+## First Reviewer Run
+
+For a no-credentials, no-lab-hardware verification path:
+
+1. Launch BenchBO.
+2. Open `Bayesian Optimization Classroom`.
+3. Run `4) Chemist Workflow` once with the default settings.
+4. Run `5) Multiobjective Decisions` once with fixed `0.50 / 0.50` weights.
+5. Confirm that tables, metrics, and plots are rendered in both sections.
+
+The full step-by-step walkthrough is documented in `docs/EXAMPLE_WORKFLOW.md`.
+
 ## Windows Desktop App
 
 For most end users, the recommended route is to download a prebuilt Windows release instead of building the app locally.
@@ -88,6 +100,7 @@ After downloading, run:
 
 Important:
 
+- The packaged app folder includes `QUICK_START.txt` for new users.
 - Share the whole portable app folder or a zip of it, not only `BenchBO.exe`.
 - Keep `BenchBO.exe` together with the bundled `_internal` folder.
 - No Python installation is required on the target machine.
@@ -131,8 +144,10 @@ See `PACKAGING.md` for packaging details.
 
 ## Documentation
 
-- GitHub Pages documentation: https://gono-cl.github.io/bo-studio/index.html
+- Optional GitHub Pages documentation mirror: https://gono-cl.github.io/bo-studio/index.html
+- Bundled executable guide: `QUICK_START.txt`
 - User guide: `docs/USER_GUIDE.md`
+- Example workflow: `docs/EXAMPLE_WORKFLOW.md`
 - Packaging guide: `PACKAGING.md`
 - Publication checklist: `docs/PUBLICATION_CHECKLIST.md`
 - Citation metadata: `CITATION.cff`

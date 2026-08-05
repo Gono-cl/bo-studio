@@ -21,6 +21,7 @@ Output:
 - `dist\BenchBO\BenchBO.exe`
 
 Users can run `BenchBO.exe` directly from that folder.
+The packaged folder also includes `QUICK_START.txt` for end users.
 
 ## Build installer `.exe`
 
@@ -38,6 +39,7 @@ Output:
 
 - Entry point is `run_bo_studio.py` (boots Streamlit app in desktop mode).
 - Packaging config is `BenchBO.spec`.
+- `QUICK_START.txt` is bundled into the portable app folder for end users.
 - If antivirus flags the binary, sign the executable/installer in your release process.
 - Rebuild after dependency changes or when adding new modules/assets.
 
