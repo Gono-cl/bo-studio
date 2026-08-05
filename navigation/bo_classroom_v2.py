@@ -13,11 +13,10 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from core.sim.chem_functions import chem_eval_row
 from core.utils.bo_manual import safe_build_optimizer
 from core.utils.classroom_gp import fit_known_noise_gp_1d, predict_rescaled_gp
-from core.utils.hypervolume import hypervolume_2d
 from core.utils.init_designs import generate_initial_points
-from core.utils.knee import knee_index_2d
 from core.utils.n_init_guidance import recommend_n_init_range, format_n_init_range
 from core.utils.pareto import pareto_front_indices
+from core.utils.scalarization import sample_dirichlet_weights, weighted_sum, tchebycheff
 
 
 MODULE_LABELS = [
@@ -153,7 +152,7 @@ def _render_classroom_guide(module_label: str, teach_mode: str) -> None:
         title="Guided Classroom Navigation",
         paragraphs=[
             "Use the sidebar Learning path panel to move through the modules in order.",
-            "Recommended sequence: BO Loop Primer -> Intuition -> Mechanics -> Workflow -> Multiobjective.",
+            "Recommended sequence: Optimization Problem -> Intuition -> Mechanics -> Workflow -> Multiobjective.",
         ],
         bullets=[
             "Beginner mode: concept-first explanations with lighter math.",
@@ -917,12 +916,13 @@ def _module_intro(teach_mode: str) -> None:
         paragraphs=[
             "DoE is statistically rigorous and very useful, but required runs can grow quickly with dimensionality and constraints.",
             "When each experiment is slow/expensive, fixed designs may be less practical than adaptive sequential decisions.",
+            "When the main goal is factor-effect estimation, interaction interpretation, robustness studies, or formal response-surface modeling, DoE often remains the stronger primary tool.",
         ],
         bullets=[
             "Strength: structured coverage and interaction estimation.",
             "Challenge: budget pressure in high-dimensional or iterative workflows.",
         ],
-        note="Many labs combine DoE principles with adaptive BO to reduce run count while keeping decision quality.",
+        note="Many labs combine DoE principles with adaptive BO: DoE for understanding and BO for efficient sequential optimization.",
         card_style=INTRO_CARD_DOE,
     )
 
@@ -940,7 +940,7 @@ def _module_intro(teach_mode: str) -> None:
             "Select the next experiment by balancing expected gain and information value.",
             "Update decisions after every new measured result.",
         ],
-        note="BO is data-driven and sequential: each new experiment is chosen using what has already been learned.",
+        note="BO is data-driven and sequential: each new experiment is chosen using what has already been learned, but a finite campaign still does not guarantee the true global optimum.",
         card_style=INTRO_CARD_BO,
     )
 
@@ -1065,7 +1065,7 @@ def _module_learn(teach_mode: str) -> None:
             st.write("Posterior mean and variance after t experiments:")
             st.latex(r"\mu_t(x)=k_t(x)^\top\left(K_t+\sigma_n^2 I\right)^{-1}y_t")
             st.latex(r"\sigma_t^2(x)=k(x,x)-k_t(x)^\top\left(K_t+\sigma_n^2 I\right)^{-1}k_t(x)")
-            st.write("Displayed uncertainty band:")
+            st.write("Displayed shaded band in this classroom plot:")
             st.latex(r"\mu_t(x)\pm 1.96\,\sigma_t(x)")
             st.write("Kernel example (RBF):")
             st.latex(r"k_{\mathrm{RBF}}(x,x')=\sigma_f^2\exp\!\left(-\frac{(x-x')^2}{2l^2}\right)")
@@ -1086,11 +1086,16 @@ def _module_learn(teach_mode: str) -> None:
                 """
 - mu_t(x): expected objective function (yield) at condition x.
 - sigma_t(x): epistemic uncertainty from limited observations.
+- sigma_n: assumed measurement-noise level in the observations.
 - Larger xi or kappa increases exploration pressure.
 """
             )
             st.markdown("**Practical takeaway**")
-            st.caption("In this app, optimization is implemented as minimization of negative objective function (yield); the plotted LCB score is sign-converted so larger score still means more preferred next experiment.")
+            st.caption(
+                "In this app, optimization is implemented as minimization of negative objective function (yield); "
+                "the plotted LCB score is sign-converted so larger score still means more preferred next experiment. "
+                "The shaded band is an approximate posterior interval for the latent response under the GP assumptions, not a guaranteed interval for future single noisy measurements."
+            )
             st.markdown("**Worked examples (step-by-step interpretation)**")
             st.caption("Shared setup: current best measured objective function (yield) is y+=80 and exploration margin is xi=1.")
 
@@ -1142,7 +1147,7 @@ def _module_learn(teach_mode: str) -> None:
     _render_info_card(
         title="Plot legend and controls",
         bullets=[
-            "GP plot: blue line = GP mean, blue band = uncertainty, black points = measured experiments.",
+            "GP plot: blue line = GP mean, blue band = approximate latent-response uncertainty under the GP model, black points = measured experiments.",
             "AF plot: red line = acquisition score, black diamond = current best next-run suggestion.",
             "Controls let you test how initialization, AF choice, and exploration strength affect BO behavior.",
         ],
@@ -1366,7 +1371,7 @@ def _module_learn(teach_mode: str) -> None:
                 fill="toself",
                 fillcolor="rgba(31,119,180,0.2)",
                 line=dict(color="rgba(255,255,255,0)"),
-                name="95% uncertainty",
+                name="Approx. 95% posterior interval",
                 hoverinfo="skip",
             )
         )
@@ -1387,6 +1392,10 @@ def _module_learn(teach_mode: str) -> None:
             margin=dict(l=20, r=20, t=50, b=20),
         )
         st.plotly_chart(fig_gp, use_container_width=True)
+        st.caption(
+            "Interpretation note: the shaded band reflects model-based posterior uncertainty about the latent response in this 1D slice. "
+            "Individual future noisy measurements may fall outside the band."
+        )
 
         fig_af = go.Figure()
         fig_af.add_trace(
@@ -1428,7 +1437,7 @@ def _module_learn(teach_mode: str) -> None:
         best_obs_y = float(df_obs.iloc[best_obs_idx]["MeasuredYield"]) if len(df_obs) else float("nan")
         explanation_bullets = [
             f"Current acquisition strategy: {af_choice}. Suggested next run is near Temperature={af_peak_t:.2f} C.",
-            f"Current uncertainty snapshot: near sampled temperatures ~{near_std:.2f}, far from sampled temperatures ~{far_std:.2f}.",
+            f"Current posterior-uncertainty snapshot: near sampled temperatures ~{near_std:.2f}, far from sampled temperatures ~{far_std:.2f}.",
             f"Best measured objective so far: ~{best_obs_y:.2f} at Temperature={best_obs_t:.2f} C.",
         ]
 
@@ -1555,9 +1564,9 @@ Initialization controls what the model knows at the beginning:
 - Clumped points create blind spots and unreliable uncertainty.
 
 Acquisition controls what BO does next:
-- EI balances expected gain and uncertainty.
-- PI prefers high-probability local improvements.
-- LCB tends to sample farther from known points to reduce uncertainty.
+- EI rewards expected improvement, combining mean and uncertainty.
+- PI rewards the chance of any improvement and can be more locally exploitative.
+- LCB/UCB ranks points using both mean and uncertainty; with larger kappa it more strongly favors uncertain regions, not simply the farthest point.
 """
         )
     _render_info_card(
@@ -1565,7 +1574,7 @@ Acquisition controls what BO does next:
         paragraphs=[
             "In the Intuition section, you learned how the Gaussian Process and Acquisition Function work together to define the next experiment to run.",
             "That 1D view fixed one variable to simplify interpretation, but real chemistry campaigns typically optimize multiple variables simultaneously with explicit bounds that define the search space.",
-            "In this section, we focus on critical campaign parameters and how they affect optimization of the objective function (yield), especially the number of experiments required to approach the global optimum in the defined space.",
+            "In this section, we focus on critical campaign parameters and how they affect optimization of the objective function (yield), especially the number of experiments required to find high-performing conditions within the defined search space.",
         ],
         note="Goal: understand which settings accelerate convergence and which settings waste budget.",
     )
@@ -1612,7 +1621,7 @@ Acquisition controls what BO does next:
             st.write("Broader initial spacing reduces blind spots, and acquisition hyperparameters xi/kappa control risk appetite in the next run choice.")
             st.markdown("**Practical takeaway**")
             st.caption(
-                "Larger spread metrics generally indicate better initial coverage and more reliable uncertainty estimates."
+                "Larger spread metrics generally indicate better initial coverage and more reliable uncertainty estimates, but they do not guarantee the best final campaign."
             )
 
     with st.container(border=True):
@@ -1967,6 +1976,36 @@ def _workflow_productivity(
     return float(np.clip(prod, 0.0, 120.0))
 
 
+def _workflow_purity(
+    yield_pct: float,
+    temperature: float,
+    catalyst: float,
+    pressure: float,
+    residence_time_s: float,
+) -> float:
+    """
+    Synthetic purity proxy for teaching tradeoffs:
+    - Mild/moderate conditions favor selectivity and suppress byproducts,
+    - Harsher conditions can improve yield but often lower purity,
+    - The resulting objective is intentionally less correlated with yield than productivity.
+    """
+    t = (float(temperature) - 68.0) / 14.0
+    c = (float(catalyst) - 0.28) / 0.12
+    p = (float(pressure) - 7.5) / 4.0
+    r = (float(residence_time_s) - 105.0) / 40.0
+
+    selectivity_peak = 24.0 * np.exp(-(t**2) - 0.9 * (c**2) - 0.5 * (p**2) - 0.7 * (r**2))
+    severity_penalty = (
+        14.0 * max(0.0, (float(temperature) - 78.0) / 22.0) ** 2
+        + 11.0 * max(0.0, (float(catalyst) - 0.42) / 0.16) ** 2
+        + 8.0 * max(0.0, (float(pressure) - 13.0) / 4.2) ** 2
+        + 10.0 * max(0.0, (float(residence_time_s) - 145.0) / 55.0) ** 2
+    )
+
+    purity = 58.0 + 0.12 * float(yield_pct) + selectivity_peak - severity_penalty
+    return float(np.clip(purity, 0.0, 100.0))
+
+
 def _module_workflow(teach_mode: str) -> None:
     st.subheader("4) Chemist Workflow")
     with st.expander("Theory: why real lab campaigns look messy", expanded=False):
@@ -1980,10 +2019,21 @@ Real campaigns differ from ideal optimization because:
 BO still works by updating only on valid observations and continuously re-ranking where information value is highest.
 """
         )
+    _render_info_card(
+        title="Important simplification in this workflow demo",
+        paragraphs=[
+            "Failed runs in this classroom simulator consume budget but are excluded from surrogate updates.",
+            "That is a reasonable teaching simplification, but real BO workflows can model feasibility or outcome constraints explicitly rather than simply ignoring failed outcomes.",
+        ],
+        note="Interpret this section as a practical simplified workflow, not a full constrained-BO implementation.",
+        card_style=INFO_CARD_STYLE_BLUE,
+    )
     if teach_mode != "Beginner":
         with st.expander("Advanced math: noisy observations, failures, and replicates", expanded=False):
             st.markdown("**Intuition**")
-            st.write("Real campaigns include noise and failed runs; BO should update only on valid data while replicates reduce decision risk.")
+            st.write(
+                "Real campaigns include noise and failed runs. In this classroom demo, BO updates only on valid observations, while replicates reduce decision risk at promising conditions. In more advanced constrained BO workflows, failure or infeasibility can also be modeled explicitly."
+            )
             st.markdown("**Equations**")
             st.latex(r"y_t = f(x_t) + \varepsilon_t,\quad \varepsilon_t\sim\mathcal{N}(0,\sigma_n^2)")
             st.write("Only successful runs are added to BO update:")
@@ -2000,7 +2050,7 @@ BO still works by updating only on valid observations and continuously re-rankin
             st.write("High noise or high failure rates reduce information per experiment; replicate statistics quantify confidence at promising conditions.")
             st.markdown("**Practical takeaway**")
             st.caption(
-                "Chemistry interpretation: replicates reduce uncertainty about a promising condition before committing budget."
+                "Chemistry interpretation: replicates reduce uncertainty about the local mean response at a promising condition before committing budget. In real constrained BO, failures can also be modeled through feasibility-aware objectives or outcome constraints."
             )
 
     _render_info_card(
@@ -2290,70 +2340,141 @@ BO still works by updating only on valid observations and continuously re-rankin
                 unsafe_allow_html=True,
             )
 
-def _compute_mo_dataset(n_points: int, seed: int) -> pd.DataFrame:
-    rng = np.random.default_rng(seed)
-    temps = rng.uniform(20.0, 120.0, size=n_points)
-    cats = rng.uniform(0.0, 1.0, size=n_points)
-    press = rng.uniform(1.0, 20.0, size=n_points)
-    rt_s = rng.uniform(30.0, 300.0, size=n_points)
+def _classroom_mo_weight_vector(policy: str, fixed_yield_weight: float, seed: int, iteration_idx: int) -> np.ndarray:
+    if str(policy).lower().startswith("fixed"):
+        w_yield = float(np.clip(fixed_yield_weight, 0.0, 1.0))
+        return np.array([w_yield, 1.0 - w_yield], dtype=float)
+    return np.asarray(sample_dirichlet_weights(2, 1, seed=int(seed) + int(iteration_idx))[0], dtype=float)
 
-    rows = []
-    for t, c, p, r in zip(temps, cats, press, rt_s):
-        y = _workflow_flow_yield(
-            temperature=float(t),
-            catalyst=float(c),
-            pressure=float(p),
-            residence_time_s=float(r),
+
+def _classroom_mo_scalarized_score(
+    objective_values: np.ndarray,
+    weights: np.ndarray,
+    method: str,
+    ref_point: np.ndarray | None = None,
+) -> float:
+    y_vec = np.asarray(objective_values, dtype=float)
+    if str(method).lower() == "tchebycheff":
+        z = np.asarray(ref_point if ref_point is not None else y_vec, dtype=float)
+        return float(tchebycheff(y_vec, weights, z))
+    return float(weighted_sum(y_vec, weights))
+
+
+def _build_classroom_scalarized_optimizer(
+    dims: list[Real],
+    observed_df: pd.DataFrame,
+    acq_func: str,
+    objective_cols: list[str],
+    weights: np.ndarray,
+    method: str,
+):
+    opt = safe_build_optimizer(dims, n_initial_points_remaining=0, acq_func=acq_func)
+    if observed_df.empty:
+        return opt
+
+    df = observed_df.copy()
+    required_cols = [
+        "Temperature",
+        "Catalyst",
+        "Pressure",
+        "ResidenceTimeSec",
+        *objective_cols,
+    ]
+    if not set(required_cols).issubset(df.columns):
+        return opt
+
+    for col in objective_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=objective_cols).copy()
+    if df.empty:
+        return opt
+
+    objective_values = df[objective_cols].to_numpy(dtype=float)
+    ref_point = objective_values.max(axis=0)
+
+    for _, row in df.iterrows():
+        x = [
+            float(row["Temperature"]),
+            float(row["Catalyst"]),
+            float(row["Pressure"]),
+            float(row["ResidenceTimeSec"]),
+        ]
+        score = _classroom_mo_scalarized_score(
+            objective_values=row[objective_cols].to_numpy(dtype=float),
+            weights=weights,
+            method=method,
+            ref_point=ref_point,
         )
-        productivity = _workflow_productivity(
-            yield_pct=float(y),
-            residence_time_s=float(r),
-            pressure=float(p),
-            catalyst=float(c),
-        )
-        rows.append(
-            {
-                "Temperature": float(t),
-                "Catalyst": float(c),
-                "Pressure": float(p),
-                "ResidenceTimeSec": float(r),
-                "Yield": y,
-                "Productivity": float(productivity),
-            }
-        )
-    return pd.DataFrame(rows)
+        opt.observe(x, -float(score))
+    return opt
 
 
 def _module_mo(teach_mode: str) -> None:
+    selected_secondary_objective = "Purity"
+    objectives = ["Yield", selected_secondary_objective]
+
     st.subheader("5) Multiobjective Decisions")
     _render_info_card(
-        title="Multiobjective decision goal",
+        title="What MOBO means in this classroom",
         paragraphs=[
-            "Use the same 4D flow-reaction setup as in Chemist Workflow.",
-            "Explore the tradeoff between objective function (yield) and productivity.",
-            "This classroom module uses a yield-driven BO campaign to generate candidate conditions, then analyzes the resulting tradeoffs with Pareto tools.",
+            "Multiobjective Bayesian Optimization (MOBO) is Bayesian Optimization when more than one outcome matters at the same time.",
+            "Instead of one universal optimum, the goal is usually to learn a Pareto front of non-dominated tradeoffs.",
+            "There are different practical ways to run MOBO. This classroom focuses on one simple and teachable route: scalarization.",
+        ],
+        bullets=[
+            "Dedicated MOBO methods choose experiments using a criterion that is multiobjective from the start.",
+            "Scalarization builds one temporary score from several objectives and then reuses a standard single-objective BO engine.",
+            "A simpler contrast case is to optimize one objective only and analyze sampled tradeoffs afterward with Pareto tools.",
         ],
         note=(
-            "Focus of this section: decision-making on a tradeoff front. It is not a dedicated multiobjective "
-            "acquisition algorithm."
+            "This page uses one fixed teaching example, Yield + Purity, so the tradeoff geometry stays easy to interpret."
         ),
     )
+    with st.expander("Worked example: how scalarization changes the preferred point", expanded=False):
+        st.write("Suppose two candidate conditions give:")
+        st.markdown("- **Condition A**: Yield = 90, Purity = 82")
+        st.markdown("- **Condition B**: Yield = 82, Purity = 95")
+
+        st.write("If you use a weighted-sum score with stronger emphasis on yield,")
+        st.latex(r"s(x)=0.7\cdot \mathrm{Yield}(x) + 0.3\cdot \mathrm{Purity}(x)")
+        st.write("then:")
+        st.latex(r"s(A)=0.7\cdot 90 + 0.3\cdot 82 = 87.6")
+        st.latex(r"s(B)=0.7\cdot 82 + 0.3\cdot 95 = 85.9")
+        st.write("So **Condition A** is preferred.")
+
+        st.write("If you change the priorities to emphasize purity more,")
+        st.latex(r"s(x)=0.4\cdot \mathrm{Yield}(x) + 0.6\cdot \mathrm{Purity}(x)")
+        st.write("then:")
+        st.latex(r"s(A)=0.4\cdot 90 + 0.6\cdot 82 = 85.2")
+        st.latex(r"s(B)=0.4\cdot 82 + 0.6\cdot 95 = 89.8")
+        st.write("So **Condition B** is preferred.")
+
+        st.caption(
+            "Core idea: scalarization changes a multiobjective problem into a temporary single score, "
+            "and the preferred next experiment depends on the decision policy encoded by the weights."
+        )
     with st.expander("Theory: why there is no single best point in MO", expanded=False):
         st.markdown(
             r"""
 A point is Pareto-optimal if no other point is better in all objectives simultaneously.
 
 So multiobjective optimization returns a **front of tradeoffs**, not one universal optimum.
-- In this classroom page, the simulated campaign is generated by yield-driven BO and then interpreted with Pareto analysis.
+- Scalarization is one practical MOBO route: build one temporary score from several objectives, run standard BO on that score, and change weights to express different priorities.
+- A yield-driven campaign followed by Pareto analysis is still useful for intuition, but it is not the same as optimizing both objectives simultaneously.
+- Therefore, the classroom front is the Pareto front of the sampled points in this demo, not a guaranteed Pareto frontier of the whole search space.
 - Hypervolume: how much objective space is dominated by the front (larger is better).
-- Knee point: region where small gain in one objective causes large loss in another.
+- Knee point: region where small gain in one objective causes large loss in the other.
 - Weighted scoring is a decision policy, not a universal truth.
 """
         )
     if teach_mode != "Beginner":
-        with st.expander("Advanced math: Pareto dominance, hypervolume, and weighted choice", expanded=False):
+        with st.expander("Advanced math: Pareto dominance, hypervolume, and scalarization", expanded=False):
             st.markdown("**Intuition**")
-            st.write("With multiple objectives, no single point is universally best; decisions come from tradeoffs along the Pareto set.")
+            st.write(
+                "With multiple objectives, no single point is universally best; decisions come from tradeoffs "
+                "along the Pareto set. Scalarization approximates MOBO by solving a sequence of weighted "
+                "single-objective BO problems."
+            )
             st.markdown("**Equations**")
             st.write("After converting all objectives to maximize form, point u dominates v if:")
             st.latex(r"u \succ v \iff \left[\forall k,\ u_k\ge v_k\right]\ \wedge\ \left[\exists k,\ u_k>v_k\right]")
@@ -2361,21 +2482,74 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             st.latex(r"\mathcal{P}=\{x_i\ |\ \nexists x_j: f(x_j)\succ f(x_i)\}")
             st.write("Given a reference point r, hypervolume of Pareto front PF is:")
             st.latex(r"\mathrm{HV}(\mathrm{PF};r)=\lambda\!\left(\bigcup_{p\in \mathrm{PF}} [r_1,p_1]\times[r_2,p_2]\right)")
-            st.write("Objectives are normalized before weighting:")
-            st.latex(r"\tilde f_k(x)=\frac{f_k(x)-\min f_k}{\max f_k-\min f_k+10^{-12}}")
-            st.latex(r"s(x)=\sum_{k=1}^{m} w_k\,\tilde f_k(x),\quad \sum_k w_k=1")
-            st.write("Recommended point:")
-            st.latex(r"x^\star=\arg\max_x s(x)")
+            st.write("A weighted-sum scalarization is:")
+            st.latex(r"s_{\mathrm{ws}}(x)=\sum_{k=1}^{m} w_k f_k(x),\quad \sum_k w_k=1")
+            st.write("A Tchebycheff scalarization is:")
+            st.latex(r"s_{\infty}(x)=-\max_k w_k\left(z_k-f_k(x)\right)")
+            st.write("Decision recommendation over sampled points in this classroom demo:")
+            st.latex(r"x^\star=\arg\max_{x\in \mathcal{X}_{\mathrm{obs}}} s(x)")
             st.markdown("**Chemist interpretation**")
             st.write(
-                "Hypervolume tracks frontier quality, while weighted scores encode project priorities such as maximizing objective function (yield) vs maximizing productivity."
+                "Hypervolume tracks frontier quality, while scalarization weights encode project priorities such as "
+                "favoring higher objective function (yield) or higher purity."
             )
             st.markdown("**Practical takeaway**")
             st.caption(
-                "Chemistry interpretation: changing weights changes business/science priorities, so recommendation is policy-dependent."
+                "Chemistry interpretation: changing weights changes business/science priorities, so recommendation "
+                "is policy-dependent. The page uses a synthetic purity proxy precisely to make the tradeoff visible."
             )
 
-    m1, m2, m3, m4 = st.columns(4)
+    _render_info_card(
+        title="4D classroom activity: flow reaction with Yield and Purity",
+        paragraphs=[
+            "You will use the same 4D flow-reaction setup as in Chemist Workflow, but now the decision target is a tradeoff between Yield and Purity.",
+            "Purity is a synthetic teaching proxy for selectivity and byproduct suppression. In this example, harsher conditions can help yield but often reduce purity, which creates a clearer Pareto front for learning.",
+        ],
+        bullets=[
+            "Temperature: 20 to 120 C",
+            "Catalyst loading: 0.00 to 1.00 (fraction)",
+            "Pressure: 1 to 20 bar",
+            "Residence Time: 30 to 300 s",
+        ],
+        note="Use the controls below to choose whether the classroom campaign is generated by scalarized SO BO or by a simpler yield-driven contrast case.",
+        card_style=INFO_CARD_STYLE_BLUE,
+    )
+
+    mode1, mode2, mode3 = st.columns([1.45, 1.0, 1.0])
+    with mode1:
+        mo_campaign_mode = st.selectbox(
+            "How to generate the classroom campaign",
+            ["Scalarized SO BO on Yield + Purity", "Yield-driven BO + Pareto analysis (contrast case)"],
+            key="mo_campaign_mode",
+        )
+    scalarized_mode = mo_campaign_mode == "Scalarized SO BO on Yield + Purity"
+    with mode2:
+        mo_scalar_method_label = st.selectbox(
+            "Scalarization method",
+            ["Weighted sum", "Tchebycheff"],
+            key="mo_scalar_method",
+            disabled=not scalarized_mode,
+        )
+        mo_weight_policy = st.selectbox(
+            "Weight policy",
+            ["Fixed weights", "Random Dirichlet per BO step"],
+            key="mo_weight_policy",
+            disabled=not scalarized_mode,
+        )
+    with mode3:
+        mo_weight_yield = st.slider(
+            "Yield weight in BO",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(st.session_state.get("mo_weight_yield", 0.5)),
+            step=0.05,
+            key="mo_weight_yield",
+            disabled=(not scalarized_mode) or mo_weight_policy != "Fixed weights",
+        )
+        if scalarized_mode and mo_weight_policy == "Fixed weights":
+            st.caption(f"Purity weight = {1.0 - float(mo_weight_yield):.2f}")
+
+    m1, m2, m3 = st.columns(3)
     with m1:
         mo_total_iters = st.number_input(
             "Total iterations",
@@ -2399,29 +2573,12 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             key="mo_init_method",
         )
         mo_acq = st.selectbox(
-            "Acquisition (yield-driven BO)",
+            "Acquisition for BO engine",
             ["EI", "PI", "LCB"],
             index=0,
             key="mo_acq",
         )
     with m3:
-        mo_noise_sigma = st.number_input(
-            "Measurement noise (sigma)",
-            min_value=0.0,
-            max_value=10.0,
-            value=float(st.session_state.get("mo_noise", 3.0)),
-            step=0.1,
-            key="mo_noise",
-        )
-        mo_failure_prob = st.number_input(
-            "Failure probability",
-            min_value=0.0,
-            max_value=0.9,
-            value=float(st.session_state.get("mo_fail", 0.15)),
-            step=0.01,
-            key="mo_fail",
-        )
-    with m4:
         mo_seed = st.number_input(
             "Seed",
             min_value=0,
@@ -2429,12 +2586,12 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             value=int(st.session_state.get("mo_seed", st.session_state.get("mo_seed_internal", 99))),
             key="mo_seed",
         )
-        st.caption("Reproducibility control for the simulated campaign.")
+        st.caption("Reproducibility control for initialization and BO suggestions.")
 
     rec_low, rec_high, rec_text = recommend_n_init_range(
         4,
         total_budget=int(mo_total_iters),
-        noisy=float(mo_noise_sigma) > 1.0,
+        noisy=False,
         mixed=False,
         multiobjective=True,
     )
@@ -2443,16 +2600,17 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
     if int(mo_n_init) < rec_low or int(mo_n_init) > rec_high:
         st.info(
             f"Current n_init={int(mo_n_init)} is outside the suggested range ({rec_range_text}) "
-            "for this 4-variable multiobjective setup under the selected budget/noise settings."
+            "for this 4-variable multiobjective setup under the selected budget and dimensionality."
         )
 
-    st.caption(
-        "Simulation note: BO suggestions in this classroom module are optimized on yield only; "
-        "Pareto, hypervolume, and knee-point tools are then applied to the resulting yield/productivity tradeoffs."
+    scalar_method_key = "tchebycheff" if mo_scalar_method_label == "Tchebycheff" else "weighted_sum"
+    run_label = (
+        "Run simulated scalarized MO classroom campaign"
+        if scalarized_mode
+        else "Run yield-driven contrast campaign"
     )
 
-    if st.button("Run simulated campaign for Pareto analysis", key="mo_generate"):
-        rng = np.random.default_rng(int(mo_seed))
+    if st.button(run_label, key="mo_generate"):
         space = [
             ("Temperature", 20.0, 120.0, "C", "continuous"),
             ("Catalyst", 0.0, 1.0, "fraction", "continuous"),
@@ -2465,7 +2623,9 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             Real(1.0, 20.0, name="Pressure"),
             Real(30.0, 300.0, name="ResidenceTimeSec"),
         ]
-        opt = safe_build_optimizer(dims, n_initial_points_remaining=0, acq_func=str(mo_acq))
+        opt = None
+        if not scalarized_mode:
+            opt = safe_build_optimizer(dims, n_initial_points_remaining=0, acq_func=str(mo_acq))
         x_init = generate_initial_points(
             space,
             int(mo_n_init),
@@ -2475,12 +2635,33 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
 
         rows: list[dict] = []
         for i in range(int(mo_total_iters)):
+            bo_weights = np.array([np.nan, np.nan], dtype=float)
+            scalarized_score = np.nan
             if i < len(x_init):
                 x = list(x_init[i])
                 source = "initial_design"
             else:
-                x = list(opt.suggest())
-                source = "bo_suggestion"
+                if scalarized_mode:
+                    bo_weights = _classroom_mo_weight_vector(
+                        policy=str(mo_weight_policy),
+                        fixed_yield_weight=float(mo_weight_yield),
+                        seed=int(mo_seed),
+                        iteration_idx=i,
+                    )
+                    df_hist = pd.DataFrame([row for row in rows if row.get("Status") == "ok"])
+                    opt = _build_classroom_scalarized_optimizer(
+                        dims=dims,
+                        observed_df=df_hist,
+                        acq_func=str(mo_acq),
+                        objective_cols=objectives,
+                        weights=bo_weights,
+                        method=scalar_method_key,
+                    )
+                    x = list(opt.suggest())
+                    source = "bo_suggestion_scalarized"
+                else:
+                    x = list(opt.suggest())
+                    source = "bo_suggestion_yield"
 
             true_y = _workflow_flow_yield(
                 temperature=float(x[0]),
@@ -2488,28 +2669,41 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
                 pressure=float(x[2]),
                 residence_time_s=float(x[3]),
             )
-            true_prod = _workflow_productivity(
+            true_purity = _workflow_purity(
                 yield_pct=float(true_y),
-                residence_time_s=float(x[3]),
-                pressure=float(x[2]),
+                temperature=float(x[0]),
                 catalyst=float(x[1]),
+                pressure=float(x[2]),
+                residence_time_s=float(x[3]),
             )
 
-            failed = rng.random() < float(mo_failure_prob)
-            if failed:
-                measured_y = np.nan
-                measured_prod = np.nan
-                status = "failed"
-            else:
-                measured_y = float(np.clip(true_y + rng.normal(0.0, float(mo_noise_sigma)), 0.0, 100.0))
-                measured_prod = _workflow_productivity(
-                    yield_pct=float(measured_y),
-                    residence_time_s=float(x[3]),
-                    pressure=float(x[2]),
-                    catalyst=float(x[1]),
+            measured_y = float(true_y)
+            measured_purity = float(true_purity)
+            status = "ok"
+            if scalarized_mode:
+                ref_candidates = [
+                    [float(row["Yield"]), float(row["Purity"])]
+                    for row in rows
+                    if row.get("Status") == "ok"
+                    and pd.notna(row.get("Yield"))
+                    and pd.notna(row.get("Purity"))
+                ]
+                ref_candidates.append([float(measured_y), float(measured_purity)])
+                ref_point = np.max(np.asarray(ref_candidates, dtype=float), axis=0)
+                if not np.isfinite(bo_weights).all():
+                    bo_weights = _classroom_mo_weight_vector(
+                        policy=str(mo_weight_policy),
+                        fixed_yield_weight=float(mo_weight_yield),
+                        seed=int(mo_seed),
+                        iteration_idx=i,
+                    )
+                scalarized_score = _classroom_mo_scalarized_score(
+                    objective_values=np.array([float(measured_y), float(measured_purity)], dtype=float),
+                    weights=bo_weights,
+                    method=scalar_method_key,
+                    ref_point=ref_point,
                 )
-                status = "ok"
-                # Campaign is driven by BO on yield while MO analysis is performed on Yield vs Productivity.
+            else:
                 opt.observe(x, -float(measured_y))
 
             rows.append(
@@ -2521,10 +2715,16 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
                     "ResidenceTimeSec": float(x[3]),
                     "TrueYield": float(true_y),
                     "Yield": measured_y,
-                    "TrueProductivity": float(true_prod),
-                    "Productivity": measured_prod,
+                    "TruePurity": float(true_purity),
+                    "Purity": measured_purity,
                     "Status": status,
                     "Source": source,
+                    "CampaignMode": "scalarized_so" if scalarized_mode else "yield_then_pareto",
+                    "ScalarizationMethod": scalar_method_key if scalarized_mode else None,
+                    "WeightPolicy": str(mo_weight_policy) if scalarized_mode else None,
+                    "WeightYield": float(bo_weights[0]) if np.isfinite(bo_weights[0]) else np.nan,
+                    "WeightPurity": float(bo_weights[1]) if np.isfinite(bo_weights[1]) else np.nan,
+                    "ScalarizedScore": float(scalarized_score) if pd.notna(scalarized_score) else np.nan,
                 }
             )
 
@@ -2542,48 +2742,75 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
         "Pressure",
         "ResidenceTimeSec",
         "Yield",
-        "Productivity",
+        "Purity",
         "Status",
     }
     if not required_cols.issubset(set(df.columns)):
-        st.info("MO setup was updated. Run a new MO campaign to refresh this section.")
+        st.info("MO classroom setup was updated. Run a new MO campaign to refresh this section.")
         return
 
-    n_ok = int((df["Status"] == "ok").sum())
-    n_fail = int((df["Status"] == "failed").sum())
+    n_ok = len(df)
+    n_bo = int((df["Source"] != "initial_design").sum()) if "Source" in df.columns else 0
     best_y = pd.to_numeric(df["Yield"], errors="coerce").max()
-    best_prod = pd.to_numeric(df["Productivity"], errors="coerce").max()
+    best_purity = pd.to_numeric(df["Purity"], errors="coerce").max()
     mm1, mm2, mm3, mm4 = st.columns(4)
-    mm1.metric("Successful runs", n_ok)
-    mm2.metric("Failed runs", n_fail)
+    mm1.metric("Completed runs", n_ok)
+    mm2.metric("BO suggestions", n_bo)
     mm3.metric("Best yield", f"{best_y:.2f}" if pd.notna(best_y) else "N/A")
-    mm4.metric("Best productivity", f"{best_prod:.2f}" if pd.notna(best_prod) else "N/A")
+    mm4.metric("Best purity", f"{best_purity:.2f}" if pd.notna(best_purity) else "N/A")
 
-    st.dataframe(df.head(30), use_container_width=True)
+    display_cols = [
+        "Iteration",
+        "Temperature",
+        "Catalyst",
+        "Pressure",
+        "ResidenceTimeSec",
+        "Yield",
+        "Purity",
+        "Source",
+    ]
+    st.dataframe(df[[c for c in display_cols if c in df.columns]], use_container_width=True)
 
-    mo_options = ["Yield", "Productivity"]
-    mo_sel = st.session_state.get("mo_obj_select")
-    if isinstance(mo_sel, list):
-        filtered = [o for o in mo_sel if o in mo_options]
-        if filtered != mo_sel:
-            st.session_state["mo_obj_select"] = filtered if filtered else ["Yield", "Productivity"]
-    objectives = st.multiselect(
-        "Objectives to analyze",
-        mo_options,
-        default=["Yield", "Productivity"],
-        key="mo_obj_select",
-    )
-    if len(objectives) < 2:
-        st.warning("Select at least two objectives.")
-        return
+    campaign_mode_used = None
+    if "CampaignMode" in df.columns and not df["CampaignMode"].dropna().empty:
+        campaign_mode_used = str(df["CampaignMode"].dropna().iloc[0])
+    if campaign_mode_used == "scalarized_so":
+        method_used = None
+        if "ScalarizationMethod" in df.columns and not df["ScalarizationMethod"].dropna().empty:
+            method_used = str(df["ScalarizationMethod"].dropna().iloc[0])
+        weight_policy_used = None
+        if "WeightPolicy" in df.columns and not df["WeightPolicy"].dropna().empty:
+            weight_policy_used = str(df["WeightPolicy"].dropna().iloc[0])
+        if weight_policy_used == "Fixed weights":
+            df_weighted = df.dropna(subset=["WeightYield", "WeightPurity"])
+            if not df_weighted.empty:
+                w_y = float(df_weighted["WeightYield"].iloc[0])
+                w_purity = float(df_weighted["WeightPurity"].iloc[0])
+                st.caption(
+                    f"This run used scalarized SO BO with {method_used or 'weighted_sum'} and fixed BO weights "
+                    f"Yield={w_y:.2f}, Purity={w_purity:.2f} after the initial design."
+                )
+        else:
+            st.caption(
+                f"This run used scalarized SO BO with {method_used or 'weighted_sum'} on Yield + Purity, "
+                "with a fresh Dirichlet-sampled weight vector at each BO suggestion after the initial design."
+            )
+    elif campaign_mode_used == "yield_then_pareto":
+        st.caption(
+            "This run used yield-driven BO to generate points. The Pareto front below is therefore a tradeoff "
+            "analysis of sampled points rather than the result of optimizing both objectives simultaneously."
+        )
 
+    st.caption("Pareto analysis below is shown for the fixed classroom pair: Yield and Purity.")
     df_ok = df[df["Status"] == "ok"].copy()
+    df_ok["Yield"] = pd.to_numeric(df_ok["Yield"], errors="coerce")
+    df_ok["Purity"] = pd.to_numeric(df_ok["Purity"], errors="coerce")
     df_ok = df_ok.dropna(subset=objectives)
     if df_ok.empty:
         st.warning("No valid successful runs available for Pareto analysis. Try lower failure probability or rerun.")
         return
 
-    directions = {"Yield": "Maximize", "Productivity": "Maximize"}
+    directions = {"Yield": "Maximize", "Purity": "Maximize"}
     signs = np.array([1.0 if directions[o] == "Maximize" else -1.0 for o in objectives], dtype=float)
     pts = df_ok[objectives].to_numpy(dtype=float) * signs
     idx_pf = pareto_front_indices(pts)
@@ -2595,63 +2822,20 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
         "This is why Pareto filtering is essential before final decision-making."
     )
 
-    if len(objectives) == 2:
-        df_plot = df_ok.reset_index(drop=True)
-        pf_mask = df_plot.index.isin(idx_pf)
-        fig = px.scatter(df_plot, x=objectives[0], y=objectives[1], color=pf_mask, labels={"color": "Pareto"})
-        df_pf = df_plot.iloc[idx_pf].sort_values(by=objectives[0])
-        fig.add_trace(
-            go.Scatter(
-                x=df_pf[objectives[0]],
-                y=df_pf[objectives[1]],
-                mode="lines+markers",
-                line=dict(color="red", width=3),
-                name="Pareto front",
-            )
+    df_plot = df_ok.reset_index(drop=True)
+    pf_mask = df_plot.index.isin(idx_pf)
+    fig = px.scatter(df_plot, x="Yield", y="Purity", color=pf_mask, labels={"color": "Pareto"})
+    df_pf = df_plot.iloc[idx_pf].sort_values(by="Yield")
+    fig.add_trace(
+        go.Scatter(
+            x=df_pf["Yield"],
+            y=df_pf["Purity"],
+            mode="lines+markers",
+            line=dict(color="red", width=3),
+            name="Pareto front",
         )
-        st.plotly_chart(fig, use_container_width=True)
-
-        p_pf = (df_pf[objectives].to_numpy(dtype=float) * signs[:2]) if len(df_pf) else np.empty((0, 2))
-        if p_pf.shape[0] >= 2:
-            knee_idx = knee_index_2d(p_pf)
-            ref = tuple((df_plot[objectives].to_numpy(dtype=float) * signs[:2]).min(axis=0))
-            hv = hypervolume_2d(p_pf, ref)
-            st.write(f"Approximate 2D hypervolume: {hv:.4g}")
-            if knee_idx is not None:
-                st.write(f"Approximate knee point index on sorted Pareto curve: {knee_idx}")
-                knee_row = df_pf.iloc[knee_idx]
-                st.caption(
-                    "Knee interpretation: near this point, improving one objective starts to cost "
-                    "disproportionately in the other."
-                )
-                st.write(
-                    {
-                        f"knee_{objectives[0]}": round(float(knee_row[objectives[0]]), 4),
-                        f"knee_{objectives[1]}": round(float(knee_row[objectives[1]]), 4),
-                    }
-                )
-
-            st.markdown("#### Weight-based recommendation")
-            w1 = st.slider(f"Weight for {objectives[0]}", min_value=0.0, max_value=1.0, value=0.5, step=0.05, key="mo_weight_1")
-            w2 = 1.0 - w1
-            values = df_plot[objectives].to_numpy(dtype=float) * signs[:2]
-            norm = (values - values.min(axis=0)) / (np.ptp(values, axis=0) + 1e-12)
-            score = w1 * norm[:, 0] + w2 * norm[:, 1]
-            best_i = int(np.argmax(score))
-            best_row = df_plot.iloc[best_i]
-            st.info(
-                "Recommended compromise condition: "
-                f"Temperature={best_row['Temperature']:.2f}, Catalyst={best_row['Catalyst']:.3f}, "
-                f"Pressure={best_row['Pressure']:.2f}, ResidenceTimeSec={best_row['ResidenceTimeSec']:.1f}, "
-                f"{objectives[0]}={best_row[objectives[0]]:.2f}, {objectives[1]}={best_row[objectives[1]]:.2f}"
-            )
-            st.caption(
-                "Explanation: objectives are normalized to comparable scales first, then combined by your weights. "
-                "Changing weights changes what 'best compromise' means."
-            )
-    else:
-        fig3d = px.scatter_3d(df, x=objectives[0], y=objectives[1], z=objectives[2], color=df.index.isin(idx_pf), labels={"color": "Pareto"})
-        st.plotly_chart(fig3d, use_container_width=True)
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 
 st.title("Bayesian Optimization Classroom")
