@@ -54,10 +54,5 @@ with st.sidebar:
     st.image(str(resource_path("images/benchbo_logo_lockup_tight.png")), width=320)
     st.title("Navigation")
     selection = st.radio("Go to", list(PAGES.keys()), key="main_nav_selection")
-    st.markdown("---")
-    st.markdown(
-        "Documentation: "
-        "[Open BenchBO docs](https://gono-cl.github.io/bo-studio/index.html)"
-    )
 
 render_page(PAGES[selection])

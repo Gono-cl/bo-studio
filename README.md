@@ -144,7 +144,6 @@ See `PACKAGING.md` for packaging details.
 
 ## Documentation
 
-- Optional GitHub Pages documentation mirror: https://gono-cl.github.io/bo-studio/index.html
 - Bundled executable guide: `QUICK_START.txt`
 - User guide: `docs/USER_GUIDE.md`
 - Example workflow: `docs/EXAMPLE_WORKFLOW.md`
