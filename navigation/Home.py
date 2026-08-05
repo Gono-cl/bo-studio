@@ -26,8 +26,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("BO Studio")
-st.caption("A practical workspace for Bayesian Optimization in chemistry and process development.")
+st.title("BenchBO")
+st.caption("A chemistry-first platform for Bayesian Optimization.")
 
 st.markdown(
     """
@@ -121,5 +121,5 @@ st.markdown(
 
 st.markdown(
     "Documentation: "
-    "[Open BO Studio docs](https://gono-cl.github.io/bo-studio/index.html)"
+    "[Open BenchBO docs](https://gono-cl.github.io/bo-studio/index.html)"
 )

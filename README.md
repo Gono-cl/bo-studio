@@ -1,108 +1,161 @@
-# BO Studio
+# BenchBO
 
-BO Studio is a local-first Streamlit application for Bayesian Optimization (BO) in experimental workflows, with a strong focus on chemistry-oriented use cases.
+![BenchBO logo](images/benchbo_logo_lockup_tight.png)
 
-It combines:
-- interactive single-objective optimization campaigns,
-- interactive multi-objective optimization campaigns,
-- a guided BO classroom (beginner and advanced),
-- data analysis and experiment database utilities,
-- Windows desktop packaging (`.exe`) so end users do not need Python.
+*A chemistry-first platform for Bayesian Optimization*
 
-## Why this project
+BenchBO is a local-first application for Bayesian Optimization (BO) in experimental workflows. It combines interactive optimization tools, teaching modules, and local experiment tracking in a single interface, with a strong emphasis on chemistry-oriented use cases.
 
-BO Studio is designed for users who want to run and understand BO without writing code during day-to-day campaign execution. The app supports both learning and practical decision-making in iterative experiments.
+The project is designed for:
 
-## Main capabilities
+- researchers running iterative experimental campaigns,
+- students learning how Bayesian Optimization works,
+- collaborators who need a graphical workflow instead of a code-first interface.
 
-- Manual single-objective BO campaign management.
-- Multi-objective optimization with Pareto-based analysis.
-- Save/resume/reuse campaign workflows.
-- BO Classroom with intuition, mechanics, and chemistry-oriented explanations.
-- Database-backed experiment storage and retrieval.
-- Windows packaging for distribution to non-programmer users.
+BenchBO can be used in two ways:
 
-## Quick start (local source run)
+- from source with Python and Streamlit,
+- as a packaged Windows desktop application for users who do not need a Python installation.
 
-### 1. Clone
+Recommended distribution model:
+
+- end users download a prebuilt Windows release from a cloud-hosted folder,
+- developers and reviewers can still run the software from source.
+
+## Why BenchBO
+
+Many BO libraries are powerful but code-centric. BenchBO focuses on a different need: helping users understand, configure, run, and review BO campaigns through a graphical interface while keeping data local and workflows reproducible.
+
+This makes the software useful both for practical campaign support and for teaching the logic of BO in experimental science.
+
+## What the software includes
+
+Main application sections:
+
+- `Home`: project overview and entry point.
+- `Single Objective Optimization`: interactive BO campaigns for one target response.
+- `Multi Objective Optimization`: tradeoff analysis and Pareto-oriented workflows.
+- `Data Analysis`: inspection and comparison of campaign results.
+- `Bayesian Optimization Classroom`: guided modules for BO intuition, mechanics, chemist workflow, and multiobjective decisions.
+- `Experiment Database`: local storage and retrieval of experiment records.
+
+Core workflow features:
+
+- interactive control of initialization strategy, acquisition function, and campaign budget,
+- save, resume, and reuse support for campaign workflows,
+- chemistry-first teaching examples for 4D optimization problems,
+- local database-backed experiment tracking,
+- Windows executable packaging for non-programmer users.
+
+## Installation From Source
+
+Prerequisites:
+
+- Python 3.10+
+- `pip`
+
+If you already have a local copy of the repository, start at dependency installation.
 
 ```bash
-git clone <your-repo-url>
+git clone <repository-url>
 cd BO_Studio
-```
-
-### 2. Install dependencies
-
-```bash
 pip install -r requirements.txt
-```
-
-### 3. Run
-
-Recommended launcher:
-
-```bash
 python run_bo_studio.py
 ```
 
-Alternative direct Streamlit run:
+Alternative direct Streamlit launch:
 
 ```bash
 streamlit run main.py
 ```
 
-## Quick start (Windows executable)
+Notes:
 
-If you already built the desktop app, run:
+- `python run_bo_studio.py` is the recommended launcher for normal local use.
+- When launched from a terminal, that terminal remains occupied while the Streamlit server is running.
 
-`dist\BOStudio\BOStudio.exe`
+## Windows Desktop App
 
-No Python installation is required on the target machine.
+For most end users, the recommended route is to download a prebuilt Windows release instead of building the app locally.
 
-## Build the Windows executable
+Download:
 
-From repository root:
+- Cloud release folder: `<add-public-download-link-here>`
+
+After downloading, run:
+
+`dist\BenchBO\BenchBO.exe`
+
+Important:
+
+- Share the whole portable app folder or a zip of it, not only `BenchBO.exe`.
+- Keep `BenchBO.exe` together with the bundled `_internal` folder.
+- No Python installation is required on the target machine.
+- If you distribute the installer build instead, users can run `dist\BenchBO-Setup.exe`.
+
+## Data Storage
+
+BenchBO is local-first:
+
+- in source mode, persistent data is stored under the current working directory,
+- in packaged desktop mode, persistent data is stored next to the executable,
+- advanced users can override the storage location with the `BENCHBO_STORAGE_ROOT` environment variable.
+
+Persistent outputs include:
+
+- `data/experiments.db`
+- `resumable_manual_runs/`
+
+## Build The Windows Release
+
+This section is mainly for developers preparing a new packaged release.
+
+Portable app build:
 
 ```bat
 scripts\build_windows.bat
 ```
 
-Output:
-- `dist\BOStudio\BOStudio.exe`
+Installer build:
 
-For installer packaging, see:
-- `PACKAGING.md`
+```bat
+scripts\build_installer.bat
+```
+
+Main outputs:
+
+- `dist\BenchBO\BenchBO.exe`
+- `dist\BenchBO-Setup.exe`
+
+See `PACKAGING.md` for packaging details.
 
 ## Documentation
 
-- GitHub Pages docs: https://gono-cl.github.io/bo-studio/index.html
+- GitHub Pages documentation: https://gono-cl.github.io/bo-studio/index.html
 - User guide: `docs/USER_GUIDE.md`
 - Packaging guide: `PACKAGING.md`
 - Publication checklist: `docs/PUBLICATION_CHECKLIST.md`
 - Citation metadata: `CITATION.cff`
+- Contribution guide: `CONTRIBUTING.md`
 
-## Project layout
+## Repository Layout
 
-- `main.py`: app entrypoint and navigation.
-- `run_bo_studio.py`: local launcher and desktop bootstrap.
-- `navigation/`: top-level pages (home, classroom, optimization pages, analysis, database).
-- `ui/`: reusable UI sections/components.
-- `core/`: optimization logic, utilities, database helpers.
-- `scripts/`: build scripts for executable/installer.
-- `installer/`: Inno Setup configuration.
+- `main.py`: main app entry point and sidebar navigation.
+- `run_bo_studio.py`: recommended launcher and desktop bootstrap.
+- `navigation/`: app pages.
+- `ui/`: reusable interface components.
+- `core/`: BO logic, utilities, database helpers, and storage path helpers.
+- `tests/`: automated tests for critical logic.
+- `scripts/`: build scripts for desktop packaging.
+- `installer/`: installer configuration.
+- `docs/`: user and publication-oriented documentation.
 
-## Notes for stable local development
+## Citation
 
-- Prefer `python run_bo_studio.py` for local testing.
-- If you suspect stale sessions, close existing BO Studio windows/processes before relaunching.
-- When the app is started from terminal, that terminal remains occupied while the server runs (normal Streamlit behavior).
+If you use BenchBO in teaching, research, or experimental workflow development, cite the software release described in `CITATION.cff`.
 
-## Journal/publication readiness checklist (high level)
+For release archiving and DOI preparation, see `docs/PUBLICATION_CHECKLIST.md`.
 
-To prepare this repository for software publication (for example JOSS), complete:
+## License
 
-- Open-source license file (MIT/BSD/Apache-2.0).
-- Stable tagged release.
-- Clear installation and usage docs (this README + user guide).
-- Basic automated tests and CI.
-- Citation metadata (`CITATION.cff`) and optional DOI workflow (for example Zenodo).
+BenchBO is distributed under the MIT License. See `LICENSE`.

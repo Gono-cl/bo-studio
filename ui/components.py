@@ -1,5 +1,5 @@
 """
-Reusable Streamlit UI components for BO Studio.
+Reusable Streamlit UI components for BenchBO.
 
 Keep the main app code clean by moving repeated UI bits here.
 """

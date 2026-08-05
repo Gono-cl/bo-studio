@@ -1,8 +1,8 @@
-# BO Studio User Guide
+# BenchBO User Guide
 
-## 1. What BO Studio is for
+## 1. What BenchBO is for
 
-BO Studio helps you design, execute, and analyze Bayesian Optimization campaigns through a graphical interface.
+BenchBO helps you design, execute, and analyze Bayesian Optimization campaigns through a graphical interface.
 
 Typical use:
 - start with BO Classroom to understand strategy choices,
@@ -83,7 +83,7 @@ These workflows are important for comparing strategy changes without losing camp
 
 If distributed as Windows executable:
 
-- Launch `BOStudio.exe`.
+- Launch `BenchBO.exe`.
 - End users do not need Python.
 - Campaign data is stored locally per user context.
 
@@ -93,8 +93,8 @@ For build details, see `PACKAGING.md`.
 
 If something looks stale or inconsistent:
 
-1. Close all running BO Studio windows/processes.
-2. Relaunch from `python run_bo_studio.py` (source) or `BOStudio.exe` (packaged).
+1. Close all running BenchBO windows/processes.
+2. Relaunch from `python run_bo_studio.py` (source) or `BenchBO.exe` (packaged).
 3. Re-test.
 
 If a page crashes, capture:

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-REM Build BO Studio executable and create Windows installer using Inno Setup.
+REM Build BenchBO executable and create Windows installer using Inno Setup.
 
 cd /d "%~dp0\.."
 
@@ -23,7 +23,7 @@ if not defined ISCC_EXE (
     exit /b 1
 )
 
-call "%ISCC_EXE%" installer\BOStudio.iss
+call "%ISCC_EXE%" installer\BenchBO.iss
 if errorlevel 1 goto :fail
 
 echo Installer created in dist\.

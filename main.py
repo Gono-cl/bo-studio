@@ -7,8 +7,8 @@ from core.utils.path_utils import resource_path
 
 
 st.set_page_config(
-    page_title="BO Studio - Bayesian Optimization Made Simple",
-    page_icon="BO",
+    page_title="BenchBO - A chemistry-first platform for Bayesian Optimization",
+    page_icon=str(resource_path("images/benchbo_mark_square.png")),
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -51,13 +51,13 @@ PAGES = {
 }
 
 with st.sidebar:
-    st.image(str(resource_path("images/image.png")), width=300)
+    st.image(str(resource_path("images/benchbo_logo_lockup_tight.png")), width=320)
     st.title("Navigation")
     selection = st.radio("Go to", list(PAGES.keys()), key="main_nav_selection")
     st.markdown("---")
     st.markdown(
         "Documentation: "
-        "[Open GitHub Pages](https://gono-cl.github.io/bo-studio/index.html)"
+        "[Open BenchBO docs](https://gono-cl.github.io/bo-studio/index.html)"
     )
 
 render_page(PAGES[selection])

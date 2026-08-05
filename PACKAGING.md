@@ -18,9 +18,9 @@ scripts\build_windows.bat
 
 Output:
 
-- `dist\BOStudio\BOStudio.exe`
+- `dist\BenchBO\BenchBO.exe`
 
-Users can run `BOStudio.exe` directly from that folder.
+Users can run `BenchBO.exe` directly from that folder.
 
 ## Build installer `.exe`
 
@@ -32,12 +32,12 @@ scripts\build_installer.bat
 
 Output:
 
-- `dist\BOStudio-Setup.exe`
+- `dist\BenchBO-Setup.exe`
 
 ## Notes
 
 - Entry point is `run_bo_studio.py` (boots Streamlit app in desktop mode).
-- Packaging config is `BOStudio.spec`.
+- Packaging config is `BenchBO.spec`.
 - If antivirus flags the binary, sign the executable/installer in your release process.
 - Rebuild after dependency changes or when adding new modules/assets.
 

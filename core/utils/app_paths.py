@@ -10,7 +10,7 @@ def get_storage_root() -> Path:
     if os.getenv("RENDER") == "true":
         return Path("/mnt/data")
 
-    env_root = os.getenv("BOSTUDIO_STORAGE_ROOT")
+    env_root = os.getenv("BENCHBO_STORAGE_ROOT") or os.getenv("BOSTUDIO_STORAGE_ROOT")
     if env_root:
         return Path(env_root)
 
@@ -36,4 +36,3 @@ def get_data_dir() -> Path:
 
 def get_db_path() -> Path:
     return get_data_dir() / "experiments.db"
-

@@ -1,18 +1,26 @@
 @echo off
 setlocal
 
-REM Build BO Studio as a portable Windows app (no Python required for end users).
+REM Build BenchBO as a portable Windows app (no Python required for end users).
 REM Optional override:
-REM   set BOSTUDIO_PYTHON=C:\full\path\to\python.exe
+REM   set BENCHBO_PYTHON=C:\full\path\to\python.exe
 
 cd /d "%~dp0\.."
 
 set "PY_EXE="
 set "PY_ARGS="
-if defined BOSTUDIO_PYTHON (
-    if exist "%BOSTUDIO_PYTHON%" (
-        set "PY_EXE=%BOSTUDIO_PYTHON%"
+if defined BENCHBO_PYTHON (
+    if exist "%BENCHBO_PYTHON%" (
+        set "PY_EXE=%BENCHBO_PYTHON%"
         set "PY_ARGS="
+    )
+)
+if not defined PY_EXE (
+    if defined BOSTUDIO_PYTHON (
+        if exist "%BOSTUDIO_PYTHON%" (
+            set "PY_EXE=%BOSTUDIO_PYTHON%"
+            set "PY_ARGS="
+        )
     )
 )
 if not defined PY_EXE (
@@ -48,12 +56,12 @@ if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 
 echo [3/4] Building executable with PyInstaller...
-call "%PY_EXE%" %PY_ARGS% -m PyInstaller --noconfirm --clean BOStudio.spec
+call "%PY_EXE%" %PY_ARGS% -m PyInstaller --noconfirm --clean BenchBO.spec
 if errorlevel 1 goto :fail
 
 echo [4/4] Build completed.
-echo Output folder: dist\BOStudio
-echo Launch file : dist\BOStudio\BOStudio.exe
+echo Output folder: dist\BenchBO
+echo Launch file : dist\BenchBO\BenchBO.exe
 goto :eof
 
 :no_python

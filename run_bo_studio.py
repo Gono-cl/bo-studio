@@ -28,7 +28,7 @@ for _module in PRELOAD_MODULES:
 
 DESIRED_PORT = 8501
 APP_PATH = Path(__file__).parent / "main.py"
-APP_STATE_DIR = Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "BOStudio"
+APP_STATE_DIR = Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "BenchBO"
 LAST_PORT_FILE = APP_STATE_DIR / "last_port.txt"
 LAST_SESSION_FILE = APP_STATE_DIR / "last_session.json"
 
@@ -154,11 +154,12 @@ def main() -> None:
     if is_frozen:
         exe_dir = Path(sys.executable).resolve().parent
         storage_root = str(exe_dir)
+        os.environ.setdefault("BENCHBO_STORAGE_ROOT", storage_root)
         os.environ.setdefault("BOSTUDIO_STORAGE_ROOT", storage_root)
     else:
         storage_root = str(Path.cwd().resolve())
 
-    # In packaged EXE mode, reopen existing BO Studio session if already running.
+    # In packaged EXE mode, reopen existing BenchBO session if already running.
     # In source/dev mode, always start a fresh Streamlit server so code edits are
     # reflected immediately (avoids attaching to stale previous sessions).
     if is_frozen:
