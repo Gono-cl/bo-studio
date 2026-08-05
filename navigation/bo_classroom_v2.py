@@ -12,6 +12,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 
 from core.sim.chem_functions import chem_eval_row
 from core.utils.bo_manual import safe_build_optimizer
+from core.utils.path_utils import resource_path
 from core.utils.classroom_gp import fit_known_noise_gp_1d, predict_rescaled_gp
 from core.utils.init_designs import generate_initial_points
 from core.utils.n_init_guidance import recommend_n_init_range, format_n_init_range
@@ -837,46 +838,10 @@ Why this works in chemistry:
 
 
 def _render_bo_loop_scheme() -> None:
-    st.markdown(
-        """
-<div style="display:flex; justify-content:center; margin:6px 0 10px 0;">
-<svg viewBox="0 0 920 420" width="100%" style="max-width:860px; background:#f8fafc; border:1px solid #dbe6f1; border-radius:12px;">
-  <defs>
-    <marker id="arrowHead" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
-      <polygon points="0 0, 10 4, 0 8" fill="#cbd5e1"></polygon>
-    </marker>
-  </defs>
-
-  <!-- Loop arrows -->
-  <path d="M 305 95 Q 460 30 615 95" stroke="#cbd5e1" stroke-width="10" fill="none" marker-end="url(#arrowHead)"></path>
-  <path d="M 675 145 Q 745 210 675 280" stroke="#cbd5e1" stroke-width="10" fill="none" marker-end="url(#arrowHead)"></path>
-  <path d="M 615 328 Q 460 390 305 328" stroke="#cbd5e1" stroke-width="10" fill="none" marker-end="url(#arrowHead)"></path>
-  <path d="M 245 280 Q 175 210 245 145" stroke="#cbd5e1" stroke-width="10" fill="none" marker-end="url(#arrowHead)"></path>
-
-  <!-- Top box -->
-  <rect x="365" y="38" rx="34" ry="34" width="190" height="70" fill="#f58b6b"></rect>
-  <text x="460" y="83" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">Make</text>
-
-  <!-- Right box -->
-  <rect x="670" y="165" rx="30" ry="30" width="190" height="90" fill="#b68ae8"></rect>
-  <text x="765" y="220" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">Analyze</text>
-
-  <!-- Bottom box -->
-  <rect x="365" y="302" rx="34" ry="34" width="190" height="74" fill="#69c5e7"></rect>
-  <text x="460" y="349" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">Model</text>
-
-  <!-- Left box -->
-  <rect x="58" y="158" rx="30" ry="30" width="245" height="110" fill="#f59a2f"></rect>
-  <text x="180" y="208" text-anchor="middle" font-size="20" font-weight="700" fill="#111111">Propose a new</text>
-  <text x="180" y="242" text-anchor="middle" font-size="20" font-weight="700" fill="#111111">experiment</text>
-
-  <!-- Center block -->
-  <rect x="366" y="156" rx="24" ry="24" width="188" height="110" fill="#7ee7ea" stroke="#0f172a" stroke-width="3"></rect>
-  <text x="460" y="224" text-anchor="middle" font-size="20" font-weight="700" fill="#111111">Active Learning</text>
-</svg>
-</div>
-""",
-        unsafe_allow_html=True,
+    st.image(str(resource_path("images/bo_active_learning_loop_v3.png")), use_container_width=True)
+    st.caption(
+        "As more experiments are collected, the surrogate model is updated and becomes more informative, "
+        "so the next BO suggestions are better guided."
     )
 
 
@@ -901,7 +866,7 @@ def _module_intro(teach_mode: str) -> None:
         title="Limitation of OFAT (One-Factor-At-a-Time)",
         paragraphs=[
             "OFAT is intuitive and easy to run, but it changes one variable while keeping others fixed.",
-            "In chemistry this can miss strong interactions and can lock decisions around suboptimal regions.",
+            "In chemistry this can miss variable interactions and can lock decisions around suboptimal regions.",
         ],
         bullets=[
             "Good for quick screening or basic troubleshooting.",
@@ -912,51 +877,34 @@ def _module_intro(teach_mode: str) -> None:
     )
 
     _render_info_card(
-        title="Limitation of classical DoE in expensive campaigns",
+        title="Where DoE becomes difficult",
         paragraphs=[
-            "DoE is statistically rigorous and very useful, but required runs can grow quickly with dimensionality and constraints.",
-            "When each experiment is slow/expensive, fixed designs may be less practical than adaptive sequential decisions.",
-            "When the main goal is factor-effect estimation, interaction interpretation, robustness studies, or formal response-surface modeling, DoE often remains the stronger primary tool.",
+            "DoE is statistically rigorous and very useful, but required runs can grow quickly as variables and constraints increase.",
+            "When each experiment is slow or expensive, a fixed design can be less practical than adaptive sequential decisions.",
         ],
         bullets=[
             "Strength: structured coverage and interaction estimation.",
             "Challenge: budget pressure in high-dimensional or iterative workflows.",
         ],
-        note="Many labs combine DoE principles with adaptive BO: DoE for understanding and BO for efficient sequential optimization.",
+        note="DoE often remains the stronger tool for factor-effect estimation and interpretation. Many labs combine both: DoE for understanding and BO for efficient sequential optimization.",
         card_style=INTRO_CARD_DOE,
     )
 
-    st.markdown("#### Active Learning Loop in BO")
     _render_bo_loop_scheme()
     _render_info_card(
-        title="What Bayesian Optimization does (simple words)",
+        title="How Bayesian Optimization changes the workflow",
         paragraphs=[
-            "Bayesian Optimization is a strategy to optimize expensive experiments with as few trials as possible.",
-            "At each step, it combines current data with a probabilistic model to estimate both expected performance and uncertainty across the search space.",
+            "Bayesian Optimization is a strategy for optimizing expensive experiments with as few trials as possible.",
+            "Instead of fixing the full campaign in advance, it updates the plan after every new result using both predicted performance and model uncertainty.",
         ],
         bullets=[
-            "Use available data to estimate where the objective is likely high.",
-            "Quantify uncertainty in regions that are still poorly explored.",
-            "Select the next experiment by balancing expected gain and information value.",
-            "Update decisions after every new measured result.",
+            "Start with a small set of experiments.",
+            "Fit a surrogate model to estimate expected objective function (yield) and uncertainty.",
+            "Use an acquisition rule to choose the most useful next experiment.",
+            "Run that experiment and update the model.",
         ],
-        note="BO is data-driven and sequential: each new experiment is chosen using what has already been learned, but a finite campaign still does not guarantee the true global optimum.",
+        note="This is why BO is called an active learning strategy: it learns from data and also decides what data to collect next.",
         card_style=INTRO_CARD_BO,
-    )
-
-    _render_info_card(
-        title="Why Bayesian Optimization is an active learning algorithm",
-        paragraphs=[
-            "Active learning means the algorithm does not passively consume random data; it actively chooses which data point to acquire next.",
-            "In BO, the next experiment is selected because it is expected to be the most useful for improving optimization decisions.",
-        ],
-        bullets=[
-            "It asks: which experiment should I run next to learn the most and improve performance fastest?",
-            "The decision changes after each new observation.",
-            "This adaptive loop is what makes BO especially effective for expensive chemical campaigns.",
-        ],
-        note="In short: BO learns from data and also decides what data to collect next.",
-        card_style=INTRO_CARD_ADV,
     )
 
     if teach_mode == "Advanced":
@@ -990,22 +938,13 @@ def _module_learn(teach_mode: str) -> None:
     )
 
     _render_info_card(
-        title="Synthetic chemistry objective function (yield) surface (2D starting point)",
+        title="Why this search problem is hard",
         paragraphs=[
             "A 2D visualization is a good starting point to build BO intuition before moving to higher-dimensional campaigns.",
             "Here we map Temperature and Catalyst loading against predicted objective function (yield) to show peaks, valleys, and narrow high-performing regions.",
         ],
-        note="This simple map helps explain why BO is useful: it guides experiments toward promising zones while learning uncertainty.",
+        note="The main teaching point is that the best region is small, so blindly exploring the full space can waste many experiments.",
         card_style=LEARN_CARD_SURFACE,
-    )
-    _render_info_card(
-        title="How to read this surface plot",
-        bullets=[
-            "Bright regions correspond to higher predicted objective-function (yield) values.",
-            "Wide low-value areas show why random exploration can waste experiments.",
-            "Small high-performing zones explain why model-guided search is useful.",
-        ],
-        card_style=LEARN_CARD_READ,
     )
 
     t_vals, c_vals, z = _surface_grid()
@@ -1019,24 +958,26 @@ def _module_learn(teach_mode: str) -> None:
         f"Approximate optimum in this teaching model: Temperature={best_t:.1f} C, "
         f"Catalyst={best_c:.3f}, objective function (yield)~{best_y:.2f}."
     )
+    st.caption(
+        "Bright regions correspond to higher yield, broad low-value regions show why random search can waste budget, "
+        "and narrow peaks explain why model-guided search is useful."
+    )
 
-    st.markdown("#### 1D Gaussian Process (Mean + Uncertainty)")
+    st.markdown("#### 1D BO Learning Demo")
     if teach_mode == "Beginner":
         _render_info_card(
-            title="Gaussian Process + Acquisition Function: How BO chooses experiments",
+            title="How BO chooses the next experiment",
             paragraphs=[
-                "Use this section to build intuition about how Gaussian Processes and acquisition functions work together to define the next experiment to run.",
-                "Modify parameter values to see how this affects the output. You are optimizing the model shown above, where high objective-function (yield) conditions occupy only a small region of the full search space.",
-                "How to run the simulation:",
+                "This interactive view shows a 1D temperature slice at fixed catalyst loading.",
+                "The Gaussian Process summarizes expected yield and uncertainty, while the acquisition function turns that into the next experiment suggestion.",
             ],
             bullets=[
-                "1) Set the fixed catalyst slice and number of observed points.",
-                "2) Choose initialization method (Random/LHS/Halton).",
-                "3) Choose AF (EI/PI/LCB) and exploration settings (xi or kappa).",
-                "4) Click 'Initialize/Re-run 1D GP Campaign'.",
-                "5) Use 'Run Next BO Suggestion' to continue optimization step by step.",
+                "1) Choose the 1D slice, initialization, and acquisition settings.",
+                "2) Initialize the campaign.",
+                "3) Add BO steps and watch how the GP and AF change.",
+                "4) Compare how different settings move the next suggestion.",
             ],
-            note="Track how the GP and AF behavior changes as more measured points are added.",
+            note="Focus on the idea, not the equations: the model improves as data is added, and the suggestion changes with it.",
         )
     else:
         _render_info_card(
@@ -1144,14 +1085,9 @@ def _module_learn(teach_mode: str) -> None:
     for k, v in widget_defaults.items():
         st.session_state.setdefault(k, v)
 
-    _render_info_card(
-        title="Plot legend and controls",
-        bullets=[
-            "GP plot: blue line = GP mean, blue band = approximate latent-response uncertainty under the GP model, black points = measured experiments.",
-            "AF plot: red line = acquisition score, black diamond = current best next-run suggestion.",
-            "Controls let you test how initialization, AF choice, and exploration strength affect BO behavior.",
-        ],
-        card_style=LEARN_CARD_LEGEND,
+    st.caption(
+        "Plot guide: blue line = GP mean, blue band = approximate uncertainty, black points = measured experiments, "
+        "red line = acquisition score, black diamond = current suggested next run."
     )
     with st.form("learn_gp_form"):
         gp_col1, gp_col2, gp_col3, gp_col4 = st.columns(4)
@@ -1473,7 +1409,7 @@ def _module_learn(teach_mode: str) -> None:
     )
 
     _render_info_card(
-        title="Checkpoint Quiz (2 minutes)",
+        title="Quick checkpoint",
         paragraphs=[
             "Use this quick check to confirm your BO intuition before moving to the next section.",
             "Focus on the roles of the Gaussian Process, Acquisition Function, and initialization strategy.",
@@ -1552,9 +1488,12 @@ def _module_learn(teach_mode: str) -> None:
 def _module_mechanics(teach_mode: str) -> None:
     st.subheader("3) Understand BO Mechanics")
     _render_info_card(
-        title="Mechanics focus: initialization quality + acquisition behavior",
-        paragraphs=["Compare initialization design and acquisition behavior on the same chemistry landscape."],
-        note="Goal: understand why BO suggests certain points and how your settings change that behavior.",
+        title="What you are testing in this section",
+        paragraphs=[
+            "This section moves from intuition to campaign behavior: how initialization quality and acquisition settings change the optimization path.",
+            "You will compare different BO settings on the same chemistry landscape and see which ones reach high-performing regions more efficiently.",
+        ],
+        note="Main question: which settings improve learning speed, and which settings waste budget?",
     )
     with st.expander("Theory: why initialization and acquisition both matter", expanded=False):
         st.markdown(
@@ -1570,30 +1509,18 @@ Acquisition controls what BO does next:
 """
         )
     _render_info_card(
-        title="From Intuition to Real Optimization Campaigns",
+        title="Suggested way to use this page",
         paragraphs=[
-            "In the Intuition section, you learned how the Gaussian Process and Acquisition Function work together to define the next experiment to run.",
-            "That 1D view fixed one variable to simplify interpretation, but real chemistry campaigns typically optimize multiple variables simultaneously with explicit bounds that define the search space.",
-            "In this section, we focus on critical campaign parameters and how they affect optimization of the objective function (yield), especially the number of experiments required to find high-performing conditions within the defined search space.",
-        ],
-        note="Goal: understand which settings accelerate convergence and which settings waste budget.",
-    )
-    _render_info_card(
-        title="How to run this Mechanics section",
-        paragraphs=[
-            "Use this sequence to test how campaign settings affect optimization speed and final performance.",
+            "Change one setting at a time so you can tell what actually caused the behavior change.",
         ],
         bullets=[
-            "1) Choose the number of initial experiments (n_init).",
-            "2) Select an initialization method (Random/LHS/Halton/Maximin LHS).",
-            "3) Select an acquisition function (EI/PI/LCB) and exploration setting (xi or kappa).",
-            "4) Optionally set measurement noise (sigma) to mimic lab variability.",
-            "5) Click 'Initialize/Re-run Mechanics' to start the campaign.",
-            "6) Use 'Run Next BO Suggestion' (or 5 steps) to continue until strong results are reached.",
-            "7) Click 'Save Current Campaign for Comparison' to store this run.",
-            "8) Repeat with different settings and compare saved runs below the graph.",
+            "1) Choose n_init and the initialization method.",
+            "2) Choose the acquisition function and its exploration setting.",
+            "3) Initialize the campaign and inspect the suggested next run.",
+            "4) Advance BO step by step and watch the coverage change.",
+            "5) Save a few runs and compare them below the graph.",
         ],
-        note="Compare different settings and identify which parameter combinations reach high yield with fewer observations.",
+        note="Best first comparison: keep noise at zero and compare only n_init, initialization method, and acquisition choice.",
         card_style=INFO_CARD_STYLE_BLUE,
     )
     if teach_mode != "Beginner":
@@ -1666,6 +1593,10 @@ Acquisition controls what BO does next:
                 key="classroom_mech_noise",
                 help="Adds Gaussian measurement noise to observed objective-function values.",
             )
+
+        st.caption(
+            "Recommended first pass: leave noise at 0.0 and compare n_init, initialization method, and acquisition before changing anything else."
+        )
 
         rec_low, rec_high, rec_text = recommend_n_init_range(2, total_budget=None, mixed=False, multiobjective=False)
         rec_range_text = format_n_init_range(rec_low, rec_high)
@@ -1798,7 +1729,7 @@ Acquisition controls what BO does next:
         history = st.session_state.get("classroom_mech_history", [])
         if isinstance(history, list) and history:
             history_df = pd.DataFrame(history)
-            st.markdown("#### Campaign Comparison")
+            st.markdown("#### Saved Run Comparison")
             st.dataframe(history_df, use_container_width=True)
 
             fig_compare = px.scatter(
@@ -1850,7 +1781,7 @@ Acquisition controls what BO does next:
         st.info("Initialize mechanics campaign to generate initial points and start visualization.")
 
     _render_info_card(
-        title="Mechanics Checkpoint Quiz",
+        title="Quick checkpoint",
         paragraphs=[
             "Quick self-check before moving forward: can you explain how mechanics settings change campaign efficiency?",
         ],
@@ -2008,26 +1939,31 @@ def _workflow_purity(
 
 def _module_workflow(teach_mode: str) -> None:
     st.subheader("4) Chemist Workflow")
-    with st.expander("Theory: why real lab campaigns look messy", expanded=False):
+    _render_info_card(
+        title="What this page is teaching",
+        paragraphs=[
+            "This section moves from a clean 2D classroom example to a more realistic 4D chemistry campaign.",
+            "The target is still to maximize yield, but now the workflow also includes noisy measurements, occasional failed runs, and optional replicate checks.",
+        ],
+        bullets=[
+            "Noise means the measured yield can differ from the underlying response.",
+            "Failed runs consume budget and do not help the model directly.",
+            "Replicates help test whether a promising condition is actually robust.",
+        ],
+        note="Teaching simplification: failed runs are excluded from surrogate updates rather than modeled explicitly as a feasibility problem.",
+        card_style=INFO_CARD_STYLE_BLUE,
+    )
+    with st.expander("Theory: why real lab campaigns are harder than idealized BO", expanded=False):
         st.markdown(
             """
 Real campaigns differ from ideal optimization because:
 - Measurements are noisy (instrument variation, handling, batch effects).
 - Some runs fail and return no usable result.
-- Replicates are needed to estimate confidence around promising conditions.
+- Replicates are often needed before trusting a promising optimum.
 
-BO still works by updating only on valid observations and continuously re-ranking where information value is highest.
+BO can still help by updating the model from valid data and re-ranking which next experiment is most valuable.
 """
         )
-    _render_info_card(
-        title="Important simplification in this workflow demo",
-        paragraphs=[
-            "Failed runs in this classroom simulator consume budget but are excluded from surrogate updates.",
-            "That is a reasonable teaching simplification, but real BO workflows can model feasibility or outcome constraints explicitly rather than simply ignoring failed outcomes.",
-        ],
-        note="Interpret this section as a practical simplified workflow, not a full constrained-BO implementation.",
-        card_style=INFO_CARD_STYLE_BLUE,
-    )
     if teach_mode != "Beginner":
         with st.expander("Advanced math: noisy observations, failures, and replicates", expanded=False):
             st.markdown("**Intuition**")
@@ -2054,12 +1990,10 @@ BO still works by updating only on valid observations and continuously re-rankin
             )
 
     _render_info_card(
-        title="Optimization target: increase the objective function (yield) of a flow chemical reaction",
+        title="4D flow-reaction activity: maximize yield",
         paragraphs=[
-            "After learning how BO parameter selection changes behavior in a 2D search space, we now move to a 4D search space that is closer to a real chemistry campaign.",
-            "As dimensionality increases, the search space grows and campaign design becomes more important, often requiring more experiments to approach the best conditions.",
-            "Simulate a realistic 4-variable campaign with noise, failed runs, and optional replicate checks.",
-            "We optimize four operational variables: Temperature, Catalyst loading, Pressure, and Residence Time.",
+            "You will run a simulated BO campaign for a flow reaction with four controllable variables.",
+            "The goal is to see how initialization, acquisition, noise, failures, and replicate decisions change campaign performance when the search space is larger.",
         ],
         bullets=[
             "Temperature: 20 to 120 C",
@@ -2067,12 +2001,10 @@ BO still works by updating only on valid observations and continuously re-rankin
             "Pressure: 1 to 20 bar",
             "Residence Time: 30 to 300 s",
         ],
-        note="This simulator is calibrated to produce a realistic high-performing region (best runs around ~90%+).",
-        mission_title="Your mission:",
+        note="The synthetic response surface contains a realistic high-performing region, with strong runs around 90%+ yield.",
+        mission_title="Suggested first pass:",
         mission_text=(
-            "Reach the highest possible objective function (yield) using the minimum number of iterations. "
-            "Tune AF, total iterations, n_init, measurement noise, failure probability, and replicate frequency. "
-            "Defaults are intentionally challenging so improvements are visible."
+            "Run the defaults once. Then change one setting at a time, starting with n_init, initial design method, or acquisition before exploring noise, failures, or replicates."
         ),
     )
 
@@ -2082,15 +2014,19 @@ BO still works by updating only on valid observations and continuously re-rankin
     preset_fail = float(st.session_state.get("wf_fail", 0.20))
     preset_repl = int(st.session_state.get("wf_replicate_every", 0))
 
+    st.caption(
+        "Recommended comparison order: keep the default noise/failure settings first, then compare n_init, initial design method, and acquisition one at a time."
+    )
+
     c1, c2, c3 = st.columns(3)
     with c1:
         total_iters = st.number_input(
-            "Total iterations",
+            "Total experiments",
             min_value=5,
             max_value=120,
             value=preset_total,
             key="wf_total_iters",
-            help="Total experiment budget for the campaign. Higher values give BO more chances to improve the objective function (yield).",
+            help="Total experiment budget for the campaign. Higher values give BO more chances to improve yield.",
         )
         n_init = st.number_input(
             "Initial experiments",
@@ -2102,14 +2038,14 @@ BO still works by updating only on valid observations and continuously re-rankin
         )
     with c2:
         init_label = st.selectbox(
-            "Init method",
+            "Initial design method",
             ["Random", "LHS", "Halton", "Maximin LHS"],
             index=0,
             key="wf_init_method",
             help="Strategy for placing initial experiments. LHS/Halton/Maximin LHS usually provide broader early coverage than pure random.",
         )
         acq = st.selectbox(
-            "Acquisition",
+            "Acquisition function",
             ["EI", "PI", "LCB"],
             index=1,
             key="wf_acq",
@@ -2123,16 +2059,16 @@ BO still works by updating only on valid observations and continuously re-rankin
             value=preset_noise,
             step=0.1,
             key="wf_noise",
-            help="Standard deviation of measurement error added to the true objective function (yield). Higher noise makes learning harder and increases uncertainty.",
+            help="Standard deviation of measurement error added to the true yield. Higher noise makes learning harder and increases uncertainty.",
         )
         failure_prob = st.number_input(
-            "Failure probability",
+            "Run-failure probability",
             min_value=0.0,
             max_value=0.9,
             value=preset_fail,
             step=0.01,
             key="wf_fail",
-            help="Chance that a run fails and returns no usable measurement. Failed runs consume iteration budget but do not update BO.",
+            help="Chance that a run fails and returns no usable measurement. Failed runs still consume experiment budget but do not update BO.",
         )
 
     rec_low, rec_high, rec_text = recommend_n_init_range(
@@ -2151,12 +2087,12 @@ BO still works by updating only on valid observations and continuously re-rankin
         )
 
     replicate_every = st.number_input(
-        "Replicate best point every N runs (0 disables)",
+        "Replicate current best every N experiments (0 disables)",
         min_value=0,
         max_value=20,
         value=preset_repl,
         key="wf_replicate_every",
-        help="Every N iterations, rerun the current best condition to verify robustness. Use 0 to disable replicates.",
+        help="Every N experiments, rerun the current best condition to verify robustness. Use 0 to disable replicates.",
     )
     seed = st.number_input(
         "Seed",
@@ -2246,27 +2182,78 @@ BO still works by updating only on valid observations and continuously re-rankin
         m1, m2, m3 = st.columns(3)
         m1.metric("Successful runs", n_ok)
         m2.metric("Failed runs", n_fail)
-        m3.metric("Best measured objective function (yield)", f"{best:.2f}" if pd.notna(best) else "N/A")
+        m3.metric("Best measured yield", f"{best:.2f}" if pd.notna(best) else "N/A")
 
-        st.dataframe(df, use_container_width=True)
-        _render_info_card(
-            title="How to read the Workflow plots",
-            bullets=[
-                "Trend plot: tracks measured objective function (yield) across iterations and highlights failed runs.",
-                "Parallel coordinates plot: each line is one successful 4D condition; color shows measured yield level.",
-                "Look for repeated high-yield color patterns to identify robust operating regions, not only single best points.",
-            ],
-            note="Use these plots together to judge both optimization progress and parameter-pattern consistency.",
-            card_style=INFO_CARD_STYLE_BLUE,
+        display_df = df[
+            [
+                "Iteration",
+                "Temperature",
+                "Catalyst",
+                "Pressure",
+                "ResidenceTimeSec",
+                "MeasuredYield",
+                "Status",
+                "Source",
+            ]
+        ].copy()
+        display_df = display_df.rename(
+            columns={
+                "Temperature": "Temperature (C)",
+                "Catalyst": "Catalyst loading",
+                "Pressure": "Pressure (bar)",
+                "ResidenceTimeSec": "Residence time (s)",
+                "MeasuredYield": "Measured yield",
+                "Source": "Selection stage",
+            }
+        )
+        numeric_display_cols = [
+            "Temperature (C)",
+            "Catalyst loading",
+            "Pressure (bar)",
+            "Residence time (s)",
+            "Measured yield",
+        ]
+        for col in numeric_display_cols:
+            display_df[col] = pd.to_numeric(display_df[col], errors="coerce").round(2)
+        display_df["Status"] = display_df["Status"].astype(str).str.capitalize()
+        display_df["Selection stage"] = (
+            display_df["Selection stage"].astype(str).str.replace("_", " ", regex=False).str.title()
+        )
+        st.dataframe(display_df, use_container_width=True)
+        st.caption(
+            "Read the trend plot first to see whether yield improves over time and where failed runs consumed budget. Then use the parallel-coordinates plot to look for repeated high-yield parameter patterns rather than one isolated best run."
         )
 
-        fig_trend = px.line(df, x="Iteration", y="MeasuredYield", color="Status", markers=True)
+        trend_ok = ok_df.copy()
+        fig_trend = go.Figure()
+        if not trend_ok.empty:
+            fig_trend.add_trace(
+                go.Scatter(
+                    x=trend_ok["Iteration"],
+                    y=trend_ok["MeasuredYield"],
+                    mode="lines+markers",
+                    name="Successful runs",
+                    line=dict(color="#1f77b4", width=2),
+                    marker=dict(color="#1f77b4", size=8),
+                )
+            )
+        failed_iterations = df.loc[df["Status"] == "failed", "Iteration"].tolist()
+        for failed_iteration in failed_iterations:
+            fig_trend.add_vrect(
+                x0=float(failed_iteration) - 0.45,
+                x1=float(failed_iteration) + 0.45,
+                fillcolor="rgba(220, 38, 38, 0.14)",
+                line_width=0,
+            )
         fig_trend.update_layout(
             height=350,
             margin=dict(l=20, r=20, t=30, b=20),
-            yaxis_title="Measured objective function (yield)",
+            yaxis_title="Measured yield",
+            xaxis_title="Experiment",
         )
         st.plotly_chart(fig_trend, use_container_width=True)
+        if failed_iterations:
+            st.caption("Shaded red bands mark failed runs that consumed budget but did not update the BO model.")
 
         parallel_df = ok_df.copy()
         req_cols = ["Temperature", "Catalyst", "Pressure", "ResidenceTimeSec", "MeasuredYield"]
@@ -2281,7 +2268,7 @@ BO still works by updating only on valid observations and continuously re-rankin
                         color=parallel_df["MeasuredYield"],
                         colorscale=px.colors.sequential.Viridis[::-1],
                         showscale=True,
-                        colorbar=dict(title="Measured objective function (yield)"),
+                        colorbar=dict(title="Measured yield"),
                     ),
                     labelfont=dict(color="black", size=13),
                     tickfont=dict(color="black", size=14),
@@ -2311,7 +2298,7 @@ BO still works by updating only on valid observations and continuously re-rankin
                             tickvals=[30, 60, 120, 180, 240, 300],
                         ),
                         dict(
-                            label="Measured objective function (yield)",
+                            label="Measured yield",
                             values=parallel_df["MeasuredYield"],
                             range=[0.0, 100.0],
                             tickvals=[0, 20, 40, 60, 80, 100],
@@ -2336,7 +2323,7 @@ BO still works by updating only on valid observations and continuously re-rankin
             st.plotly_chart(fig_parallel, use_container_width=True)
             st.markdown(
                 "<div style='color:#000000;'>Each line is one successful flow-reaction experiment. "
-                "Line color encodes the measured objective function (yield).</div>",
+                "Line color encodes the measured yield.</div>",
                 unsafe_allow_html=True,
             )
 
@@ -2461,14 +2448,12 @@ A point is Pareto-optimal if no other point is better in all objectives simultan
 So multiobjective optimization returns a **front of tradeoffs**, not one universal optimum.
 - Scalarization is one practical MOBO route: build one temporary score from several objectives, run standard BO on that score, and change weights to express different priorities.
 - A yield-driven campaign followed by Pareto analysis is still useful for intuition, but it is not the same as optimizing both objectives simultaneously.
-- Therefore, the classroom front is the Pareto front of the sampled points in this demo, not a guaranteed Pareto frontier of the whole search space.
-- Hypervolume: how much objective space is dominated by the front (larger is better).
-- Knee point: region where small gain in one objective causes large loss in the other.
+- Therefore, the classroom front shown here is the Pareto front of the sampled points in this demo, not a guaranteed Pareto frontier of the whole search space.
 - Weighted scoring is a decision policy, not a universal truth.
 """
         )
     if teach_mode != "Beginner":
-        with st.expander("Advanced math: Pareto dominance, hypervolume, and scalarization", expanded=False):
+        with st.expander("Advanced math: Pareto dominance and scalarization", expanded=False):
             st.markdown("**Intuition**")
             st.write(
                 "With multiple objectives, no single point is universally best; decisions come from tradeoffs "
@@ -2480,8 +2465,6 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             st.latex(r"u \succ v \iff \left[\forall k,\ u_k\ge v_k\right]\ \wedge\ \left[\exists k,\ u_k>v_k\right]")
             st.write("Pareto set:")
             st.latex(r"\mathcal{P}=\{x_i\ |\ \nexists x_j: f(x_j)\succ f(x_i)\}")
-            st.write("Given a reference point r, hypervolume of Pareto front PF is:")
-            st.latex(r"\mathrm{HV}(\mathrm{PF};r)=\lambda\!\left(\bigcup_{p\in \mathrm{PF}} [r_1,p_1]\times[r_2,p_2]\right)")
             st.write("A weighted-sum scalarization is:")
             st.latex(r"s_{\mathrm{ws}}(x)=\sum_{k=1}^{m} w_k f_k(x),\quad \sum_k w_k=1")
             st.write("A Tchebycheff scalarization is:")
@@ -2490,8 +2473,7 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
             st.latex(r"x^\star=\arg\max_{x\in \mathcal{X}_{\mathrm{obs}}} s(x)")
             st.markdown("**Chemist interpretation**")
             st.write(
-                "Hypervolume tracks frontier quality, while scalarization weights encode project priorities such as "
-                "favoring higher objective function (yield) or higher purity."
+                "Scalarization weights encode project priorities such as favoring higher yield or higher purity."
             )
             st.markdown("**Practical takeaway**")
             st.caption(
@@ -2513,6 +2495,9 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
         ],
         note="Use the controls below to choose whether the classroom campaign is generated by scalarized SO BO or by a simpler yield-driven contrast case.",
         card_style=INFO_CARD_STYLE_BLUE,
+    )
+    st.caption(
+        "Recommended first pass: use scalarized SO BO with fixed 0.50/0.50 weights, then compare it with the yield-driven contrast case."
     )
 
     mode1, mode2, mode3 = st.columns([1.45, 1.0, 1.0])
@@ -2552,7 +2537,7 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
     m1, m2, m3 = st.columns(3)
     with m1:
         mo_total_iters = st.number_input(
-            "Total iterations",
+            "Total experiments",
             min_value=5,
             max_value=120,
             value=int(st.session_state.get("mo_total_iters", 30)),
@@ -2567,13 +2552,13 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
         )
     with m2:
         mo_init_label = st.selectbox(
-            "Init method",
+            "Initial design method",
             ["Random", "LHS", "Halton", "Maximin LHS"],
             index=1,
             key="mo_init_method",
         )
         mo_acq = st.selectbox(
-            "Acquisition for BO engine",
+            "Acquisition function",
             ["EI", "PI", "LCB"],
             index=0,
             key="mo_acq",
@@ -2769,7 +2754,31 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
         "Purity",
         "Source",
     ]
-    st.dataframe(df[[c for c in display_cols if c in df.columns]], use_container_width=True)
+    display_df = df[[c for c in display_cols if c in df.columns]].copy()
+    display_df = display_df.rename(
+        columns={
+            "Temperature": "Temperature (C)",
+            "Catalyst": "Catalyst loading",
+            "Pressure": "Pressure (bar)",
+            "ResidenceTimeSec": "Residence time (s)",
+            "Source": "Selection stage",
+        }
+    )
+    for col in [
+        "Temperature (C)",
+        "Catalyst loading",
+        "Pressure (bar)",
+        "Residence time (s)",
+        "Yield",
+        "Purity",
+    ]:
+        if col in display_df.columns:
+            display_df[col] = pd.to_numeric(display_df[col], errors="coerce").round(2)
+    if "Selection stage" in display_df.columns:
+        display_df["Selection stage"] = (
+            display_df["Selection stage"].astype(str).str.replace("_", " ", regex=False).str.title()
+        )
+    st.dataframe(display_df, use_container_width=True)
 
     campaign_mode_used = None
     if "CampaignMode" in df.columns and not df["CampaignMode"].dropna().empty:
@@ -2807,7 +2816,7 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
     df_ok["Purity"] = pd.to_numeric(df_ok["Purity"], errors="coerce")
     df_ok = df_ok.dropna(subset=objectives)
     if df_ok.empty:
-        st.warning("No valid successful runs available for Pareto analysis. Try lower failure probability or rerun.")
+        st.warning("No valid runs are available for Pareto analysis. Rerun the classroom campaign.")
         return
 
     directions = {"Yield": "Maximize", "Purity": "Maximize"}
@@ -2824,7 +2833,18 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
 
     df_plot = df_ok.reset_index(drop=True)
     pf_mask = df_plot.index.isin(idx_pf)
-    fig = px.scatter(df_plot, x="Yield", y="Purity", color=pf_mask, labels={"color": "Pareto"})
+    df_plot["Pareto class"] = np.where(pf_mask, "Sampled Pareto point", "Dominated sampled point")
+    fig = px.scatter(
+        df_plot,
+        x="Yield",
+        y="Purity",
+        color="Pareto class",
+        labels={"Yield": "Yield", "Purity": "Purity", "Pareto class": "Point type"},
+        color_discrete_map={
+            "Sampled Pareto point": "#d62728",
+            "Dominated sampled point": "#1f77b4",
+        },
+    )
     df_pf = df_plot.iloc[idx_pf].sort_values(by="Yield")
     fig.add_trace(
         go.Scatter(
@@ -2836,6 +2856,7 @@ So multiobjective optimization returns a **front of tradeoffs**, not one univers
         )
     )
     st.plotly_chart(fig, use_container_width=True)
+    st.caption("The red frontier connects the non-dominated sampled points from this classroom run.")
 
 
 st.title("Bayesian Optimization Classroom")
