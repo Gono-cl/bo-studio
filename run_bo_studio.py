@@ -2,12 +2,35 @@ import os
 import importlib
 import socket
 import sys
+import tempfile
+import traceback
 import webbrowser
 import json
 from pathlib import Path
 
-from streamlit import config as _config
-from streamlit.web import bootstrap
+STARTUP_LOG_ENABLED = os.getenv("BENCHBO_STARTUP_LOG", "").strip().lower() in {"1", "true", "yes", "on"}
+STARTUP_LOG_FILE = Path(tempfile.gettempdir()) / "benchbo_startup.log"
+
+
+def _startup_log(message: str) -> None:
+    if not STARTUP_LOG_ENABLED:
+        return
+    try:
+        with STARTUP_LOG_FILE.open("a", encoding="utf-8") as handle:
+            handle.write(f"{message}\n")
+    except Exception:
+        pass
+
+
+_startup_log("startup: module import begin")
+try:
+    from streamlit import config as _config
+    from streamlit.web import bootstrap
+    _startup_log("startup: streamlit imports ok")
+except Exception:
+    _startup_log("startup: streamlit imports failed")
+    _startup_log(traceback.format_exc())
+    raise
 
 PRELOAD_MODULES = [
     "skopt",
@@ -25,12 +48,30 @@ for _module in PRELOAD_MODULES:
         # During development builds some optional deps might be missing; the
         # PyInstaller command adds them explicitly via --hidden-import.
         pass
+    except Exception:
+        _startup_log(f"startup: preload failed for {_module}")
+        _startup_log(traceback.format_exc())
+        raise
+_startup_log("startup: preload imports ok")
 
 DESIRED_PORT = 8501
-APP_PATH = Path(__file__).parent / "main.py"
+def _resolve_bundle_root() -> Path:
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            return Path(meipass).resolve()
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+
+BUNDLE_ROOT = _resolve_bundle_root()
+APP_PATH = BUNDLE_ROOT / "main.py"
 APP_STATE_DIR = Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "BenchBO"
 LAST_PORT_FILE = APP_STATE_DIR / "last_port.txt"
 LAST_SESSION_FILE = APP_STATE_DIR / "last_session.json"
+
+_startup_log(f"startup: bundle root {BUNDLE_ROOT}")
+_startup_log(f"startup: app path {APP_PATH} exists={APP_PATH.exists()}")
 
 
 def _is_port_in_use(host: str, port: int) -> bool:
@@ -146,6 +187,7 @@ def configure_streamlit(port: int) -> None:
 
 
 def main() -> None:
+    _startup_log("startup: main entered")
     is_frozen = bool(getattr(sys, "frozen", False))
     mode = "frozen" if is_frozen else "source"
     storage_root = ""
@@ -172,9 +214,13 @@ def main() -> None:
             return
 
     selected_port = _find_available_port(DESIRED_PORT)
+    _startup_log(f"startup: selected port {selected_port}")
     _save_last_session(selected_port, mode=mode, storage_root=storage_root)
+    _startup_log("startup: session saved")
     configure_streamlit(selected_port)
+    _startup_log("startup: streamlit configured")
     # streamlit.web.bootstrap.run expects is_hello as a bool (2nd arg).
+    _startup_log("startup: bootstrap.run begin")
     bootstrap.run(str(APP_PATH), False, [], {})
 
 

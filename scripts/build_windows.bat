@@ -59,7 +59,11 @@ echo [3/4] Building executable with PyInstaller...
 call "%PY_EXE%" %PY_ARGS% -m PyInstaller --noconfirm --clean BenchBO.spec
 if errorlevel 1 goto :fail
 
-echo [4/4] Build completed.
+echo [4/4] Copying end-user quick guide...
+copy /y QUICK_START.txt dist\BenchBO\QUICK_START.txt >nul
+if errorlevel 1 goto :fail
+
+echo [5/5] Build completed.
 echo Output folder: dist\BenchBO
 echo Launch file : dist\BenchBO\BenchBO.exe
 goto :eof

@@ -19,7 +19,7 @@ BenchBO can be used in two ways:
 
 Recommended distribution model:
 
-- end users download a prebuilt Windows release from a cloud-hosted folder,
+- end users download a prebuilt Windows release from the shared portable package,
 - developers and reviewers can still run the software from source.
 
 ## Why BenchBO
@@ -90,12 +90,17 @@ The full step-by-step walkthrough is documented in `docs/EXAMPLE_WORKFLOW.md`.
 
 For most end users, the recommended route is to download a prebuilt Windows release instead of building the app locally.
 
-After downloading, run:
+Download:
 
-`dist\BenchBO\BenchBO.exe`
+[BenchBO v0.1.0 Windows portable release (.zip)](https://fraunhofer-my.sharepoint.com/:u:/g/personal/gonzalo_araya_vargas_ict_fraunhofer_de/IQADfLmFb8VyRZF9KsuBv1JkAWRjZGiStnWK5JWl-TO5OeY?e=8CY8RX)
+
+After extracting the zip, run:
+
+`BenchBO\BenchBO.exe`
 
 Important:
 
+- Extract the full zip before launching the application.
 - The packaged app folder includes `QUICK_START.txt` for new users.
 - Share the whole portable app folder or a zip of it, not only `BenchBO.exe`.
 - Keep `BenchBO.exe` together with the bundled `_internal` folder.
